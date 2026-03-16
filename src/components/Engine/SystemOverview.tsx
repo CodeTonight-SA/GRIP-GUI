@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, Dna, Layers, Sparkles, Shield, Cpu, Brain } from 'lucide-react';
+import { Activity, Dna, Layers, Sparkles, Shield, Cpu, Brain, type LucideIcon } from 'lucide-react';
 
 interface SystemStat {
   label: string;
   value: string | number;
-  icon: React.ElementType;
+  icon: LucideIcon;
   accent?: boolean;
 }
 

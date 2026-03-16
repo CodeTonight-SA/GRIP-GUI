@@ -4,6 +4,7 @@ import { GRIP_CONCEPTS } from '@/lib/grip-concepts';
 import Link from 'next/link';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import SystemOverview from '@/components/Engine/SystemOverview';
+import VortexScene from '@/components/Vortex';
 
 export default function LearnPage() {
   return (
@@ -19,6 +20,11 @@ export default function LearnPage() {
           smarter, safer, and more useful. No jargon — just clear explanations of
           how it works and why it matters.
         </p>
+      </div>
+
+      {/* Vortex Hero */}
+      <div className="mb-8 border border-[var(--border)] overflow-hidden">
+        <VortexScene height={300} autoRotate showLabels={false} />
       </div>
 
       {/* System Overview */}

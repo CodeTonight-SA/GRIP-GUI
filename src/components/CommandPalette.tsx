@@ -56,6 +56,9 @@ export default function CommandPalette() {
     { id: 'action-dark-mode', label: 'Toggle Dark Mode', description: 'Switch between light and dark', category: 'ACTIONS', action: () => {
       document.documentElement.classList.toggle('dark');
     }},
+
+    // Hidden: only appears when searching "vortex"
+    { id: 'easter-vortex', label: 'Vortex', description: 'Enter the knowledge double helix', category: 'HIDDEN', action: () => router.push('/vortex') },
   ];
 
   // Filter commands
@@ -64,7 +67,8 @@ export default function CommandPalette() {
         cmd.label.toLowerCase().includes(query.toLowerCase()) ||
         cmd.description.toLowerCase().includes(query.toLowerCase())
       )
-    : commands.filter(cmd => cmd.category === 'NAVIGATE' || cmd.category === 'ACTIONS');
+    : commands.filter(cmd => cmd.category === 'NAVIGATE' || cmd.category === 'ACTIONS')
+        .filter(cmd => cmd.category !== 'HIDDEN');
 
   // Group by category
   const grouped = filtered.reduce<Record<string, CommandItem[]>>((acc, cmd) => {
