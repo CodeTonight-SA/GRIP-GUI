@@ -2,6 +2,8 @@
 
 import { useStore } from '@/store';
 import Sidebar from './Sidebar';
+import CommandPalette from './CommandPalette';
+import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Download, ExternalLink, RotateCw, Loader2 } from 'lucide-react';
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -114,8 +116,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // Initialize dark mode from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('dorothy-dark-mode');
-    if (saved === 'true') {
+    // Check system preference first, then localStorage override
+    const savedPref = localStorage.getItem('grip-dark-mode');
+    if (savedPref !== null) {
+      setDarkMode(savedPref === 'true');
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       setDarkMode(true);
     }
   }, [setDarkMode]);
@@ -123,7 +128,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   // Sync dark class on <html> and persist to localStorage
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
-    localStorage.setItem('dorothy-dark-mode', String(darkMode));
+    localStorage.setItem('grip-dark-mode', String(darkMode));
   }, [darkMode]);
 
   // Global vault unread badge: listen for new documents even when VaultView is not mounted
@@ -167,19 +172,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <div className="min-h-screen bg-bg-primary relative">
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-bg-secondary border-b border-border-primary z-40 flex items-center px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-[var(--card)] border-b border-[var(--border)] z-40 flex items-center px-4">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 -ml-2 text-text-secondary hover:text-text-primary transition-colors"
+          className="p-2 -ml-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
           aria-label="Toggle menu"
         >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
         <div className="flex items-center gap-2 ml-2">
-          <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-            <img src="/dorothy-without-text.png" alt="Dorothy" className="w-full h-full object-cover scale-150" />
-          </div>
-          <span className="text-base font-semibold tracking-wide text-foreground" style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}>Dorothy</span>
+          <div className="w-5 h-5 bg-[var(--primary)] shrink-0" />
+          <span className="font-mono text-sm font-bold tracking-widest text-[var(--foreground)]">GRIP</span>
         </div>
       </div>
 
@@ -199,6 +202,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {/* Sidebar - Desktop: always visible, Mobile: drawer */}
       <Sidebar isMobile={isMobile} />
+
+      {/* Command Palette */}
+      <CommandPalette />
+      <KeyboardShortcutsHelp />
 
       {/* Main Content */}
       <motion.main
@@ -229,13 +236,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
-                  <img src="/dorothy-without-text.png" alt="Dorothy" className="w-full h-full object-cover scale-150" />
-                </div>
+                <div className="w-8 h-8 bg-[var(--primary)] shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-foreground">Update Available</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Dorothy {updateInfo.latestVersion} is ready
+                  <h3 className="font-mono text-sm font-bold tracking-widest text-[var(--foreground)]">UPDATE AVAILABLE</h3>
+                  <p className="font-mono text-xs text-[var(--muted-foreground)] tracking-wider">
+                    GRIP {updateInfo.latestVersion}
                   </p>
                 </div>
               </div>

@@ -30,7 +30,7 @@ import { COLUMN_ORDER } from './constants';
 
 // Lazy load the terminal dialog
 const AgentTerminalDialog = dynamic(
-  () => import('@/components/AgentWorld/AgentTerminalDialog'),
+  () => import('@/components/AgentTerminalDialog'),
   { ssr: false }
 );
 

@@ -3,13 +3,13 @@ import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
 
 export const metadata: Metadata = {
-  title: "Dorothy | Agent Control Center",
-  description: "Manage and monitor your Claude Code agents, projects, and tasks in real-time",
+  title: "GRIP | Knowledge Work Engine",
+  description: "Cross-domain knowledge work engine with mechanical safety, recursive self-improvement, and adaptive intelligence",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Dorothy",
+    title: "GRIP",
   },
   formatDetection: {
     telephone: false,
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#3D9B94",
+  themeColor: "#0891b2",
   viewportFit: "cover",
 };
 

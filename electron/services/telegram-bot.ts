@@ -284,7 +284,7 @@ function sendUnauthorizedMessage(chatId: string | number) {
     `🔒 *Authentication Required*\n\n` +
     `You are not authorized to use this bot.\n\n` +
     `Use \`/auth <token>\` with your secret token to authenticate.\n\n` +
-    `_Get the token from Dorothy Settings → Telegram_`,
+    `_Get the token from GRIP Settings → Telegram_`,
     { parse_mode: 'Markdown' }
   );
 }

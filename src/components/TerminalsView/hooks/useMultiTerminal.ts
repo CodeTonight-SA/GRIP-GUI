@@ -6,7 +6,7 @@ import type { FitAddon } from 'xterm-addon-fit';
 import type { AgentStatus } from '@/types/electron';
 import { isElectron } from '@/hooks/useElectron';
 import { TERMINAL_CONFIG } from '../constants';
-import { getTerminalTheme } from '@/components/AgentWorld/constants';
+import { getTerminalTheme } from '@/lib/terminal/constants';
 
 interface TerminalEntry {
   terminal: Terminal;
