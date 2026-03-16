@@ -609,6 +609,44 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getToken: () => ipcRenderer.invoke('api:getToken') as Promise<string>,
   },
 
+  // GRIP Engine — persistent PTY sessions for Knowledge Work Engine
+  grip: {
+    startSession: (options?: { model?: string }) =>
+      ipcRenderer.invoke('grip:startSession', options),
+    sendMessage: (message: string) =>
+      ipcRenderer.invoke('grip:sendMessage', message),
+    prompt: (options: { prompt: string; model?: string; sessionId?: string }) =>
+      ipcRenderer.invoke('grip:prompt', options),
+    getSessionStatus: () =>
+      ipcRenderer.invoke('grip:getSessionStatus'),
+    killSession: () =>
+      ipcRenderer.invoke('grip:killSession'),
+    getHealth: () =>
+      ipcRenderer.invoke('grip:getHealth'),
+
+    // Event listeners for streaming output
+    onOutput: (callback: (event: { sessionId: string; data: string }) => void) => {
+      const handler = (_: unknown, event: { sessionId: string; data: string }) => callback(event);
+      ipcRenderer.on('grip:output', handler);
+      return () => { ipcRenderer.removeListener('grip:output', handler); };
+    },
+    onSessionEnd: (callback: (event: { sessionId: string; exitCode: number }) => void) => {
+      const handler = (_: unknown, event: { sessionId: string; exitCode: number }) => callback(event);
+      ipcRenderer.on('grip:sessionEnd', handler);
+      return () => { ipcRenderer.removeListener('grip:sessionEnd', handler); };
+    },
+    onPromptOutput: (callback: (event: { sessionId: string; data: string }) => void) => {
+      const handler = (_: unknown, event: { sessionId: string; data: string }) => callback(event);
+      ipcRenderer.on('grip:promptOutput', handler);
+      return () => { ipcRenderer.removeListener('grip:promptOutput', handler); };
+    },
+    onPromptDone: (callback: (event: { sessionId: string; exitCode: number }) => void) => {
+      const handler = (_: unknown, event: { sessionId: string; exitCode: number }) => callback(event);
+      ipcRenderer.on('grip:promptDone', handler);
+      return () => { ipcRenderer.removeListener('grip:promptDone', handler); };
+    },
+  },
+
   // Platform info
   platform: process.platform,
 });

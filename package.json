@@ -18,12 +18,12 @@
     "electron:pack": "tsc -p electron/tsconfig.json && cd mcp-orchestrator && npm install && npm run build && cd .. && cd mcp-telegram && npm install && npm run build && cd .. && cd mcp-kanban && npm install && npm run build && cd .. && cd mcp-vault && npm install && npm run build && cd .. && cd mcp-socialdata && npm install && npm run build && cd .. && cd mcp-x && npm install && npm run build && cd .. && cd mcp-world && npm install && npm run build && cd .. && electron-builder --dir --mac"
   },
   "build": {
-    "appId": "io.dorothy.app",
-    "productName": "Dorothy",
+    "appId": "co.codetonight.grip",
+    "productName": "GRIP",
     "publish": {
       "provider": "github",
-      "owner": "Charlie85270",
-      "repo": "dorothy"
+      "owner": "CodeTonight-SA",
+      "repo": "GRIP-GUI"
     },
     "directories": {
       "output": "release"
@@ -118,7 +118,7 @@
       ]
     },
     "dmg": {
-      "title": "Dorothy",
+      "title": "GRIP",
       "contents": [
         {
           "x": 130,

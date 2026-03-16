@@ -1,25 +1,53 @@
 'use client';
 
-import { useState } from 'react';
-import { GRIP_MODES, MODE_CATEGORIES, type ModeCategory, type GripMode } from '@/lib/grip-modes';
-import { Check } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { GRIP_MODES, MODE_CATEGORIES, type ModeCategory } from '@/lib/grip-modes';
+import { Check, Loader2 } from 'lucide-react';
 
 export default function ModesPage() {
-  const [activeModes, setActiveModes] = useState<string[]>(['code']);
+  const [activeModes, setActiveModes] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<ModeCategory | 'all'>('all');
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  const toggleMode = (modeId: string) => {
+  // Load active modes from real ~/.claude/.active-modes
+  useEffect(() => {
+    fetch('/api/grip/modes')
+      .then(res => res.json())
+      .then(data => {
+        if (data.modes?.length) setActiveModes(data.modes);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  // Save modes to real file when selection changes
+  const saveModes = useCallback(async (modes: string[]) => {
+    setSaving(true);
+    try {
+      await fetch('/api/grip/modes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modes }),
+      });
+    } catch { /* silent fail */ }
+    setSaving(false);
+  }, []);
+
+  const toggleMode = useCallback((modeId: string) => {
     setActiveModes(prev => {
+      let next: string[];
       if (prev.includes(modeId)) {
-        return prev.filter(m => m !== modeId);
+        next = prev.filter(m => m !== modeId);
+      } else if (prev.length >= 3) {
+        next = [...prev.slice(1), modeId];
+      } else {
+        next = [...prev, modeId];
       }
-      if (prev.length >= 3) {
-        // Replace oldest
-        return [...prev.slice(1), modeId];
-      }
-      return [...prev, modeId];
+      saveModes(next);
+      return next;
     });
-  };
+  }, [saveModes]);
 
   const filteredModes = activeCategory === 'all'
     ? GRIP_MODES
@@ -48,6 +76,10 @@ export default function ModesPage() {
             <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
               ({activeModes.length}/3)
             </span>
+            {saving && <Loader2 className="w-3 h-3 text-[var(--primary)] animate-spin" />}
+            {loaded && !saving && activeModes.length > 0 && (
+              <span className="font-mono text-[8px] tracking-widest text-[var(--success)]">SAVED</span>
+            )}
           </div>
         )}
       </div>
@@ -56,7 +88,7 @@ export default function ModesPage() {
       <div className="flex flex-wrap gap-2 mb-6">
         <button
           onClick={() => setActiveCategory('all')}
-          className={`font-mono text-[10px] tracking-widest px-3 py-1.5 border transition-colors ${
+          className={`font-mono text-[10px] tracking-widest px-3 py-1.5 border transition-colors min-h-[44px] ${
             activeCategory === 'all'
               ? 'border-[var(--primary)] text-[var(--primary)]'
               : 'border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -70,7 +102,7 @@ export default function ModesPage() {
             <button
               key={key}
               onClick={() => setActiveCategory(key)}
-              className={`font-mono text-[10px] tracking-widest px-3 py-1.5 border transition-colors ${
+              className={`font-mono text-[10px] tracking-widest px-3 py-1.5 border transition-colors min-h-[44px] ${
                 activeCategory === key
                   ? 'border-[var(--primary)] text-[var(--primary)]'
                   : 'border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -82,7 +114,7 @@ export default function ModesPage() {
         })}
       </div>
 
-      {/* Mode Grid — Asymmetric: 5+7 split */}
+      {/* Mode Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredModes.map((mode) => {
           const isActive = activeModes.includes(mode.id);
@@ -90,7 +122,7 @@ export default function ModesPage() {
             <button
               key={mode.id}
               onClick={() => toggleMode(mode.id)}
-              className={`text-left p-5 border transition-all ${
+              className={`text-left p-5 border transition-all min-h-[44px] ${
                 isActive
                   ? 'border-[var(--primary)] bg-[var(--primary)]/5'
                   : 'border-[var(--border)] hover:border-[var(--primary)]/50'
