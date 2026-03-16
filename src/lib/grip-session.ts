@@ -52,24 +52,52 @@ export interface StreamEvent {
 }
 
 /**
+ * Strip ANSI escape codes and terminal control sequences from text.
+ * These leak through when PTY is used instead of child_process.
+ */
+export function stripAnsi(text: string): string {
+  return text
+    // Standard ANSI escape sequences
+    .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+    // OSC sequences (title setting, etc.)
+    .replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, '')
+    // Other escape sequences
+    .replace(/\x1b[^[(\x1b]*(?:\x1b|$)/g, '')
+    // Remaining control characters (except newline, tab)
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
+    // Common terminal bracket sequences that slip through
+    .replace(/\[\?[0-9;]*[a-zA-Z]/g, '')
+    .replace(/\][0-9];[^\x07]*\x07?/g, '')
+    .replace(/\[<u/g, '')
+    .trim();
+}
+
+/**
  * Extract text content from a stream-json event.
  * Handles multiple event shapes from Claude CLI output.
  */
 export function extractTextFromEvent(event: StreamEvent): string | null {
+  // Skip non-text events entirely — these should NEVER be shown to the user
+  const skipTypes = ['system', 'init', 'tool_use', 'tool_result', 'content_block_start',
+    'content_block_stop', 'message_start', 'message_stop', 'ping'];
+  if (skipTypes.includes(event.type)) return null;
+  // Also skip if event has subtype 'init' (system init events)
+  if ((event as unknown as Record<string, unknown>).subtype === 'init') return null;
+
   // Message with content blocks (assistant turn complete)
   if (event.message?.content) {
     const texts = event.message.content
       .filter((b) => b.type === 'text')
-      .map((b) => b.text || '');
+      .map((b) => stripAnsi(b.text || ''));
     if (texts.length) return texts.join('');
   }
   // Text delta (streaming chunk)
   if (event.delta?.type === 'text_delta' && event.delta.text) {
-    return event.delta.text;
+    return stripAnsi(event.delta.text);
   }
   // Plain text event
   if (event.type === 'assistant' && typeof event.text === 'string') {
-    return event.text;
+    return stripAnsi(event.text);
   }
   return null;
 }
@@ -157,9 +185,10 @@ export async function* sendToGrip(
             yield { type: 'metrics', data: metrics };
           }
         } catch {
-          // Non-JSON line — forward as raw text
-          if (line.trim()) {
-            yield { type: 'text', data: line };
+          // Non-JSON line — strip ANSI, skip raw JSON fragments
+          const cleaned = stripAnsi(line);
+          if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+            yield { type: 'text', data: cleaned };
           }
         }
       }
@@ -228,9 +257,11 @@ async function* sendToGripElectron(
             if (resolve) { resolve(); resolve = null; }
           }
         } catch {
-          // Raw text output
-          if (line.trim()) {
-            chunks.push({ type: 'text', data: line });
+          // Non-JSON line — strip ANSI and only forward if it has real content
+          const cleaned = stripAnsi(line);
+          // Skip raw JSON objects that failed to parse (init events, etc.)
+          if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+            chunks.push({ type: 'text', data: cleaned });
             if (resolve) { resolve(); resolve = null; }
           }
         }
