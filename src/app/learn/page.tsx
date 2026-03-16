@@ -3,6 +3,7 @@
 import { GRIP_CONCEPTS } from '@/lib/grip-concepts';
 import Link from 'next/link';
 import { ArrowRight, BookOpen } from 'lucide-react';
+import SystemOverview from '@/components/Engine/SystemOverview';
 
 export default function LearnPage() {
   return (
@@ -18,6 +19,11 @@ export default function LearnPage() {
           smarter, safer, and more useful. No jargon — just clear explanations of
           how it works and why it matters.
         </p>
+      </div>
+
+      {/* System Overview */}
+      <div className="mb-8">
+        <SystemOverview />
       </div>
 
       {/* Quick start */}
