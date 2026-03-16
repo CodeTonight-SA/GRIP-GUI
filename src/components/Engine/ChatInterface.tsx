@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Sparkles, Terminal as TerminalIcon, Square } from 'lucide-react';
 import { sendToGrip, type GripMessage, type GripMetrics } from '@/lib/grip-session';
+import MarkdownContent from './MarkdownContent';
+import ModelSelector from './ModelSelector';
 
 const SUGGESTED_PROMPTS = [
   { text: 'What can GRIP help me with?', icon: '?' },
@@ -16,6 +18,7 @@ export default function ChatInterface() {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
+  const [model, setModel] = useState('sonnet');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -51,7 +54,7 @@ export default function ChatInterface() {
     let metrics: GripMetrics | undefined;
 
     try {
-      for await (const event of sendToGrip(input.trim(), sessionId)) {
+      for await (const event of sendToGrip(input.trim(), sessionId, model)) {
         if (event.type === 'text') {
           fullText += event.data as string;
           setMessages(prev => {
@@ -177,7 +180,7 @@ export default function ChatInterface() {
                       ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                       : 'border border-[var(--border)] text-[var(--foreground)]'
                   }`}>
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    <MarkdownContent content={msg.content} />
                     {msg.streaming && (
                       <span className="inline-block w-2 h-4 bg-[var(--primary)] animate-pulse ml-0.5" />
                     )}
@@ -262,9 +265,12 @@ export default function ChatInterface() {
             )}
           </div>
           <div className="flex items-center justify-between mt-2">
-            <p className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-50">
-              ENTER TO SEND | SHIFT+ENTER FOR NEW LINE | CMD+K FOR COMMANDS
-            </p>
+            <div className="flex items-center gap-3">
+              <ModelSelector value={model} onChange={setModel} compact />
+              <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-50">
+                ENTER TO SEND | CMD+K
+              </span>
+            </div>
             {sessionId && (
               <span className="font-mono text-[8px] tracking-wider text-[var(--primary)] opacity-60">
                 SESSION: {sessionId.slice(0, 8)}
