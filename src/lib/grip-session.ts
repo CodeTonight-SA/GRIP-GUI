@@ -97,7 +97,9 @@ export function isElectronEnv(): boolean {
 }
 
 /**
- * Send a prompt to GRIP via the API route (browser mode).
+ * Send a prompt to GRIP.
+ * In Electron: uses IPC to grip-engine-handlers (PTY-based, ultra-fast).
+ * In Browser: uses /api/grip/chat API route (spawns claude -p).
  * Returns an async iterator of text chunks for streaming display.
  */
 export async function* sendToGrip(
@@ -105,6 +107,13 @@ export async function* sendToGrip(
   sessionId?: string,
   model: string = 'sonnet',
 ): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
+  // Electron path: use IPC for real PTY streaming
+  if (isElectronEnv()) {
+    yield* sendToGripElectron(prompt, sessionId, model);
+    return;
+  }
+
+  // Browser path: use API route
   try {
     const response = await fetch('/api/grip/chat', {
       method: 'POST',
@@ -170,5 +179,90 @@ export async function* sendToGrip(
     yield { type: 'done', data: '' };
   } catch (err) {
     yield { type: 'error', data: `Connection error: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+/**
+ * Electron IPC path — uses grip: handlers for PTY-based streaming.
+ * Collects output via event listeners, yields as text chunks.
+ */
+async function* sendToGripElectron(
+  prompt: string,
+  sessionId?: string,
+  model: string = 'sonnet',
+): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const api = (window as any).electronAPI?.grip;
+  if (!api) {
+    yield { type: 'error', data: 'Electron GRIP API not available' };
+    return;
+  }
+
+  try {
+    // Use one-shot prompt mode (spawns claude -p with stream-json)
+    const result = await api.prompt({ prompt, model, sessionId });
+    if (!result.success) {
+      yield { type: 'error', data: result.error || 'Failed to start prompt' };
+      return;
+    }
+
+    const promptSessionId = result.sessionId;
+
+    // Collect output via events using a promise-based queue
+    const chunks: Array<{ type: 'text' | 'done'; data: string }> = [];
+    let resolve: (() => void) | null = null;
+    let done = false;
+
+    const unsubOutput = api.onPromptOutput((event: { sessionId: string; data: string }) => {
+      if (event.sessionId !== promptSessionId) return;
+
+      // Parse stream-json lines
+      const lines = event.data.split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const parsed: StreamEvent = JSON.parse(line);
+          const text = extractTextFromEvent(parsed);
+          if (text) {
+            chunks.push({ type: 'text', data: text });
+            if (resolve) { resolve(); resolve = null; }
+          }
+        } catch {
+          // Raw text output
+          if (line.trim()) {
+            chunks.push({ type: 'text', data: line });
+            if (resolve) { resolve(); resolve = null; }
+          }
+        }
+      }
+    });
+
+    const unsubDone = api.onPromptDone((event: { sessionId: string; exitCode: number }) => {
+      if (event.sessionId !== promptSessionId) return;
+      done = true;
+      chunks.push({ type: 'done', data: '' });
+      if (resolve) { resolve(); resolve = null; }
+    });
+
+    // Yield chunks as they arrive
+    try {
+      while (!done || chunks.length > 0) {
+        if (chunks.length > 0) {
+          const chunk = chunks.shift()!;
+          if (chunk.type === 'done') break;
+          yield { type: 'text', data: chunk.data };
+        } else {
+          // Wait for next chunk
+          await new Promise<void>(r => { resolve = r; });
+        }
+      }
+    } finally {
+      unsubOutput();
+      unsubDone();
+    }
+
+    yield { type: 'done', data: '' };
+  } catch (err) {
+    yield { type: 'error', data: `Electron IPC error: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
