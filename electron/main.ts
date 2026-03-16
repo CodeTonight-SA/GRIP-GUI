@@ -88,7 +88,9 @@ import { registerVaultHandlers } from './handlers/vault-handlers';
 import { registerWorldHandlers } from './handlers/world-handlers';
 import { registerGripEngineHandlers } from './handlers/grip-engine-handlers';
 import { initVaultDb, closeVaultDb } from './services/vault-db';
-import { initAutoUpdater, checkForUpdates, setMainWindowGetter } from './services/update-checker';
+// Auto-updater disabled — was pointing to Dorothy GitHub (Charlie85270/Dorothy)
+// TODO: Re-enable with GRIP-specific update mechanism (CodeTonight-SA/GRIP-GUI)
+// import { initAutoUpdater, checkForUpdates, setMainWindowGetter } from './services/update-checker';
 import { initKanbanAutomation, findMatchingAgent, createAgentForTask, startAgentForTask } from './services/kanban-automation';
 
 // Utils
@@ -548,18 +550,10 @@ app.whenReady().then(async () => {
   await setupMcpOrchestrator(appSettings);
   await configureStatusHooks();
 
-  // Initialize electron-updater (wires up IPC events for progress, downloaded, error)
-  initAutoUpdater(getMainWindow);
-  setMainWindowGetter(getMainWindow);
-
-  // Auto-check for updates on startup (electron-updater sends 'app:update-available' automatically)
-  if (appSettings.autoCheckUpdates !== false) {
-    setTimeout(() => {
-      checkForUpdates().catch((err) => {
-        console.error('Auto-update check failed:', err);
-      });
-    }, 5000);
-  }
+  // Auto-updater disabled — was pointing to Dorothy GitHub
+  // TODO: Re-enable with GRIP-specific update mechanism
+  // initAutoUpdater(getMainWindow);
+  // setMainWindowGetter(getMainWindow);
 
   console.log('App initialization complete');
 });

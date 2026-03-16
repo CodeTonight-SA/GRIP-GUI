@@ -13,6 +13,7 @@
  */
 import { ipcMain, BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
+import { spawn as cpSpawn } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 
@@ -118,7 +119,8 @@ export function registerGripEngineHandlers() {
 
   /**
    * Send a prompt (non-interactive, one-shot).
-   * Uses `claude -p` with stream-json for structured output.
+   * Uses child_process.spawn (NOT pty) with stream-json for clean JSONL output.
+   * PTY adds ANSI escape codes that corrupt the JSON stream.
    */
   ipcMain.handle('grip:prompt', async (_event, options: {
     prompt: string;
@@ -132,22 +134,38 @@ export function registerGripEngineHandlers() {
     args.push(prompt);
 
     try {
-      const ptyProcess = pty.spawn('claude', args, {
-        name: 'xterm-256color',
-        cols: 120,
-        rows: 40,
+      const proc = cpSpawn('claude', args, {
         cwd: GRIP_DIR,
         env: { ...process.env, HOME: os.homedir() },
       });
 
       const promptSessionId = crypto.randomUUID();
 
-      ptyProcess.onData((data: string) => {
-        sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data });
+      proc.stdout.on('data', (data: Buffer) => {
+        sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data: data.toString() });
       });
 
-      ptyProcess.onExit(({ exitCode }) => {
-        sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode });
+      proc.stderr.on('data', (data: Buffer) => {
+        // Log stderr but don't forward raw errors to renderer
+        const text = data.toString();
+        if (text.includes('Error') || text.includes('error')) {
+          sendToRenderer('grip:promptOutput', {
+            sessionId: promptSessionId,
+            data: JSON.stringify({ type: 'error', message: text.trim() }) + '\n',
+          });
+        }
+      });
+
+      proc.on('close', (exitCode) => {
+        sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: exitCode || 0 });
+      });
+
+      proc.on('error', (err) => {
+        sendToRenderer('grip:promptOutput', {
+          sessionId: promptSessionId,
+          data: JSON.stringify({ type: 'error', message: err.message }) + '\n',
+        });
+        sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: 1 });
       });
 
       return { success: true, sessionId: promptSessionId };
