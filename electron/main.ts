@@ -1,7 +1,7 @@
 /**
- * Dorothy - Main Electron Entry Point
+ * GRIP Knowledge Work Engine — Main Electron Entry Point
  *
- * This file initializes and wires together all the modular components:
+ * This file initialises and wires together all the modular components:
  * - Window management and protocol handling
  * - Agent state and PTY management
  * - IPC handlers for renderer communication
@@ -86,6 +86,7 @@ import { registerCLIPathsHandlers } from './handlers/cli-paths-handlers';
 import { registerKanbanHandlers } from './handlers/kanban-handlers';
 import { registerVaultHandlers } from './handlers/vault-handlers';
 import { registerWorldHandlers } from './handlers/world-handlers';
+import { registerGripEngineHandlers } from './handlers/grip-engine-handlers';
 import { initVaultDb, closeVaultDb } from './services/vault-db';
 import { initAutoUpdater, checkForUpdates, setMainWindowGetter } from './services/update-checker';
 import { initKanbanAutomation, findMatchingAgent, createAgentForTask, startAgentForTask } from './services/kanban-automation';
@@ -383,6 +384,7 @@ app.whenReady().then(async () => {
 
   // Register world (generative zone) handlers
   registerWorldHandlers({ getMainWindow });
+  registerGripEngineHandlers();
 
   // Initialize kanban automation service
   initKanbanAutomation({
