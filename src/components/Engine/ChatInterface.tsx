@@ -3,6 +3,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Sparkles, Terminal as TerminalIcon, Square } from 'lucide-react';
 import { sendToGrip, type GripMessage, type GripMetrics } from '@/lib/grip-session';
+import {
+  getChatMessages,
+  saveChatMessages,
+  createChatSession,
+  updateChatTitle,
+  updateSessionId,
+  generateTitle,
+  getActiveChatId,
+  setActiveChatId,
+  getChatSessions,
+} from '@/lib/chat-storage';
 import MarkdownContent from './MarkdownContent';
 import ModelSelector from './ModelSelector';
 
@@ -13,12 +24,35 @@ const SUGGESTED_PROMPTS = [
   { text: 'Analyse this business decision', icon: 'D' },
 ];
 
-export default function ChatInterface() {
+interface ChatInterfaceProps {
+  chatId?: string | null;
+  onModelChange?: (model: string) => void;
+}
+
+export default function ChatInterface({ chatId, onModelChange }: ChatInterfaceProps) {
+  const [currentChatId, setCurrentChatId] = useState<string | null>(chatId || null);
   const [messages, setMessages] = useState<GripMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [model, setModel] = useState('sonnet');
+
+  // Load persisted messages on mount or chat switch
+  useEffect(() => {
+    if (currentChatId) {
+      const stored = getChatMessages(currentChatId);
+      setMessages(stored);
+      // Restore session ID for --resume
+      const sessions = getChatSessions();
+      const session = sessions.find(s => s.id === currentChatId);
+      if (session?.sessionId) setSessionId(session.sessionId);
+    }
+  }, [currentChatId]);
+
+  // Update currentChatId when prop changes
+  useEffect(() => {
+    if (chatId !== undefined) setCurrentChatId(chatId);
+  }, [chatId]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -29,6 +63,15 @@ export default function ChatInterface() {
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isStreaming) return;
+
+    // Ensure we have a chat session
+    let chatId = currentChatId;
+    if (!chatId) {
+      const session = createChatSession(model);
+      chatId = session.id;
+      setCurrentChatId(chatId);
+      setActiveChatId(chatId);
+    }
 
     const userMessage: GripMessage = {
       id: crypto.randomUUID(),
@@ -45,9 +88,18 @@ export default function ChatInterface() {
       streaming: true,
     };
 
-    setMessages(prev => [...prev, userMessage, assistantMessage]);
+    const newMessages = [...messages, userMessage, assistantMessage];
+    setMessages(newMessages);
     setInput('');
     setIsStreaming(true);
+
+    // Persist and auto-title
+    if (chatId) {
+      saveChatMessages(chatId, newMessages);
+      if (messages.length === 0) {
+        updateChatTitle(chatId, generateTitle(input.trim()));
+      }
+    }
 
     // Stream response from real GRIP backend
     let fullText = '';
@@ -86,7 +138,7 @@ export default function ChatInterface() {
       fullText += `\n[Connection error: ${err instanceof Error ? err.message : String(err)}]`;
     }
 
-    // Finalise the message
+    // Finalise the message and persist
     setMessages(prev => {
       const updated = [...prev];
       const lastMsg = updated[updated.length - 1];
@@ -97,10 +149,15 @@ export default function ChatInterface() {
         lastMsg.detectedMode = detectMode(userMessage.content);
         lastMsg.detectedSkills = detectSkills(userMessage.content);
       }
+      if (chatId) saveChatMessages(chatId, updated);
       return [...updated];
     });
+    // Store session ID for --resume ultra-fast responses
+    if (metrics?.sessionId && chatId) {
+      updateSessionId(chatId, metrics.sessionId);
+    }
     setIsStreaming(false);
-  }, [input, isStreaming, sessionId]);
+  }, [input, isStreaming, sessionId, model, currentChatId, messages]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
