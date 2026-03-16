@@ -1,6 +1,8 @@
 'use client';
 
 import { Layers, Sparkles, Activity, Plus } from 'lucide-react';
+import RetrievalTierIndicator from './RetrievalTierIndicator';
+import ConvergenceIndicator from './ConvergenceIndicator';
 
 interface ContextPanelProps {
   activeMode?: string;
@@ -73,6 +75,17 @@ export default function ContextPanel({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Retrieval Tier — GRIP-First Thinking visualised */}
+      <div className="p-4 border-b border-[var(--border)]">
+        <RetrievalTierIndicator activeTier={0} />
+      </div>
+
+      {/* Convergence — depth indicator */}
+      <div className="p-4 border-b border-[var(--border)]">
+        <span className="grip-label block mb-2">CONVERGENCE</span>
+        <ConvergenceIndicator depth={0} maxDepth={11} active={false} />
       </div>
 
       {/* Quick Actions */}

@@ -3,6 +3,7 @@
 import { useStore } from '@/store';
 import Sidebar from './Sidebar';
 import CommandPalette from './CommandPalette';
+import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Download, ExternalLink, RotateCw, Loader2 } from 'lucide-react';
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -204,6 +205,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {/* Command Palette */}
       <CommandPalette />
+      <KeyboardShortcutsHelp />
 
       {/* Main Content */}
       <motion.main
