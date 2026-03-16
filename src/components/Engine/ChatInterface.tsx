@@ -1,16 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Terminal as TerminalIcon } from 'lucide-react';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-  detectedMode?: string;
-  detectedSkills?: string[];
-}
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Sparkles, Terminal as TerminalIcon, Square } from 'lucide-react';
+import { sendToGrip, type GripMessage, type GripMetrics } from '@/lib/grip-session';
 
 const SUGGESTED_PROMPTS = [
   { text: 'What can GRIP help me with?', icon: '?' },
@@ -20,47 +12,97 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<GripMessage[]>([]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = useCallback(async () => {
+    if (!input.trim() || isStreaming) return;
 
-    const userMessage: Message = {
+    const userMessage: GripMessage = {
       id: crypto.randomUUID(),
       role: 'user',
       content: input.trim(),
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const assistantMessage: GripMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      streaming: true,
+    };
+
+    setMessages(prev => [...prev, userMessage, assistantMessage]);
     setInput('');
-    setIsTyping(true);
+    setIsStreaming(true);
 
-    // Simulate GRIP response with auto-detection
-    setTimeout(() => {
-      const detectedMode = detectMode(userMessage.content);
-      const detectedSkills = detectSkills(userMessage.content);
+    // Stream response from real GRIP backend
+    let fullText = '';
+    let metrics: GripMetrics | undefined;
 
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: generateResponse(userMessage.content, detectedMode),
-        timestamp: new Date(),
-        detectedMode,
-        detectedSkills,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-      setIsTyping(false);
-    }, 800);
-  };
+    try {
+      for await (const event of sendToGrip(input.trim(), sessionId)) {
+        if (event.type === 'text') {
+          fullText += event.data as string;
+          setMessages(prev => {
+            const updated = [...prev];
+            const lastMsg = updated[updated.length - 1];
+            if (lastMsg.role === 'assistant') {
+              lastMsg.content = fullText;
+            }
+            return [...updated];
+          });
+        } else if (event.type === 'metrics') {
+          metrics = event.data as GripMetrics;
+          if (metrics.sessionId) {
+            setSessionId(metrics.sessionId);
+          }
+        } else if (event.type === 'error') {
+          fullText += `\n[GRIP Error: ${event.data}]`;
+          setMessages(prev => {
+            const updated = [...prev];
+            const lastMsg = updated[updated.length - 1];
+            if (lastMsg.role === 'assistant') {
+              lastMsg.content = fullText;
+            }
+            return [...updated];
+          });
+        }
+      }
+    } catch (err) {
+      fullText += `\n[Connection error: ${err instanceof Error ? err.message : String(err)}]`;
+    }
+
+    // Finalise the message
+    setMessages(prev => {
+      const updated = [...prev];
+      const lastMsg = updated[updated.length - 1];
+      if (lastMsg.role === 'assistant') {
+        lastMsg.content = fullText || '[No response from GRIP]';
+        lastMsg.streaming = false;
+        lastMsg.metrics = metrics;
+        lastMsg.detectedMode = detectMode(userMessage.content);
+        lastMsg.detectedSkills = detectSkills(userMessage.content);
+      }
+      return [...updated];
+    });
+    setIsStreaming(false);
+  }, [input, isStreaming, sessionId]);
+
+  const handleStop = useCallback(() => {
+    abortRef.current?.abort();
+    setIsStreaming(false);
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -88,8 +130,8 @@ export default function ChatInterface() {
               KNOWLEDGE WORK ENGINE
             </p>
             <p className="text-center text-[var(--muted-foreground)] mb-8 max-w-md">
-              Your AI thinking partner. It adapts to how you work — whether
-              you are writing code, drafting contracts, or making strategic decisions.
+              Your AI thinking partner. Connected to your local GRIP instance
+              with all skills, modes, and safety gates active.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
               {SUGGESTED_PROMPTS.map((prompt) => (
@@ -108,20 +150,20 @@ export default function ChatInterface() {
               ))}
             </div>
             <p className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] mt-8 opacity-60">
-              CMD+K FOR COMMANDS | 149 SKILLS | 30 MODES
+              CMD+K FOR COMMANDS | LOCAL GRIP BACKEND | REAL-TIME STREAMING
             </p>
           </div>
         ) : (
           <div className="max-w-3xl mx-auto space-y-6">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] ${msg.role === 'user' ? '' : ''}`}>
+                <div className="max-w-[85%]">
                   {/* Auto-detection badges */}
-                  {msg.detectedMode && (
+                  {msg.detectedMode && !msg.streaming && (
                     <div className="flex items-center gap-2 mb-1.5">
                       <Sparkles className="w-3 h-3 text-[var(--primary)]" />
                       <span className="font-mono text-[10px] tracking-widest text-[var(--primary)]">
-                        GRIP DETECTED: /{msg.detectedMode.toUpperCase()}
+                        GRIP: /{msg.detectedMode.toUpperCase()}
                       </span>
                       {msg.detectedSkills?.map(skill => (
                         <span key={skill} className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] border border-[var(--border)] px-1.5 py-0.5">
@@ -136,20 +178,39 @@ export default function ChatInterface() {
                       : 'border border-[var(--border)] text-[var(--foreground)]'
                   }`}>
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    {msg.streaming && (
+                      <span className="inline-block w-2 h-4 bg-[var(--primary)] animate-pulse ml-0.5" />
+                    )}
                   </div>
-                  <span className="font-mono text-[9px] tracking-wider text-[var(--muted-foreground)] mt-1 block">
-                    {msg.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="font-mono text-[9px] tracking-wider text-[var(--muted-foreground)]">
+                      {msg.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {msg.metrics && (
+                      <>
+                        {msg.metrics.totalDurationMs && (
+                          <span className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] opacity-50">
+                            {(msg.metrics.totalDurationMs / 1000).toFixed(1)}s
+                          </span>
+                        )}
+                        {msg.metrics.model && (
+                          <span className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] opacity-50">
+                            {msg.metrics.model}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
-            {isTyping && (
+            {isStreaming && messages[messages.length - 1]?.content === '' && (
               <div className="flex justify-start">
                 <div className="border border-[var(--border)] p-4">
                   <div className="flex items-center gap-2">
                     <TerminalIcon className="w-3 h-3 text-[var(--primary)] animate-pulse" />
                     <span className="font-mono text-xs text-[var(--muted-foreground)]">
-                      GRIP is thinking...
+                      GRIP is processing...
                     </span>
                   </div>
                 </div>
@@ -172,7 +233,8 @@ export default function ChatInterface() {
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 rows={1}
-                className="w-full resize-none bg-[var(--background)] border border-[var(--border)] px-4 py-3 text-sm text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none placeholder:text-[var(--muted-foreground)] min-h-[48px] max-h-[200px]"
+                disabled={isStreaming}
+                className="w-full resize-none bg-[var(--background)] border border-[var(--border)] px-4 py-3 text-sm text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none placeholder:text-[var(--muted-foreground)] min-h-[48px] max-h-[200px] disabled:opacity-50"
                 style={{ height: 'auto' }}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
@@ -181,17 +243,34 @@ export default function ChatInterface() {
                 }}
               />
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!input.trim()}
-              className="bg-[var(--primary)] text-[var(--primary-foreground)] p-3 min-h-[48px] min-w-[48px] flex items-center justify-center disabled:opacity-30 hover:opacity-90 transition-opacity"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+            {isStreaming ? (
+              <button
+                onClick={handleStop}
+                className="bg-[var(--danger)] text-white p-3 min-h-[48px] min-w-[48px] flex items-center justify-center hover:opacity-90 transition-opacity"
+                title="Stop generation"
+              >
+                <Square className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className="bg-[var(--primary)] text-[var(--primary-foreground)] p-3 min-h-[48px] min-w-[48px] flex items-center justify-center disabled:opacity-30 hover:opacity-90 transition-opacity"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          <p className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] mt-2 opacity-50">
-            ENTER TO SEND | SHIFT+ENTER FOR NEW LINE | CMD+K FOR COMMANDS
-          </p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-50">
+              ENTER TO SEND | SHIFT+ENTER FOR NEW LINE | CMD+K FOR COMMANDS
+            </p>
+            {sessionId && (
+              <span className="font-mono text-[8px] tracking-wider text-[var(--primary)] opacity-60">
+                SESSION: {sessionId.slice(0, 8)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -222,27 +301,4 @@ function detectSkills(text: string): string[] {
   if (lower.includes('pr ') || lower.includes('pull request')) skills.push('pr-automation');
   if (lower.includes('contract')) skills.push('contract-formal');
   return skills.slice(0, 3);
-}
-
-function generateResponse(userMessage: string, detectedMode?: string): string {
-  if (userMessage.toLowerCase().includes('what can grip help')) {
-    return `GRIP is a cross-domain knowledge work engine. Here is what I can help with:
-
-DEVELOPMENT — Write, review, test, and architect software with built-in design principles (SOLID, GRASP, DRY, KISS).
-
-STRATEGY — Make structured decisions, run red-team analyses, and lock in strategic choices.
-
-CONTENT — Write articles, marketing copy, and educational content with anti-fluff enforcement.
-
-RESEARCH — Synthesise evidence, evaluate sources, and validate hypotheses.
-
-LEGAL — Draft contracts, simplify legal language, and manage compliance workflows.
-
-SECURITY — Detect vulnerabilities, model threats, and review code for security issues.
-
-Try telling me what you are working on, and I will activate the right mode and skills automatically.`;
-  }
-
-  const modeLabel = detectedMode ? `I have activated ${detectedMode.toUpperCase()} mode for this task. ` : '';
-  return `${modeLabel}I understand your request. In a full GRIP session, I would connect to Claude Code's backend to process this with the appropriate skills and verification gates.\n\nThis is the GRIP Knowledge Work Engine GUI preview. The chat interface demonstrates how GRIP auto-detects the right mode and skills based on your input.`;
 }
