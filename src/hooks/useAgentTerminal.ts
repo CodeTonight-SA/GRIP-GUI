@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { isElectron } from '@/hooks/useElectron';
 import type { AgentProvider } from '@/types/electron';
-import { getTerminalTheme } from '@/components/AgentWorld/constants';
+import { getTerminalTheme } from '@/lib/terminal/constants';
 
 interface UseAgentTerminalProps {
   selectedAgentId: string | null;

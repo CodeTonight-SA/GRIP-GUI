@@ -56,7 +56,7 @@ interface PluginSource {
 }
 
 const DEFAULT_TTL = 86_400_000; // 24 hours
-const CACHE_PREFIX = 'dorothy-plugins-src-';
+const CACHE_PREFIX = 'grip-plugins-src-';
 
 // ── Source registry ──
 // Add new sources here. Each is fetched, cached, and merged independently.

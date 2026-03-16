@@ -54,7 +54,7 @@ async function checkGitHubRelease(mainWindow: BrowserWindow | null) {
   const response = await fetch(url, {
     headers: {
       'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'Dorothy-App',
+      'User-Agent': 'GRIP-App',
     },
   });
 
