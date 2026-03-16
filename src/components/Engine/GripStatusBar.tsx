@@ -1,6 +1,7 @@
 'use client';
 
 import { Activity, Layers, Sparkles, Shield } from 'lucide-react';
+import GripPulse from './GripPulse';
 
 interface GripStatusBarProps {
   activeMode?: string;
@@ -54,6 +55,9 @@ export default function GripStatusBar({
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Pulse — ambient health visualisation */}
+      <GripPulse />
 
       {/* Safety */}
       <div className="flex items-center gap-1.5">

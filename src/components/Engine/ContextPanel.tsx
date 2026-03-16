@@ -3,6 +3,7 @@
 import { Layers, Sparkles, Activity, Plus } from 'lucide-react';
 import RetrievalTierIndicator from './RetrievalTierIndicator';
 import ConvergenceIndicator from './ConvergenceIndicator';
+import ModeQuickSwitch from './ModeQuickSwitch';
 
 interface ContextPanelProps {
   activeMode?: string;
@@ -19,18 +20,10 @@ export default function ContextPanel({
 }: ContextPanelProps) {
   return (
     <div className="h-full flex flex-col border-r border-[var(--border)] bg-[var(--card)]">
-      {/* Mode */}
+      {/* Mode — Quick Switch */}
       <div className="p-4 border-b border-[var(--border)]">
         <span className="grip-label block mb-2">MODE</span>
-        <div className="flex items-center gap-2">
-          <Layers className="w-3.5 h-3.5 text-[var(--primary)]" strokeWidth={1.5} />
-          <span className="font-mono text-sm font-bold tracking-wider text-[var(--primary)]">
-            {activeMode.toUpperCase()}
-          </span>
-        </div>
-        <p className="text-xs text-[var(--muted-foreground)] mt-1">
-          Software development with design principles
-        </p>
+        <ModeQuickSwitch />
       </div>
 
       {/* Active Skills */}
