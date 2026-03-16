@@ -38,6 +38,9 @@
   --accent: #0891b2;
   --accent-foreground: #EAEAEA;
 
+  /* Vortex holographic glow */
+  --vortex-glow: 0 0 20px rgba(8, 145, 178, 0.3);
+
   /* Destructive */
   --destructive: #dc2626;
 
@@ -86,6 +89,9 @@
 
   --accent: #22d3ee;
   --accent-foreground: #0a0a0a;
+
+  /* Vortex holographic glow — brighter in dark mode */
+  --vortex-glow: 0 0 30px rgba(34, 211, 238, 0.4);
 
   --destructive: #ef4444;
 

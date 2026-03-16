@@ -7,6 +7,7 @@ import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Download, ExternalLink, RotateCw, Loader2 } from 'lucide-react';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -168,6 +169,26 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [isMobile, mobileMenuOpen, setMobileMenuOpen]);
 
   const mainMarginLeft = isMobile ? 0 : (sidebarCollapsed ? 72 : 240);
+
+  // Konami code easter egg
+  const router = useRouter();
+  const konamiRef = useRef(0);
+  useEffect(() => {
+    const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === KONAMI[konamiRef.current]) {
+        konamiRef.current++;
+        if (konamiRef.current === KONAMI.length) {
+          konamiRef.current = 0;
+          router.push('/vortex');
+        }
+      } else {
+        konamiRef.current = e.key === KONAMI[0] ? 1 : 0;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-bg-primary relative">

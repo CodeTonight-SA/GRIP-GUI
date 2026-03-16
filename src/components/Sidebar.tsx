@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/store';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 const navItems = [
   { href: '/', icon: Terminal, label: 'ENGINE', shortcut: '1' },
@@ -47,6 +47,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isMobile = false }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen, darkMode, toggleDarkMode, vaultUnreadCount } = useStore();
 
   const sidebarWidth = isMobile ? 240 : (sidebarCollapsed ? 64 : 240);
@@ -105,13 +106,20 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
 
   const sidebarContent = (
     <>
-      {/* Logo */}
-      <div className={`flex items-center px-4 border-b border-[var(--border)] ${isMobile ? 'h-14' : 'h-16 mt-7'}`}>
+      {/* Logo — triple-click navigates to /vortex */}
+      <div
+        className={`flex items-center px-4 border-b border-[var(--border)] cursor-pointer ${isMobile ? 'h-14' : 'h-16 mt-7'}`}
+        onClick={(e) => {
+          if (e.detail === 3) {
+            router.push('/vortex');
+          }
+        }}
+      >
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 bg-[var(--primary)] shrink-0" />
           {showLabels && (
             <div>
-              <span className="font-mono text-sm font-bold tracking-widest text-[var(--foreground)]">
+              <span className="font-mono text-sm font-bold tracking-widest text-[var(--foreground)] transition-all duration-300 hover:text-[var(--primary)] hover:drop-shadow-[0_0_6px_var(--primary)]">
                 GRIP
               </span>
               <span className="block font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] leading-none mt-0.5">
