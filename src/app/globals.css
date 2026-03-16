@@ -428,6 +428,32 @@ button, a, input, textarea, select {
 }
 
 /* ============================================
+   MOBILE — Safe areas, dvh, touch targets
+   ============================================ */
+@supports (height: 100dvh) {
+  .h-screen-safe {
+    height: 100dvh;
+  }
+}
+
+/* Safe area insets for notched devices */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Ensure minimum 48px touch targets on mobile */
+@media (max-width: 1023px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ============================================
    XTERM TERMINAL — Always dark
    ============================================ */
 .xterm-viewport::-webkit-scrollbar {

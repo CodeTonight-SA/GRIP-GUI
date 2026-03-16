@@ -6,6 +6,7 @@ import ChatHistory from '@/components/Engine/ChatHistory';
 import GripStatusBar from '@/components/Engine/GripStatusBar';
 import FocusMode from '@/components/Engine/FocusMode';
 import WelcomeAnimation from '@/components/Engine/WelcomeAnimation';
+import MobileToolbar from '@/components/Engine/MobileToolbar';
 import { useState, useCallback, useEffect } from 'react';
 import {
   getChatSessions,
@@ -94,6 +95,9 @@ export default function EnginePage() {
 
         {!focusMode && <GripStatusBar />}
       </div>
+
+      {/* Mobile bottom toolbar — visible on small screens only */}
+      {!focusMode && <MobileToolbar />}
     </>
   );
 }
