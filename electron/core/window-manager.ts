@@ -30,9 +30,9 @@ export function createWindow() {
     height: 1000,
     minWidth: 1200,
     minHeight: 800,
-    title: 'Dorothy',
+    title: 'GRIP',
     titleBarStyle: 'hiddenInset',
-    backgroundColor: '#F0E8D5',
+    backgroundColor: '#EAEAEA',
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
@@ -134,6 +134,12 @@ export function setupProtocolHandler() {
         urlPath = urlPath.substring(slashIndex);
       } else {
         urlPath = '/';
+      }
+
+      // Strip query string — Next.js RSC adds ?_rsc=... to prefetch requests
+      const queryIndex = urlPath.indexOf('?');
+      if (queryIndex !== -1) {
+        urlPath = urlPath.substring(0, queryIndex);
       }
 
       // Default to index.html for directory requests
