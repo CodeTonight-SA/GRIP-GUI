@@ -13,6 +13,22 @@
 import { app, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// V8 stability flags for unsigned development builds.
+// The ad-hoc code signing on macOS can cause V8's memory protection
+// (ThreadIsolation::WriteProtectMemory) to crash with EXC_BREAKPOINT.
+// These flags mitigate the issue until proper Apple Developer signing.
+app.commandLine.appendSwitch('js-flags', '--jitless');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+
+// Crash recovery: log uncaught exceptions instead of silently dying
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception in main process:', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection in main process:', reason);
+});
 import * as os from 'os';
 
 // Types
@@ -579,6 +595,11 @@ app.on('before-quit', () => {
   saveAgents();
   killAllPty();
   closeVaultDb();
+  // Kill any orphaned claude child processes from GRIP Engine
+  try {
+    const { execSync } = require('child_process');
+    execSync('pkill -f "claude.*--output-format.*stream-json" 2>/dev/null || true', { timeout: 3000 });
+  } catch { /* best effort */ }
 });
 
 // Handle certificate errors in development
