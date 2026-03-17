@@ -19,7 +19,7 @@ export default function ContextPanel({
   tokenCount = 45200,
 }: ContextPanelProps) {
   return (
-    <div className="h-full flex flex-col border-r border-[var(--border)] bg-[var(--card)]">
+    <div className="h-full flex flex-col bg-[var(--card)]">
       {/* Mode — Quick Switch */}
       <div className="p-4 border-b border-[var(--border)]">
         <span className="grip-label block mb-2">MODE</span>

@@ -22,7 +22,7 @@ export default function GripStatusBar({
   safetyActive = true,
 }: GripStatusBarProps) {
   return (
-    <div className="h-6 border-t border-[var(--border)] bg-[var(--card)] flex items-center px-4 gap-6 shrink-0">
+    <div className="fixed bottom-0 left-0 right-0 z-20 h-6 border-t border-[var(--border)] bg-[var(--card)] flex items-center px-4 gap-6 shrink-0">
       {/* Mode */}
       <div className="flex items-center gap-1.5">
         <Layers className="w-3 h-3 text-[var(--primary)]" strokeWidth={1.5} />
