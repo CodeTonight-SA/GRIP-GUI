@@ -419,7 +419,7 @@ export function initTelegramBot() {
       if (!appSettings.telegramAuthToken) {
         telegramBot?.sendMessage(chatId,
           '⚠️ No authentication token configured.\n\n' +
-          '_Generate one in Dorothy Settings → Telegram_',
+          '_Generate one in GRIP Settings → Telegram_',
           { parse_mode: 'Markdown' }
         );
         return;
@@ -448,7 +448,7 @@ export function initTelegramBot() {
       } else {
         telegramBot?.sendMessage(chatId,
           '❌ *Invalid token*\n\n' +
-          '_Check your token in Dorothy Settings → Telegram_',
+          '_Check your token in GRIP Settings → Telegram_',
           { parse_mode: 'Markdown' }
         );
       }
@@ -465,7 +465,7 @@ export function initTelegramBot() {
       }
 
       telegramBot?.sendMessage(chatId,
-        `👑 *Dorothy Bot Connected!*\n\n` +
+        `👑 *GRIP Bot Connected!*\n\n` +
         `I'll help you manage your agents remotely.\n\n` +
         `*Commands:*\n` +
         `/status - Show all agents status\n` +
@@ -709,7 +709,7 @@ export function initTelegramBot() {
           const addDirFlag = cliProvider.getAddDirFlag();
           command += ` ${addDirFlag} '${agent.secondaryProjectPath.replace(/'/g, "'\\''")}'`;
         }
-        command += ` ${cliProvider.getAddDirFlag()} '${require('os').homedir()}/.dorothy'`;
+        command += ` ${cliProvider.getAddDirFlag()} '${require('os').homedir()}/.grip'`;
         command += ` '${task.replace(/'/g, "'\\''")}'`;
 
         agent.status = 'running';
@@ -1138,7 +1138,7 @@ export async function sendToSuperAgent(chatId: string, message: string, attached
 
   if (!superAgent) {
     telegramBot?.sendMessage(chatId,
-      '👑 No Super Agent found.\n\nCreate one in Dorothy first, or use /start\\_agent to start a specific agent.',
+      '👑 No Super Agent found.\n\nCreate one in GRIP first, or use /start\\_agent to start a specific agent.',
       { parse_mode: 'Markdown' }
     );
     return;

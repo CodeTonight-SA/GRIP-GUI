@@ -47,8 +47,8 @@ const getProjectColor = (name: string) => {
 };
 
 // Storage keys
-const FAVORITES_KEY = 'dorothy-favorite-projects';
-const CUSTOM_PROJECTS_KEY = 'dorothy-custom-projects';
+const FAVORITES_KEY = 'grip-favorite-projects';
+const CUSTOM_PROJECTS_KEY = 'grip-custom-projects';
 
 interface CustomProject {
   path: string;

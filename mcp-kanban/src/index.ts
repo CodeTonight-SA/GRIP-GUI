@@ -13,7 +13,7 @@ import * as os from "os";
 import { randomUUID } from "crypto";
 
 // Data file path
-const DATA_DIR = path.join(os.homedir(), ".dorothy");
+const DATA_DIR = path.join(os.homedir(), ".grip");
 const KANBAN_FILE = path.join(DATA_DIR, "kanban-tasks.json");
 
 // Types

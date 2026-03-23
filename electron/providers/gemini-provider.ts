@@ -65,8 +65,8 @@ export class GeminiProvider implements CLIProvider {
       }
     }
 
-    // Include Dorothy directory
-    command += ` --include-directories '${os.homedir()}/.dorothy'`;
+    // Include GRIP directory
+    command += ` --include-directories '${os.homedir()}/.grip'`;
 
     // Prompt with skills directive
     let finalPrompt = params.prompt;
@@ -96,7 +96,7 @@ export class GeminiProvider implements CLIProvider {
       command += ' --debug';
     }
 
-    command += ` --include-directories "${os.homedir()}/.dorothy"`;
+    command += ` --include-directories "${os.homedir()}/.grip"`;
 
     const escaped = params.prompt.replace(/'/g, "'\\''");
     command += ` -p '${escaped}'`;
@@ -121,9 +121,9 @@ export class GeminiProvider implements CLIProvider {
 
   getPtyEnvVars(agentId: string, projectPath: string, skills: string[]): Record<string, string> {
     return {
-      DOROTHY_SKILLS: skills.join(','),
-      DOROTHY_AGENT_ID: agentId,
-      DOROTHY_PROJECT_PATH: projectPath,
+      GRIP_SKILLS: skills.join(','),
+      GRIP_AGENT_ID: agentId,
+      GRIP_PROJECT_PATH: projectPath,
     };
   }
 
@@ -364,7 +364,7 @@ fi
 export PATH="${params.binaryDir}:$PATH"
 cd "${params.projectPath}"
 echo "=== Task started at $(date) ===" >> "${params.logPath}"
-"${params.binaryPath}" --output-format stream-json --debug --include-directories "${params.homeDir}/.dorothy" -p '${params.prompt}' >> "${params.logPath}" 2>&1
+"${params.binaryPath}" --output-format stream-json --debug --include-directories "${params.homeDir}/.grip" -p '${params.prompt}' >> "${params.logPath}" 2>&1
 echo "=== Task completed at $(date) ===" >> "${params.logPath}"
 `;
   }

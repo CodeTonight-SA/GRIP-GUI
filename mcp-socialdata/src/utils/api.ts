@@ -6,7 +6,7 @@ import * as os from "os";
 const SOCIALDATA_BASE = "api.socialdata.tools";
 
 function getApiKey(): string {
-  const settingsPath = path.join(os.homedir(), ".dorothy", "app-settings.json");
+  const settingsPath = path.join(os.homedir(), ".grip", "app-settings.json");
   try {
     if (fs.existsSync(settingsPath)) {
       const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
@@ -18,7 +18,7 @@ function getApiKey(): string {
     // Ignore read errors
   }
   throw new Error(
-    "SocialData API key not configured. Please add your API key in Dorothy Settings > SocialData."
+    "SocialData API key not configured. Please add your API key in GRIP Settings > SocialData."
   );
 }
 

@@ -272,7 +272,7 @@ export function registerWorldHandlers(deps: WorldHandlerDependencies): void {
     }
   });
 
-  // Export a zone as a .dorothy-world file
+  // Export a zone as a .grip-world file
   ipcMain.handle('world:exportZone', async (_event, params: { zoneId: string; screenshot: string }) => {
     try {
       const { zoneId, screenshot } = params;
@@ -310,7 +310,7 @@ export function registerWorldHandlers(deps: WorldHandlerDependencies): void {
     }
   });
 
-  // Import a .dorothy-world file — returns preview data without saving
+  // Import a .grip-world file — returns preview data without saving
   ipcMain.handle('world:importZone', async () => {
     try {
       const win = getMainWindow();

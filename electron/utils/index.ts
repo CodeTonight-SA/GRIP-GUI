@@ -86,7 +86,7 @@ Use auto memory (\`~/.claude/projects/.../memory/\`) actively on every project:
 }
 
 /**
- * Migrate data from ~/.claude-manager to ~/.dorothy on first launch after rebrand.
+ * Migrate data from ~/.claude-manager to ~/.grip on first launch after rebrand.
  * Only copies files that don't already exist in the new location to avoid overwriting newer data.
  * Removes the old directory after successful migration.
  */
