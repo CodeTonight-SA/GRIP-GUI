@@ -130,7 +130,7 @@ describe('scheduler-handlers', () => {
       writeTmpJson('.claude/schedules.json', [
         { id: 'task-1', prompt: 'Review code', schedule: '0 9 * * *', projectPath: '/myproject', autonomous: true },
       ]);
-      writeTmpJson('.dorothy/scheduler-metadata.json', {
+      writeTmpJson('.grip/scheduler-metadata.json', {
         'task-1': {
           title: 'Code Review',
           notifications: { telegram: false, slack: false },
@@ -243,7 +243,7 @@ describe('scheduler-handlers', () => {
       expect(schedules[0].prompt).toBe('Do something');
 
       // Verify metadata was saved
-      const metaPath = path.join(tmpDir, '.dorothy', 'scheduler-metadata.json');
+      const metaPath = path.join(tmpDir, '.grip', 'scheduler-metadata.json');
       const metadata = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
       expect(metadata['test-uuid-1234'].title).toBe('New Task');
       expect(metadata['test-uuid-1234'].notifications.telegram).toBe(true);
@@ -304,7 +304,7 @@ describe('scheduler-handlers', () => {
         { id: 'to-delete', prompt: 'delete me', schedule: '0 9 * * *', projectPath: '/p' },
         { id: 'keep', prompt: 'keep me', schedule: '0 12 * * *', projectPath: '/p' },
       ]);
-      writeTmpJson('.dorothy/scheduler-metadata.json', {
+      writeTmpJson('.grip/scheduler-metadata.json', {
         'to-delete': { title: 'Delete', notifications: { telegram: false, slack: false }, createdAt: '2026-01-01' },
         'keep': { title: 'Keep', notifications: { telegram: false, slack: false }, createdAt: '2026-01-01' },
       });
@@ -321,7 +321,7 @@ describe('scheduler-handlers', () => {
       expect(schedules[0].id).toBe('keep');
 
       const metadata = JSON.parse(fs.readFileSync(
-        path.join(tmpDir, '.dorothy', 'scheduler-metadata.json'), 'utf-8'
+        path.join(tmpDir, '.grip', 'scheduler-metadata.json'), 'utf-8'
       ));
       expect(metadata['to-delete']).toBeUndefined();
       expect(metadata['keep']).toBeDefined();
@@ -331,7 +331,7 @@ describe('scheduler-handlers', () => {
       writeTmpJson('.claude/schedules.json', [
         { id: 'scripted', prompt: 'test', schedule: '0 9 * * *', projectPath: '/p' },
       ]);
-      const scriptsDir = path.join(tmpDir, '.dorothy', 'scripts');
+      const scriptsDir = path.join(tmpDir, '.grip', 'scripts');
       fs.mkdirSync(scriptsDir, { recursive: true });
       fs.writeFileSync(path.join(scriptsDir, 'scripted.sh'), '#!/bin/bash\necho hi');
 
@@ -353,7 +353,7 @@ describe('scheduler-handlers', () => {
       writeTmpJson('.claude/schedules.json', [
         { id: 'upd-1', prompt: 'old prompt', schedule: '0 9 * * *', projectPath: '/p', autonomous: true },
       ]);
-      writeTmpJson('.dorothy/scheduler-metadata.json', {
+      writeTmpJson('.grip/scheduler-metadata.json', {
         'upd-1': { title: 'Old Title', notifications: { telegram: false, slack: false }, createdAt: '2026-01-01' },
       });
 
@@ -376,7 +376,7 @@ describe('scheduler-handlers', () => {
       writeTmpJson('.claude/schedules.json', [
         { id: 'meta-upd', prompt: 'test', schedule: '0 9 * * *', projectPath: '/p' },
       ]);
-      writeTmpJson('.dorothy/scheduler-metadata.json', {
+      writeTmpJson('.grip/scheduler-metadata.json', {
         'meta-upd': { title: 'Old', notifications: { telegram: false, slack: false }, createdAt: '2026-01-01' },
       });
 
@@ -387,7 +387,7 @@ describe('scheduler-handlers', () => {
       });
 
       const metadata = JSON.parse(fs.readFileSync(
-        path.join(tmpDir, '.dorothy', 'scheduler-metadata.json'), 'utf-8'
+        path.join(tmpDir, '.grip', 'scheduler-metadata.json'), 'utf-8'
       ));
       expect(metadata['meta-upd'].title).toBe('New Title');
       expect(metadata['meta-upd'].notifications).toEqual({ telegram: true, slack: true });
@@ -411,7 +411,7 @@ describe('scheduler-handlers', () => {
       writeTmpJson('.claude/schedules.json', [
         { id: 'run-me', prompt: 'test', projectPath: '/p' },
       ]);
-      const scriptsDir = path.join(tmpDir, '.dorothy', 'scripts');
+      const scriptsDir = path.join(tmpDir, '.grip', 'scripts');
       fs.mkdirSync(scriptsDir, { recursive: true });
       fs.writeFileSync(path.join(scriptsDir, 'run-me.sh'), '#!/bin/bash\necho hi');
 
@@ -608,7 +608,7 @@ describe('scheduler-handlers', () => {
       fs.writeFileSync(path.join(logDir, 'meta-status.log'),
         '=== Task started at 2026-01-01 ===\nAll good\n=== Task completed at 2026-01-01 ===\n'
       );
-      writeTmpJson('.dorothy/scheduler-metadata.json', {
+      writeTmpJson('.grip/scheduler-metadata.json', {
         'meta-status': {
           notifications: { telegram: false, slack: false },
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -628,7 +628,7 @@ describe('scheduler-handlers', () => {
       writeTmpJson('.claude/schedules.json', [
         { id: 'partial-task', prompt: 'Test', schedule: '0 9 * * *', projectPath: '/test' },
       ]);
-      writeTmpJson('.dorothy/scheduler-metadata.json', {
+      writeTmpJson('.grip/scheduler-metadata.json', {
         'partial-task': {
           notifications: { telegram: false, slack: false },
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -651,7 +651,7 @@ describe('scheduler-handlers', () => {
       fs.writeFileSync(path.join(logDir, 'no-meta-status.log'),
         '=== Task started at 2026-01-01 ===\nSome error occurred\n=== Task completed at 2026-01-01 ===\n'
       );
-      writeTmpJson('.dorothy/scheduler-metadata.json', {
+      writeTmpJson('.grip/scheduler-metadata.json', {
         'no-meta-status': {
           notifications: { telegram: false, slack: false },
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -676,7 +676,7 @@ describe('scheduler-handlers', () => {
         autonomous: true,
       });
 
-      const scriptPath = path.join(tmpDir, '.dorothy', 'scripts', 'test-uuid-1234.sh');
+      const scriptPath = path.join(tmpDir, '.grip', 'scripts', 'test-uuid-1234.sh');
       expect(fs.existsSync(scriptPath)).toBe(true);
 
       const scriptContent = fs.readFileSync(scriptPath, 'utf-8');
