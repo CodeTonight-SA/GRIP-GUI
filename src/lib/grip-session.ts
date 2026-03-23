@@ -117,11 +117,17 @@ export function extractMetrics(event: StreamEvent): GripMetrics | null {
 
 /**
  * Check if running in Electron environment.
+ * Checks both the preload bridge AND navigator.userAgent as fallback,
+ * since the preload script may not have initialised yet when the
+ * renderer makes its first call (app:// protocol timing).
  */
 export function isElectronEnv(): boolean {
   if (typeof window === 'undefined') return false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return !!(window as any).electronAPI;
+  if ((window as any).electronAPI) return true;
+  // Fallback: Electron always includes 'Electron' in the user agent
+  if (typeof navigator !== 'undefined' && /Electron/i.test(navigator.userAgent)) return true;
+  return false;
 }
 
 /**
@@ -150,6 +156,12 @@ export async function* sendToGrip(
     });
 
     if (!response.ok) {
+      // 404 in Electron means app:// can't serve API routes — fall back to IPC
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (response.status === 404 && (window as any).electronAPI?.grip) {
+        yield* sendToGripElectron(prompt, sessionId, model);
+        return;
+      }
       yield { type: 'error', data: `GRIP error: ${response.status}` };
       return;
     }
@@ -194,14 +206,17 @@ export async function* sendToGrip(
       }
     }
 
-    // Process remaining buffer
+    // Process remaining buffer — strip raw JSON fragments
     if (buffer.trim()) {
       try {
         const event: StreamEvent = JSON.parse(buffer);
         const text = extractTextFromEvent(event);
         if (text) yield { type: 'text', data: text };
       } catch {
-        if (buffer.trim()) yield { type: 'text', data: buffer };
+        const cleaned = stripAnsi(buffer);
+        if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+          yield { type: 'text', data: cleaned };
+        }
       }
     }
 
@@ -220,8 +235,17 @@ async function* sendToGripElectron(
   sessionId?: string,
   model: string = 'sonnet',
 ): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
+  // Wait up to 2s for preload bridge to initialise (app:// protocol timing)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const api = (window as any).electronAPI?.grip;
+  let api = (window as any).electronAPI?.grip;
+  if (!api) {
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 200));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      api = (window as any).electronAPI?.grip;
+      if (api) break;
+    }
+  }
   if (!api) {
     yield { type: 'error', data: 'Electron GRIP API not available' };
     return;

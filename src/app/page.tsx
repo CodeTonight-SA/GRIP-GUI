@@ -13,6 +13,7 @@ import {
   getActiveChatId,
   createChatSession,
   getChatMessages,
+  migrateStorageIfNeeded,
   type ChatSession,
 } from '@/lib/chat-storage';
 
@@ -23,8 +24,10 @@ export default function EnginePage() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatKey, setChatKey] = useState(0); // Force re-mount ChatInterface on session switch
 
-  // Initialise: load or create active chat
+  // Initialise: migrate storage, load or create active chat
   useEffect(() => {
+    migrateStorageIfNeeded();
+
     const existingId = getActiveChatId();
     if (existingId) {
       setActiveChatId(existingId);
@@ -57,11 +60,22 @@ export default function EnginePage() {
     <>
       {showWelcome && <WelcomeAnimation onComplete={handleWelcomeComplete} />}
 
-      <div className="h-[calc(100vh-64px)] lg:h-screen flex flex-col">
+      <div className="h-[calc(100vh-64px)] lg:h-screen flex flex-col pb-6">
         <div className="flex-1 flex min-h-0">
-          {/* Left Panel — Context + Chat History, hidden in focus mode */}
+          {/* Chat Interface — left (main content) */}
+          <div className="flex-1 min-w-0">
+            <FocusMode onToggle={handleFocusToggle}>
+              <ChatInterface
+                key={chatKey}
+                chatId={activeChatId}
+                onModelChange={setModel}
+              />
+            </FocusMode>
+          </div>
+
+          {/* Right Panel — Context + Chat History, hidden in focus mode */}
           {!focusMode && (
-            <div className="hidden lg:flex w-[280px] shrink-0 flex-col border-r border-[var(--border)] bg-[var(--card)]">
+            <div className="hidden lg:flex w-[280px] shrink-0 flex-col border-l border-[var(--border)] bg-[var(--card)]">
               {/* Context Panel — top half */}
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <ContextPanel />
@@ -80,17 +94,6 @@ export default function EnginePage() {
               </div>
             </div>
           )}
-
-          {/* Chat Interface */}
-          <div className="flex-1 min-w-0">
-            <FocusMode onToggle={handleFocusToggle}>
-              <ChatInterface
-                key={chatKey}
-                chatId={activeChatId}
-                onModelChange={setModel}
-              />
-            </FocusMode>
-          </div>
         </div>
 
         {!focusMode && <GripStatusBar />}

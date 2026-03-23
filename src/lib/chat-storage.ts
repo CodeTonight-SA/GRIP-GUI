@@ -25,7 +25,90 @@ export interface ChatSession {
 const CHATS_KEY = 'grip-chats';
 const ACTIVE_KEY = 'grip-active-chat';
 const CHAT_PREFIX = 'grip-chat-';
+const VERSION_KEY = 'grip-storage-version';
+const CURRENT_STORAGE_VERSION = 4;
 const MAX_CHATS = 50;
+
+/**
+ * Detect and replace raw JSON content in stored messages.
+ * Old sessions may have raw stream-json objects saved as message content.
+ */
+function sanitiseMessageContent(content: string): string {
+  if (!content) return content;
+  const trimmed = content.trim();
+  // Detect raw JSON objects or arrays (stream-json artefacts)
+  if (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  ) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      // If it parses as a stream event (has 'type' field), it's an artefact
+      if (parsed && typeof parsed === 'object' && ('type' in parsed || Array.isArray(parsed))) {
+        return '[Message from previous session format — no longer available]';
+      }
+    } catch {
+      // Not valid JSON — leave as-is
+    }
+  }
+  return content;
+}
+
+/**
+ * Run storage migration when version changes.
+ * Clears corrupted message bodies from old format sessions.
+ */
+export function migrateStorageIfNeeded(): void {
+  try {
+    const stored = parseInt(localStorage.getItem(VERSION_KEY) || '0', 10);
+    if (stored >= CURRENT_STORAGE_VERSION) return;
+
+    // Migration v3: nuke all localStorage data (full reset)
+    if (stored < 4) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('grip-')) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
+      }
+      localStorage.setItem(VERSION_KEY, String(CURRENT_STORAGE_VERSION));
+      return;
+    }
+
+    // Migration v2: sanitise existing chat messages
+    const sessions = getChatSessions();
+    for (const session of sessions) {
+      const key = CHAT_PREFIX + session.id;
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const messages = JSON.parse(raw);
+        let changed = false;
+        for (const msg of messages) {
+          const cleaned = sanitiseMessageContent(msg.content);
+          if (cleaned !== msg.content) {
+            msg.content = cleaned;
+            changed = true;
+          }
+        }
+        if (changed) {
+          localStorage.setItem(key, JSON.stringify(messages));
+        }
+      } catch {
+        // Corrupted chat data — remove it
+        localStorage.removeItem(key);
+      }
+    }
+
+    localStorage.setItem(VERSION_KEY, String(CURRENT_STORAGE_VERSION));
+  } catch {
+    // Storage unavailable — skip migration
+  }
+}
 
 /**
  * Get all chat sessions (metadata only).
@@ -65,9 +148,10 @@ export function getChatMessages(chatId: string): GripMessage[] {
     const raw = localStorage.getItem(CHAT_PREFIX + chatId);
     if (!raw) return [];
     const messages = JSON.parse(raw);
-    // Restore Date objects
+    // Restore Date objects and sanitise any raw JSON from old sessions
     return messages.map((m: GripMessage) => ({
       ...m,
+      content: sanitiseMessageContent(m.content),
       timestamp: new Date(m.timestamp),
     }));
   } catch {
