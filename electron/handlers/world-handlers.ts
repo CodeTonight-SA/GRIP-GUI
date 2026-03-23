@@ -4,7 +4,9 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 
-const WORLDS_DIR = path.join(os.homedir(), '.dorothy', 'worlds');
+import { DATA_DIR } from '../constants';
+
+const WORLDS_DIR = path.join(DATA_DIR, 'worlds');
 
 interface WorldHandlerDependencies {
   getMainWindow: () => BrowserWindow | null;
@@ -32,7 +34,7 @@ function sanitizeString(s: unknown, maxLen: number): string | null {
 
 function validateZoneForImport(data: Record<string, unknown>): { valid: boolean; error?: string; zone?: Record<string, any> } {
   // Format check
-  if (data.format !== 'dorothy-world-v1') {
+  if (data.format !== 'dorothy-world-v1' && data.format !== 'grip-world-v1') {
     return { valid: false, error: 'Invalid file format' };
   }
   if (!data.zone || typeof data.zone !== 'object') {
@@ -281,7 +283,7 @@ export function registerWorldHandlers(deps: WorldHandlerDependencies): void {
       const zoneData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
       const exportData = {
-        format: 'dorothy-world-v1',
+        format: 'grip-world-v1',
         exportedAt: new Date().toISOString(),
         zone: zoneData,
         screenshot,
@@ -293,8 +295,8 @@ export function registerWorldHandlers(deps: WorldHandlerDependencies): void {
       const safeName = (zoneData.name || 'world').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
       const result = await dialog.showSaveDialog(win, {
         title: 'Export World',
-        defaultPath: `${safeName}.dorothy-world`,
-        filters: [{ name: 'Dorothy World', extensions: ['dorothy-world'] }],
+        defaultPath: `${safeName}.grip-world`,
+        filters: [{ name: 'GRIP World', extensions: ['grip-world'] }],
       });
 
       if (result.canceled || !result.filePath) {
@@ -316,7 +318,7 @@ export function registerWorldHandlers(deps: WorldHandlerDependencies): void {
 
       const result = await dialog.showOpenDialog(win, {
         title: 'Import World',
-        filters: [{ name: 'Dorothy World', extensions: ['dorothy-world'] }],
+        filters: [{ name: 'GRIP World', extensions: ['grip-world', 'dorothy-world'] }],
         properties: ['openFile'],
       });
 
@@ -363,7 +365,7 @@ export function registerWorldHandlers(deps: WorldHandlerDependencies): void {
   ipcMain.handle('world:confirmImport', async (_event, zone: Record<string, unknown>) => {
     try {
       // Re-validate (defense in depth)
-      const wrapper = { format: 'dorothy-world-v1', zone, screenshot: 'data:image/png;base64,' };
+      const wrapper = { format: 'grip-world-v1', zone, screenshot: 'data:image/png;base64,' };
       const validation = validateZoneForImport(wrapper);
       if (!validation.valid) {
         return { success: false, error: validation.error };

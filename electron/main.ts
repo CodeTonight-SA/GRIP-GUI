@@ -116,7 +116,8 @@ import {
   isSuperAgent,
   getSuperAgent,
   ensureDataDir,
-  ensureDorothyClaudeMd,
+  ensureGripClaudeMd,
+  migrateFromDorothy,
   migrateFromClaudeManager,
 } from './utils';
 
@@ -308,13 +309,16 @@ registerProtocolSchemes();
 app.whenReady().then(async () => {
   console.log('App ready, initializing...');
 
+  // Migrate data from ~/.dorothy to ~/.grip if it exists (rebrand migration)
+  migrateFromDorothy();
+
   // Ensure data directory exists
   ensureDataDir();
 
-  // Write Dorothy's CLAUDE.md to ~/.dorothy/ so all spawned agents can load it
-  ensureDorothyClaudeMd();
+  // Write GRIP's CLAUDE.md to ~/.grip/ so all spawned agents can load it
+  ensureGripClaudeMd();
 
-  // Migrate data from ~/.claude-manager if it exists (rebrand migration)
+  // Migrate data from ~/.claude-manager if it exists (legacy migration)
   migrateFromClaudeManager();
 
   // Load agents from disk
