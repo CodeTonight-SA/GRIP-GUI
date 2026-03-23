@@ -5,13 +5,14 @@ import * as os from 'os';
 import { spawn } from 'child_process';
 import { getProvider } from '../providers';
 import type { AgentProvider } from '../types';
+import { DATA_DIR, APP_SETTINGS_FILE } from '../constants';
 
 // ============================================
 // Automation IPC handlers
 // Interacts with the same storage as MCP tools
 // ============================================
 
-const AUTOMATIONS_DIR = path.join(os.homedir(), '.dorothy');
+const AUTOMATIONS_DIR = DATA_DIR;
 const AUTOMATIONS_FILE = path.join(AUTOMATIONS_DIR, 'automations.json');
 const RUNS_FILE = path.join(AUTOMATIONS_DIR, 'automations-runs.json');
 
@@ -106,9 +107,8 @@ function generateId(): string {
 /** Read defaultProvider from app-settings.json, falling back to 'claude' */
 function getDefaultProvider(): AgentProvider {
   try {
-    const settingsFile = path.join(os.homedir(), '.dorothy', 'app-settings.json');
-    if (fs.existsSync(settingsFile)) {
-      const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+    if (fs.existsSync(APP_SETTINGS_FILE)) {
+      const settings = JSON.parse(fs.readFileSync(APP_SETTINGS_FILE, 'utf-8'));
       if (settings.defaultProvider && ['claude', 'codex', 'gemini'].includes(settings.defaultProvider)) {
         return settings.defaultProvider as AgentProvider;
       }
@@ -152,9 +152,8 @@ async function getCLIPath(providerId: string = 'claude'): Promise<string> {
 
   // Check user-configured path in app-settings.json
   try {
-    const settingsFile = path.join(os.homedir(), '.dorothy', 'app-settings.json');
-    if (fs.existsSync(settingsFile)) {
-      const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+    if (fs.existsSync(APP_SETTINGS_FILE)) {
+      const settings = JSON.parse(fs.readFileSync(APP_SETTINGS_FILE, 'utf-8'));
       const configuredPath = settings.cliPaths?.[binaryName];
       if (configuredPath && fs.existsSync(configuredPath)) {
         return configuredPath;
@@ -239,15 +238,15 @@ async function createAutomationLaunchdJob(automation: Automation): Promise<void>
 
   const [minute, hour, dayOfMonth, , dayOfWeek] = cronSchedule.split(' ');
 
-  const logPath = path.join(os.homedir(), '.dorothy', 'logs', `automation-${automation.id}.log`);
-  const errorLogPath = path.join(os.homedir(), '.dorothy', 'logs', `automation-${automation.id}.error.log`);
+  const logPath = path.join(DATA_DIR, 'logs', `automation-${automation.id}.log`);
+  const errorLogPath = path.join(DATA_DIR, 'logs', `automation-${automation.id}.error.log`);
   const logsDir = path.dirname(logPath);
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
   }
 
   // Create script to run
-  const scriptPath = path.join(os.homedir(), '.dorothy', 'scripts', `automation-${automation.id}.sh`);
+  const scriptPath = path.join(DATA_DIR, 'scripts', `automation-${automation.id}.sh`);
   const scriptsDir = path.dirname(scriptPath);
   if (!fs.existsSync(scriptsDir)) {
     fs.mkdirSync(scriptsDir, { recursive: true });
@@ -277,7 +276,7 @@ async function createAutomationLaunchdJob(automation: Automation): Promise<void>
   fs.chmodSync(scriptPath, '755');
 
   // Build StartCalendarInterval or StartInterval
-  const label = `com.dorothy.automation.${automation.id}`;
+  const label = `com.grip.automation.${automation.id}`;
   const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', `${label}.plist`);
   const launchAgentsDir = path.dirname(plistPath);
   if (!fs.existsSync(launchAgentsDir)) {
@@ -339,21 +338,24 @@ ${scheduleXml}
 
 // Remove launchd job for automation (macOS)
 async function removeAutomationLaunchdJob(automationId: string): Promise<void> {
-  const label = `com.dorothy.automation.${automationId}`;
-  const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', `${label}.plist`);
-  const scriptPath = path.join(os.homedir(), '.dorothy', 'scripts', `automation-${automationId}.sh`);
+  // Try both new and legacy labels for backward compat
+  const labels = [`com.grip.automation.${automationId}`, `com.dorothy.automation.${automationId}`];
+  const scriptPath = path.join(DATA_DIR, 'scripts', `automation-${automationId}.sh`);
 
-  // Unload from launchd
+  // Unload from launchd and remove plist for each label
   const uid = process.getuid?.() || 501;
-  await new Promise<void>((resolve) => {
-    const proc = spawn('launchctl', ['bootout', `gui/${uid}/${label}`]);
-    proc.on('close', () => resolve());
-    proc.on('error', () => resolve());
-  });
+  for (const label of labels) {
+    const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', `${label}.plist`);
 
-  // Remove plist file
-  if (fs.existsSync(plistPath)) {
-    fs.unlinkSync(plistPath);
+    await new Promise<void>((resolve) => {
+      const proc = spawn('launchctl', ['bootout', `gui/${uid}/${label}`]);
+      proc.on('close', () => resolve());
+      proc.on('error', () => resolve());
+    });
+
+    if (fs.existsSync(plistPath)) {
+      fs.unlinkSync(plistPath);
+    }
   }
 
   // Remove script file
@@ -547,7 +549,7 @@ export function registerAutomationHandlers(): void {
       }
 
       // Run the script directly
-      const scriptPath = path.join(os.homedir(), '.dorothy', 'scripts', `automation-${id}.sh`);
+      const scriptPath = path.join(DATA_DIR, 'scripts', `automation-${id}.sh`);
       if (fs.existsSync(scriptPath)) {
         spawn('bash', [scriptPath], {
           detached: true,
@@ -566,7 +568,7 @@ export function registerAutomationHandlers(): void {
   // Get automation logs - parsed into individual runs
   ipcMain.handle('automation:getLogs', async (_event, id: string) => {
     try {
-      const logPath = path.join(os.homedir(), '.dorothy', 'logs', `automation-${id}.log`);
+      const logPath = path.join(DATA_DIR, 'logs', `automation-${id}.log`);
 
       if (!fs.existsSync(logPath)) {
         return { runs: [], logs: 'No logs available yet. The automation has not run.' };

@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getMainWindow } from '../core/window-manager';
 import { getProvider } from '../providers';
 import type { AgentProvider, AgentStatus, AppSettings } from '../types';
+import { DATA_DIR, APP_SETTINGS_FILE } from '../constants';
 
 // ============================================
 // Scheduler IPC handlers (native implementation)
@@ -22,7 +23,7 @@ function resolveDefaultProvider(deps: SchedulerDeps): AgentProvider {
   return deps.getAppSettings().defaultProvider || 'claude';
 }
 
-const SCHEDULER_METADATA_PATH = path.join(os.homedir(), '.dorothy', 'scheduler-metadata.json');
+const SCHEDULER_METADATA_PATH = path.join(DATA_DIR, 'scheduler-metadata.json');
 
 // Active log file watchers for real-time streaming
 const logWatchers = new Map<string, { watcher: fs.FSWatcher; offset: number }>();
@@ -43,7 +44,16 @@ function resolveLogPath(taskId: string): string {
     } catch { /* use default */ }
   }
 
-  // Also check dorothy plist format
+  // Also check grip and legacy dorothy plist formats
+  const gripPlistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', `com.grip.scheduler.${taskId}.plist`);
+  if (fs.existsSync(gripPlistPath)) {
+    try {
+      const plistContent = fs.readFileSync(gripPlistPath, 'utf-8');
+      const stdOutMatch = plistContent.match(/<key>StandardOutPath<\/key>\s*<string>([^<]+)<\/string>/);
+      if (stdOutMatch) return stdOutMatch[1];
+    } catch { /* use default */ }
+  }
+
   const dorothyPlistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', `com.dorothy.scheduler.${taskId}.plist`);
   if (fs.existsSync(dorothyPlistPath)) {
     try {
@@ -229,9 +239,8 @@ async function getCLIPath(providerId: AgentProvider = 'claude'): Promise<string>
 
   // Check user-configured path in app-settings.json
   try {
-    const settingsFile = path.join(os.homedir(), '.dorothy', 'app-settings.json');
-    if (fs.existsSync(settingsFile)) {
-      const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+    if (fs.existsSync(APP_SETTINGS_FILE)) {
+      const settings = JSON.parse(fs.readFileSync(APP_SETTINGS_FILE, 'utf-8'));
       const configuredPath = settings.cliPaths?.[binaryName];
       if (configuredPath && fs.existsSync(configuredPath)) {
         return configuredPath;
@@ -323,7 +332,7 @@ async function createLaunchdJob(
   }
 
   // Create script to run
-  const scriptPath = path.join(os.homedir(), '.dorothy', 'scripts', `${taskId}.sh`);
+  const scriptPath = path.join(DATA_DIR, 'scripts', `${taskId}.sh`);
   const scriptsDir = path.dirname(scriptPath);
   if (!fs.existsSync(scriptsDir)) {
     fs.mkdirSync(scriptsDir, { recursive: true });
@@ -387,7 +396,7 @@ async function createLaunchdJob(
     ? renderEntry(calendarEntries[0])
     : `  <array>\n${calendarEntries.map(e => '  ' + renderEntry(e)).join('\n')}\n  </array>`;
 
-  const label = `com.dorothy.scheduler.${taskId}`;
+  const label = `com.grip.scheduler.${taskId}`;
   const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', `${label}.plist`);
   const launchAgentsDir = path.dirname(plistPath);
   if (!fs.existsSync(launchAgentsDir)) {
@@ -439,7 +448,7 @@ async function createCronJob(
   const claudePath = await getCLIPath(provider);
   const claudeDir = path.dirname(claudePath);
 
-  const scriptPath = path.join(os.homedir(), '.dorothy', 'scripts', `${taskId}.sh`);
+  const scriptPath = path.join(DATA_DIR, 'scripts', `${taskId}.sh`);
   const scriptsDir = path.dirname(scriptPath);
   if (!fs.existsSync(scriptsDir)) {
     fs.mkdirSync(scriptsDir, { recursive: true });
@@ -473,7 +482,7 @@ async function createCronJob(
   fs.writeFileSync(scriptPath, scriptContent);
   fs.chmodSync(scriptPath, '755');
 
-  const cronLine = `${schedule} ${scriptPath} # dorothy-${taskId}`;
+  const cronLine = `${schedule} ${scriptPath} # grip-${taskId}`;
 
   await new Promise<void>((resolve, reject) => {
     const getCron = spawn('crontab', ['-l']);
@@ -663,12 +672,14 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
           try {
             const files = fs.readdirSync(launchAgentsDir);
             for (const file of files) {
-              if (!file.startsWith('com.claude.schedule.') && !file.startsWith('com.dorothy.scheduler.')) continue;
+              if (!file.startsWith('com.claude.schedule.') && !file.startsWith('com.dorothy.scheduler.') && !file.startsWith('com.grip.scheduler.')) continue;
               if (!file.endsWith('.plist')) continue;
 
               let taskId: string;
               if (file.startsWith('com.claude.schedule.')) {
                 taskId = file.replace('com.claude.schedule.', '').replace('.plist', '');
+              } else if (file.startsWith('com.grip.scheduler.')) {
+                taskId = file.replace('com.grip.scheduler.', '').replace('.plist', '');
               } else {
                 taskId = file.replace('com.dorothy.scheduler.', '').replace('.plist', '');
               }
@@ -906,6 +917,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
       // Remove launchd job (macOS)
       if (os.platform() === 'darwin') {
         const labels = [
+          `com.grip.scheduler.${taskId}`,
           `com.dorothy.scheduler.${taskId}`,
           `com.claude.schedule.${taskId}`,
         ];
@@ -938,7 +950,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
           getCron.on('close', () => {
             const newCron = existingCron
               .split('\n')
-              .filter(line => !line.includes(`dorothy-${taskId}`))
+              .filter(line => !line.includes(`grip-${taskId}`) && !line.includes(`dorothy-${taskId}`))
               .join('\n');
 
             const setCron = spawn('crontab', ['-']);
@@ -952,7 +964,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
       }
 
       // Remove script file
-      const scriptPath = path.join(os.homedir(), '.dorothy', 'scripts', `${taskId}.sh`);
+      const scriptPath = path.join(DATA_DIR, 'scripts', `${taskId}.sh`);
       if (fs.existsSync(scriptPath)) {
         fs.unlinkSync(scriptPath);
       }
@@ -1033,7 +1045,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
       const promptWithStatus = prompt + statusInstruction;
       const escapedPrompt = promptWithStatus.replace(/'/g, "'\\''");
 
-      const scriptPath = path.join(os.homedir(), '.dorothy', 'scripts', `${taskId}.sh`);
+      const scriptPath = path.join(DATA_DIR, 'scripts', `${taskId}.sh`);
       const scriptsDir = path.dirname(scriptPath);
       if (!fs.existsSync(scriptsDir)) {
         fs.mkdirSync(scriptsDir, { recursive: true });
@@ -1057,8 +1069,8 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
       // If schedule changed, recreate the platform job
       if (scheduleChanged) {
         if (os.platform() === 'darwin') {
-          // Remove old launchd job
-          const label = `com.dorothy.scheduler.${taskId}`;
+          // Remove old launchd job (check both new and legacy labels)
+          const label = `com.grip.scheduler.${taskId}`;
           const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', `${label}.plist`);
           const uid = process.getuid?.() || 501;
 
@@ -1087,7 +1099,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
             getCron.on('close', () => {
               const newCron = existingCron
                 .split('\n')
-                .filter(line => !line.includes(`dorothy-${taskId}`))
+                .filter(line => !line.includes(`grip-${taskId}`) && !line.includes(`dorothy-${taskId}`))
                 .join('\n');
               const setCron = spawn('crontab', ['-']);
               setCron.stdin.write(newCron);
@@ -1127,7 +1139,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
         return { success: false, error: 'Task not found' };
       }
 
-      const scriptPath = path.join(os.homedir(), '.dorothy', 'scripts', `${taskId}.sh`);
+      const scriptPath = path.join(DATA_DIR, 'scripts', `${taskId}.sh`);
       if (fs.existsSync(scriptPath)) {
         spawn('bash', [scriptPath], {
           detached: true,
