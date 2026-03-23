@@ -575,11 +575,11 @@ export default function AgentKnowledgeGraph() {
 
       // Only include the CLAUDE.md files that are actually loaded per agent:
       // - ~/.claude/CLAUDE.md  (global Claude config)
-      // - ~/.dorothy/CLAUDE.md (global Dorothy config)
+      // - ~/.grip/CLAUDE.md (global GRIP config)
       // - {projectPath}/CLAUDE.md and {projectPath}/.claude/CLAUDE.md per agent
       const cmds = [
         `[ -f "$HOME/.claude/CLAUDE.md" ] && echo "$HOME/.claude/CLAUDE.md"`,
-        `[ -f "$HOME/.dorothy/CLAUDE.md" ] && echo "$HOME/.dorothy/CLAUDE.md"`,
+        `[ -f "$HOME/.grip/CLAUDE.md" ] && echo "$HOME/.grip/CLAUDE.md"`,
         ...uniqueProjectPaths.flatMap(p => [
           `[ -f "${p}/CLAUDE.md" ] && echo "${p}/CLAUDE.md"`,
           `[ -f "${p}/.claude/CLAUDE.md" ] && echo "${p}/.claude/CLAUDE.md"`,
@@ -597,9 +597,9 @@ export default function AgentKnowledgeGraph() {
       const cleanOutput = rawOutput.replace(/\x1b\[[0-9;]*m/g, '').replace(/\r/g, '');
       const foundPaths = cleanOutput.split('\n').map(l => l.trim()).filter(l => l.startsWith('/'));
       for (const fp of foundPaths) {
-        // Global: ~/.claude/ or ~/.dorothy/ files
+        // Global: ~/.claude/ or ~/.grip/ files
         const isGlobal = (fp.includes('/.claude/') && !fp.includes('/.claude/projects/'))
-          || fp.includes('/.dorothy/');
+          || fp.includes('/.grip/');
         if (isGlobal) {
           instrFiles[fp] = 'global';
         } else {

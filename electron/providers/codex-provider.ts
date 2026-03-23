@@ -110,9 +110,9 @@ export class CodexProvider implements CLIProvider {
 
   getPtyEnvVars(agentId: string, projectPath: string, skills: string[]): Record<string, string> {
     return {
-      DOROTHY_SKILLS: skills.join(','),
-      DOROTHY_AGENT_ID: agentId,
-      DOROTHY_PROJECT_PATH: projectPath,
+      GRIP_SKILLS: skills.join(','),
+      GRIP_AGENT_ID: agentId,
+      GRIP_PROJECT_PATH: projectPath,
     };
   }
 

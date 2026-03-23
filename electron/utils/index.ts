@@ -2,7 +2,7 @@ import { app, Notification, BrowserWindow } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AgentStatus } from '../types';
-import { TG_CHARACTER_FACES, SLACK_CHARACTER_FACES, DATA_DIR, OLD_DATA_DIR } from '../constants';
+import { TG_CHARACTER_FACES, SLACK_CHARACTER_FACES, DATA_DIR, OLD_DATA_DIR, LEGACY_DATA_DIR } from '../constants';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -25,15 +25,15 @@ export function ensureDataDir() {
 }
 
 /**
- * Write Dorothy's CLAUDE.md to ~/.dorothy/CLAUDE.md so all agents spawned from
- * Dorothy can load it via --add-dir ~/.dorothy with
+ * Write GRIP's CLAUDE.md to ~/.grip/CLAUDE.md so all agents spawned from
+ * GRIP can load it via --add-dir ~/.grip with
  * CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1.
  *
  * First tries to read the live CLAUDE.md from the app source directory.
  * Falls back to a bundled minimal version if the source file is unavailable
  * (e.g. in a packaged .asar build without unpacked assets).
  */
-export function ensureDorothyClaudeMd(): void {
+export function ensureGripClaudeMd(): void {
   try {
     ensureDataDir();
     const dest = path.join(DATA_DIR, 'CLAUDE.md');
@@ -54,7 +54,7 @@ export function ensureDorothyClaudeMd(): void {
 
     // Fallback: write essential agent instructions
     if (!content) {
-      content = `# Dorothy Agent Instructions
+      content = `# GRIP Agent Instructions
 
 ## Memory
 
@@ -81,19 +81,19 @@ Use auto memory (\`~/.claude/projects/.../memory/\`) actively on every project:
 
     fs.writeFileSync(dest, content, 'utf-8');
   } catch (err) {
-    console.warn('Failed to write Dorothy CLAUDE.md:', err);
+    console.warn('Failed to write GRIP CLAUDE.md:', err);
   }
 }
 
 /**
- * Migrate data from ~/.claude-manager to ~/.dorothy on first launch after rebrand.
+ * Migrate data from ~/.claude-manager to ~/.grip on first launch after rebrand.
  * Only copies files that don't already exist in the new location to avoid overwriting newer data.
  * Removes the old directory after successful migration.
  */
 export function migrateFromClaudeManager() {
   if (!fs.existsSync(OLD_DATA_DIR)) return;
 
-  console.log('Migrating data from ~/.claude-manager to ~/.dorothy...');
+  console.log('Migrating data from ~/.claude-manager to ~/.grip...');
 
   const items = [
     'agents.json',
@@ -111,7 +111,7 @@ export function migrateFromClaudeManager() {
 
     if (!fs.existsSync(src)) continue;
     if (fs.existsSync(dest)) {
-      console.log(`  Skipping ${item} (already exists in ~/.dorothy)`);
+      console.log(`  Skipping ${item} (already exists in ~/.grip)`);
       continue;
     }
 
@@ -128,6 +128,65 @@ export function migrateFromClaudeManager() {
     console.log('Removed ~/.claude-manager');
   } catch (err) {
     console.error('Failed to remove ~/.claude-manager:', err);
+  }
+}
+
+/**
+ * Migrate data from ~/.dorothy to ~/.grip on first launch after rebrand.
+ * Copies all files/dirs, creates symlink bridge for straggler references.
+ */
+export function migrateFromDorothy(): void {
+  if (!fs.existsSync(LEGACY_DATA_DIR)) return;
+  if (fs.existsSync(DATA_DIR)) return; // Already migrated
+
+  console.log('Migrating data from ~/.dorothy to ~/.grip...');
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+
+  const items = [
+    'agents.json',
+    'agents.backup.json',
+    'app-settings.json',
+    'kanban-tasks.json',
+    'scheduler-metadata.json',
+    'automations.json',
+    'automations-runs.json',
+    'api-token',
+    'CLAUDE.md',
+    'vault.db',
+    'vault.db-shm',
+    'vault.db-wal',
+    'vault',
+    'worlds',
+    'telegram-downloads',
+    'scripts',
+    'logs',
+    'cli-paths.json',
+  ];
+
+  for (const item of items) {
+    const src = path.join(LEGACY_DATA_DIR, item);
+    const dest = path.join(DATA_DIR, item);
+    if (!fs.existsSync(src)) continue;
+    if (fs.existsSync(dest)) {
+      console.log(`  Skipping ${item} (already exists in ~/.grip)`);
+      continue;
+    }
+    try {
+      fs.cpSync(src, dest, { recursive: true });
+      console.log(`  Migrated ${item}`);
+    } catch (err) {
+      console.error(`  Failed to migrate ${item}:`, err);
+    }
+  }
+
+  // Create symlink bridge: ~/.dorothy -> ~/.grip for any straggler references
+  try {
+    const backupPath = LEGACY_DATA_DIR + '.backup';
+    fs.renameSync(LEGACY_DATA_DIR, backupPath);
+    fs.symlinkSync(DATA_DIR, LEGACY_DATA_DIR);
+    console.log('Created symlink ~/.dorothy -> ~/.grip');
+  } catch (err) {
+    console.warn('Could not create symlink bridge:', err);
   }
 }
 

@@ -9,8 +9,8 @@ CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 
 API_URL="http://127.0.0.1:31415"
 
-AGENT_ID="${DOROTHY_AGENT_ID:-$SESSION_ID}"
-PROJECT_PATH="${DOROTHY_PROJECT_PATH:-$CWD}"
+AGENT_ID="${GRIP_AGENT_ID:-$SESSION_ID}"
+PROJECT_PATH="${GRIP_PROJECT_PATH:-$CWD}"
 
 if ! curl -s --connect-timeout 1 "$API_URL/api/memory/stats" > /dev/null 2>&1; then
   echo '{"continue":true,"suppressOutput":true}'

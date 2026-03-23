@@ -1,5 +1,5 @@
 /**
- * Cron parsing utilities for Dorothy scheduler.
+ * Cron parsing utilities for GRIP scheduler.
  * Handles conversion between cron expressions and launchd StartCalendarInterval entries.
  */
 

@@ -732,7 +732,7 @@ export function startApiServer(
         }
 
         try {
-          const metadataPath = path.join(os.homedir(), '.dorothy', 'scheduler-metadata.json');
+          const metadataPath = path.join(os.homedir(), '.grip', 'scheduler-metadata.json');
           let metadata: Record<string, Record<string, unknown>> = {};
           if (fs.existsSync(metadataPath)) {
             metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));

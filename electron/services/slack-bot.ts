@@ -212,7 +212,7 @@ export async function handleSlackCommand(
 
   if (lowerText === 'help' || lowerText === '') {
     await say(
-      `:crown: *Dorothy Bot*\n\n` +
+      `:crown: *GRIP Bot*\n\n` +
         `*Commands:*\n` +
         `• \`status\` - Show all agents status\n` +
         `• \`agents\` - List agents with details\n` +
@@ -457,7 +457,7 @@ export async function handleSlackCommand(
       if (agent.secondaryProjectPath) {
         command += ` --add-dir '${agent.secondaryProjectPath.replace(/'/g, "'\\''")}'`;
       }
-      command += ` --add-dir '${require('os').homedir()}/.dorothy'`;
+      command += ` --add-dir '${require('os').homedir()}/.grip'`;
       command += ` '${task.replace(/'/g, "'\\''")}'`;
 
       agent.status = 'running';
@@ -522,7 +522,7 @@ export async function sendToSuperAgentFromSlack(
 
   if (!superAgent) {
     await say(
-      ':crown: No Super Agent found.\n\nCreate one in Dorothy first, or use `start <agent> <task>` to start a specific agent.'
+      ':crown: No Super Agent found.\n\nCreate one in GRIP first, or use `start <agent> <task>` to start a specific agent.'
     );
     return;
   }

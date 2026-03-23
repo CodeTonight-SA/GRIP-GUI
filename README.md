@@ -1,14 +1,14 @@
-# Dorothy
+# GRIP
 
-![Dorothy](screenshots/background-2.png)
+![GRIP](screenshots/background-2.png)
 
-A beautiful desktop app to orchestrate your [Claude Code](https://claude.ai/code) agents. Deploy, monitor, and debug — all from one delightful interface. Free and open source.
+A cross-domain knowledge work engine built on Next.js 16 + React 19 + Electron 33. Deploy, monitor, and orchestrate AI agents from one interface. Free and open source.
 
-![Dorothy Dashboard](screenshots/0.png)
+![GRIP Dashboard](screenshots/0.png)
 
 ## Table of Contents
 
-- [Why Dorothy](#why-dorothy)
+- [Why GRIP](#why-grip)
 - [Core Features](#core-features)
 - [Automations](#automations)
 - [Kanban Task Management](#kanban-task-management)
@@ -16,6 +16,7 @@ A beautiful desktop app to orchestrate your [Claude Code](https://claude.ai/code
 - [Remote Control](#remote-control)
 - [Vault](#vault)
 - [SocialData (Twitter/X)](#socialdata-twitterx)
+- [Generative Worlds](#generative-worlds)
 - [MCP Servers & Tools](#mcp-servers--tools)
 - [Installation](#installation)
 - [Architecture](#architecture)
@@ -28,9 +29,9 @@ A beautiful desktop app to orchestrate your [Claude Code](https://claude.ai/code
 
 ---
 
-## Why Dorothy
+## Why GRIP
 
-Claude Code is powerful — but it runs one agent at a time, in one terminal. Dorothy removes that limitation:
+Claude Code is powerful — but it runs one agent at a time, in one terminal. GRIP removes that limitation:
 
 - **Run 10+ agents simultaneously** across different projects and codebases
 - **Automate agent workflows** — trigger agents on GitHub PRs, issues, and external events
@@ -255,7 +256,7 @@ Run Claude Code autonomously on a cron schedule. Useful for recurring maintenanc
 ### Storage
 
 - Task definitions: `~/.claude/schedules.json`
-- Generated scripts: `~/.dorothy/scripts/`
+- Generated scripts: `~/.grip/scripts/`
 - Execution logs: `~/.claude/logs/`
 
 ---
@@ -305,7 +306,7 @@ Same capabilities as Telegram, accessible via @mentions or direct messages.
 
 **Setup:**
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch**
-2. Name it "Dorothy" and select your workspace
+2. Name it "GRIP" and select your workspace
 3. **Socket Mode** → Enable → Generate App Token with scope `connections:write` (`xapp-...`)
 4. **OAuth & Permissions** → Add scopes: `app_mentions:read`, `chat:write`, `im:history`, `im:read`, `im:write`
 5. **Install to Workspace** → Copy Bot Token (`xoxb-...`)
@@ -371,7 +372,7 @@ All tools support cursor-based pagination for large result sets.
 
 ## MCP Servers & Tools
 
-Dorothy exposes **five MCP (Model Context Protocol) servers** with **40+ tools** for programmatic agent control. These are used internally by the Super Agent and can be registered in any Claude Code session via `~/.claude/settings.json`.
+GRIP exposes **five MCP (Model Context Protocol) servers** with **40+ tools** for programmatic agent control. These are used internally by the Super Agent and can be registered in any Claude Code session via `~/.claude/settings.json`.
 
 ### mcp-orchestrator
 
@@ -505,15 +506,15 @@ MCP server for Twitter/X data via the SocialData API. See [SocialData (Twitter/X
 
 ### Download
 
-Download the latest release from [GitHub Releases](https://github.com/Charlie85270/Dorothy/releases).
+Download the latest release from [GitHub Releases](https://github.com/CodeTonight-SA/GRIP-GUI/releases).
 
-> **macOS:** If "app is damaged", run `xattr -cr /Applications/Dorothy.app`
+> **macOS:** If "app is damaged", run `xattr -cr /Applications/GRIP.app`
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/Charlie85270/Dorothy.git
-cd Dorothy/app/dorothy
+git clone https://github.com/CodeTonight-SA/GRIP-GUI.git
+cd GRIP-GUI
 npm install
 npx @electron/rebuild        # Rebuild native modules for Electron
 npm run electron:dev          # Development mode
@@ -521,7 +522,7 @@ npm run electron:build        # Production build (DMG)
 ```
 
 Output in `release/`:
-- **macOS**: `release/mac-arm64/Dorothy.app` (Apple Silicon) or `release/mac/Dorothy.app` (Intel)
+- **macOS**: `release/mac-arm64/GRIP.app` (Apple Silicon) or `release/mac/GRIP.app` (Intel)
 - DMG installer included
 
 ### Web Browser (Development)
@@ -581,7 +582,7 @@ Open [http://localhost:3000](http://localhost:3000). Agent management and termin
 4. Output streamed in real-time to the renderer via IPC
 5. Status detected by parsing output patterns (running/waiting/completed/error)
 6. Services notified (Telegram, Slack, Kanban) on status changes
-7. Agent state persisted to `~/.dorothy/agents.json`
+7. Agent state persisted to `~/.grip/agents.json`
 
 ### Data Flow: Automation Pipeline
 
@@ -610,7 +611,7 @@ Claude Code ←→ stdio ←→ MCP Server
 ## Project Structure
 
 ```
-dorothy/
+grip-gui/
 ├── src/                           # Next.js frontend (React)
 │   ├── app/                       # Page routes
 │   │   ├── agents/                # Agent management UI
@@ -689,26 +690,26 @@ dorothy/
 
 | File | Description |
 |------|-------------|
-| `~/.dorothy/app-settings.json` | App settings (Telegram token, Slack tokens, preferences) |
-| `~/.dorothy/cli-paths.json` | CLI tool paths for automations |
+| `~/.grip/app-settings.json` | App settings (Telegram token, Slack tokens, preferences) |
+| `~/.grip/cli-paths.json` | CLI tool paths for automations |
 | `~/.claude/settings.json` | Claude Code user settings |
 
 ### Data Files
 
 | File | Description |
 |------|-------------|
-| `~/.dorothy/agents.json` | Persisted agent state (all agents, all sessions) |
-| `~/.dorothy/kanban-tasks.json` | Kanban board tasks |
-| `~/.dorothy/automations.json` | Automation definitions and state |
-| `~/.dorothy/processed-items.json` | Automation deduplication tracking |
-| `~/.dorothy/vault.db` | Vault documents, folders, and FTS index (SQLite) |
+| `~/.grip/agents.json` | Persisted agent state (all agents, all sessions) |
+| `~/.grip/kanban-tasks.json` | Kanban board tasks |
+| `~/.grip/automations.json` | Automation definitions and state |
+| `~/.grip/processed-items.json` | Automation deduplication tracking |
+| `~/.grip/vault.db` | Vault documents, folders, and FTS index (SQLite) |
 | `~/.claude/schedules.json` | Scheduled task definitions |
 
 ### Generated Files
 
 | Location | Description |
 |----------|-------------|
-| `~/.dorothy/scripts/` | Generated task runner scripts |
+| `~/.grip/scripts/` | Generated task runner scripts |
 | `~/.claude/logs/` | Task execution logs |
 
 ---
