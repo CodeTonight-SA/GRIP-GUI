@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import TelegramBot from 'node-telegram-bot-api';
 import { App as SlackApp } from '@slack/bolt';
 import { AgentStatus, AppSettings, AgentCharacter } from '../types';
-import { API_PORT, VAULT_DIR, API_TOKEN_FILE } from '../constants';
+import { API_PORT, VAULT_DIR, API_TOKEN_FILE, DATA_DIR } from '../constants';
 import { isSuperAgent } from '../utils';
 import { agents, saveAgents, initAgentPty } from '../core/agent-manager';
 import { ptyProcesses, writeProgrammaticInput } from '../core/pty-manager';
@@ -732,7 +732,7 @@ export function startApiServer(
         }
 
         try {
-          const metadataPath = path.join(os.homedir(), '.grip', 'scheduler-metadata.json');
+          const metadataPath = path.join(DATA_DIR, 'scheduler-metadata.json');
           let metadata: Record<string, Record<string, unknown>> = {};
           if (fs.existsSync(metadataPath)) {
             metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
