@@ -297,12 +297,12 @@ async function* sendToGripElectron(
     // correct JSON schema. One-shot with --resume is reliable.
     const result = await api.prompt({ prompt, model, sessionId });
 
-    if (!result!.success) {
-      yield { type: 'error', data: result!.error || 'Failed to start prompt' };
+    if (!result.success) {
+      yield { type: 'error', data: result.error || 'Failed to start prompt' };
       return;
     }
 
-    const promptSessionId = result!.sessionId!;
+    const promptSessionId = result.sessionId!;
     onPromptSessionId?.(promptSessionId);
 
     // Collect output via events using a promise-based queue
