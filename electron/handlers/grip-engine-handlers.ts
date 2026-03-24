@@ -55,6 +55,77 @@ interface EngineSession {
 
 let engineSession: EngineSession | null = null;
 
+/**
+ * Persistent streaming session — a long-lived `claude -p` process that uses
+ * stream-json on both stdin and stdout. Context stays loaded between messages,
+ * eliminating the 2-3s cold start per turn. This is the ultra-fast path.
+ */
+interface StreamSession {
+  proc: ChildProcess;
+  model: string;
+  sessionId: string;
+  alive: boolean;
+}
+
+let streamSession: StreamSession | null = null;
+
+function killStreamSession() {
+  if (streamSession?.proc) {
+    streamSession.alive = false;
+    streamSession.proc.kill('SIGTERM');
+    streamSession = null;
+  }
+}
+
+function startStreamSession(model: string = 'sonnet'): StreamSession {
+  killStreamSession();
+
+  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--model', model];
+  const proc = cpSpawn('claude', args, {
+    cwd: GRIP_DIR,
+    env: { ...process.env, HOME: os.homedir(), PATH: buildClaudePath() },
+  });
+
+  const sessionId = crypto.randomUUID();
+  const session: StreamSession = { proc, model, sessionId, alive: true };
+
+  proc.on('close', () => {
+    session.alive = false;
+    if (streamSession === session) {
+      streamSession = null;
+      console.log('Stream session closed');
+    }
+  });
+
+  proc.on('error', (err) => {
+    console.error('Stream session error:', err.message);
+    session.alive = false;
+    if (streamSession === session) streamSession = null;
+  });
+
+  proc.stderr?.on('data', (data: Buffer) => {
+    // Log but don't forward stderr from the persistent session
+    const text = data.toString().trim();
+    if (text) console.error('[stream-session stderr]', text);
+  });
+
+  streamSession = session;
+  console.log(`Stream session started: model=${model}, sessionId=${sessionId}`);
+  return session;
+}
+
+/**
+ * Pre-warm a GRIP session for instant first response.
+ * Called from main.ts after app init.
+ */
+export function preWarmSession(model: string = 'sonnet') {
+  try {
+    startStreamSession(model);
+  } catch (err) {
+    console.error('Failed to pre-warm session:', err);
+  }
+}
+
 function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows();
   return windows.length > 0 ? windows[0] : null;
@@ -265,6 +336,115 @@ export function registerGripEngineHandlers() {
       return { success: true };
     }
     return { success: false, error: 'No active prompt with that ID' };
+  });
+
+  /**
+   * Start a persistent stream-json session.
+   * This keeps a claude -p process alive with --input-format stream-json
+   * for ultra-fast follow-up messages (no cold start).
+   */
+  ipcMain.handle('grip:startStreamSession', async (_event, options: {
+    model?: string;
+  } = {}) => {
+    try {
+      const session = startStreamSession(options.model);
+      return { success: true, sessionId: session.sessionId };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  });
+
+  /**
+   * Send a message through the persistent stream-json session.
+   * The session stays alive between messages — no cold start.
+   * Output is forwarded via grip:promptOutput events (same as one-shot).
+   */
+  ipcMain.handle('grip:streamMessage', async (_event, options: {
+    prompt: string;
+    model?: string;
+  }) => {
+    const { prompt, model = 'sonnet' } = options;
+
+    // Start or restart session if needed
+    if (!streamSession?.alive || (model && streamSession.model !== model)) {
+      startStreamSession(model);
+    }
+
+    if (!streamSession?.alive || !streamSession.proc.stdin) {
+      return { success: false, error: 'Failed to start stream session' };
+    }
+
+    const messageId = crypto.randomUUID();
+
+    // Set up output forwarding for this message
+    let outputBuffer = '';
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flushOutput = () => {
+      if (outputBuffer) {
+        sendToRenderer('grip:promptOutput', { sessionId: messageId, data: outputBuffer });
+        outputBuffer = '';
+      }
+      flushTimer = null;
+    };
+
+    // Track whether this message's response is complete
+    let messageComplete = false;
+
+    const onData = (data: Buffer) => {
+      const text = data.toString();
+      outputBuffer += text;
+
+      // Check if this chunk contains a result event (end of message response)
+      if (text.includes('"type":"result"') || text.includes('"type": "result"')) {
+        messageComplete = true;
+      }
+
+      if (!flushTimer) {
+        flushTimer = setTimeout(() => {
+          flushOutput();
+          if (messageComplete) {
+            sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 0 });
+            streamSession?.proc.stdout?.removeListener('data', onData);
+          }
+        }, 16);
+      }
+    };
+
+    streamSession.proc.stdout?.on('data', onData);
+
+    // Handle process death during this message
+    const onClose = () => {
+      if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+      flushOutput();
+      if (!messageComplete) {
+        sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 1 });
+      }
+    };
+    streamSession.proc.once('close', onClose);
+
+    // Write the message as JSON to stdin
+    const inputEvent = JSON.stringify({
+      type: 'user_message',
+      content: prompt,
+    }) + '\n';
+
+    try {
+      streamSession.proc.stdin.write(inputEvent);
+      return { success: true, sessionId: messageId };
+    } catch (err) {
+      streamSession.proc.stdout?.removeListener('data', onData);
+      streamSession.proc.removeListener('close', onClose);
+      return { success: false, error: err instanceof Error ? err.message : 'Write failed' };
+    }
+  });
+
+  /**
+   * Kill the persistent stream session.
+   */
+  ipcMain.handle('grip:killStreamSession', async () => {
+    killStreamSession();
+    return { success: true };
   });
 
   /**

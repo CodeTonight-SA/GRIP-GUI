@@ -626,6 +626,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getHealth: () =>
       ipcRenderer.invoke('grip:getHealth'),
 
+    // Persistent stream-json session (ultra-fast follow-up messages)
+    startStreamSession: (options?: { model?: string }) =>
+      ipcRenderer.invoke('grip:startStreamSession', options),
+    streamMessage: (options: { prompt: string; model?: string }) =>
+      ipcRenderer.invoke('grip:streamMessage', options),
+    killStreamSession: () =>
+      ipcRenderer.invoke('grip:killStreamSession'),
+
     // Event listeners for streaming output
     onOutput: (callback: (event: { sessionId: string; data: string }) => void) => {
       const handler = (_: unknown, event: { sessionId: string; data: string }) => callback(event);
