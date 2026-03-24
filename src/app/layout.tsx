@@ -1,6 +1,24 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Syne, Instrument_Sans, Geist_Mono } from "next/font/google";
 import ClientLayout from "@/components/ClientLayout";
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["400", "500", "600", "700"],
+});
+
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600"],
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: "GRIP | Knowledge Work Engine",
@@ -31,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${syne.variable} ${instrumentSans.variable} ${geistMono.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
