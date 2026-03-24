@@ -24,6 +24,7 @@ export interface GripMessage {
   detectedSkills?: string[];
   metrics?: GripMetrics;
   streaming?: boolean;
+  imageDataUrl?: string;
 }
 
 export interface GripMetrics {
@@ -73,13 +74,46 @@ export function stripAnsi(text: string): string {
 }
 
 /**
+ * Detect CLI noise lines that should not be shown in the chat UI.
+ * These are status/progress messages from the claude CLI or stderr.
+ */
+function isCliNoise(line: string): boolean {
+  const noisePatterns = [
+    /^[╭╰│├└─]/,                     // Box-drawing characters (CLI UI frames)
+    /^─+$/,                            // Horizontal rules
+    /^\s*\d+%/,                        // Progress percentages
+    /^(connecting|loading|starting|initializing|resolving)/i,
+    /^session\s+(id|started|resumed)/i,
+    /^(model|using|warning):\s/i,
+    /^\s*$/,                           // Whitespace-only
+  ];
+  return noisePatterns.some(p => p.test(line));
+}
+
+/**
+ * Filter non-JSON lines — only allow through genuine human-readable text.
+ */
+function isAllowedNonJsonLine(line: string): boolean {
+  const cleaned = stripAnsi(line);
+  if (!cleaned) return false;
+  // Skip JSON fragments
+  if (cleaned.startsWith('{') || cleaned.startsWith('[') || cleaned.startsWith('"')) return false;
+  // Skip raw primitives
+  if (/^\s*(true|false|null|\d+)\s*$/.test(cleaned)) return false;
+  // Skip CLI noise
+  if (isCliNoise(cleaned)) return false;
+  return true;
+}
+
+/**
  * Extract text content from a stream-json event.
  * Handles multiple event shapes from Claude CLI output.
  */
 export function extractTextFromEvent(event: StreamEvent): string | null {
   // Skip non-text events entirely — these should NEVER be shown to the user
   const skipTypes = ['system', 'init', 'tool_use', 'tool_result', 'content_block_start',
-    'content_block_stop', 'message_start', 'message_stop', 'ping'];
+    'content_block_stop', 'message_start', 'message_stop', 'ping',
+    'result', 'error', 'input_json'];
   if (skipTypes.includes(event.type)) return null;
   // Also skip if event has subtype 'init' (system init events)
   if ((event as unknown as Record<string, unknown>).subtype === 'init') return null;
@@ -135,15 +169,18 @@ export function isElectronEnv(): boolean {
  * In Electron: uses IPC to grip-engine-handlers (PTY-based, ultra-fast).
  * In Browser: uses /api/grip/chat API route (spawns claude -p).
  * Returns an async iterator of text chunks for streaming display.
+ *
+ * @param onPromptSessionId - Called with the prompt session ID once available (for stop button)
  */
 export async function* sendToGrip(
   prompt: string,
   sessionId?: string,
   model: string = 'sonnet',
+  onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
   // Electron path: use IPC for real PTY streaming
   if (isElectronEnv()) {
-    yield* sendToGripElectron(prompt, sessionId, model);
+    yield* sendToGripElectron(prompt, sessionId, model, onPromptSessionId);
     return;
   }
 
@@ -197,25 +234,25 @@ export async function* sendToGrip(
             yield { type: 'metrics', data: metrics };
           }
         } catch {
-          // Non-JSON line — strip ANSI, skip raw JSON fragments
-          const cleaned = stripAnsi(line);
-          if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
-            yield { type: 'text', data: cleaned };
+          // Non-JSON line — only forward genuine human-readable text
+          if (isAllowedNonJsonLine(line)) {
+            yield { type: 'text', data: stripAnsi(line) };
           }
         }
       }
     }
 
-    // Process remaining buffer — strip raw JSON fragments
+    // Process remaining buffer
     if (buffer.trim()) {
       try {
         const event: StreamEvent = JSON.parse(buffer);
         const text = extractTextFromEvent(event);
         if (text) yield { type: 'text', data: text };
+        const metrics = extractMetrics(event);
+        if (metrics) yield { type: 'metrics', data: metrics };
       } catch {
-        const cleaned = stripAnsi(buffer);
-        if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
-          yield { type: 'text', data: cleaned };
+        if (isAllowedNonJsonLine(buffer)) {
+          yield { type: 'text', data: stripAnsi(buffer) };
         }
       }
     }
@@ -227,13 +264,15 @@ export async function* sendToGrip(
 }
 
 /**
- * Electron IPC path — uses grip: handlers for PTY-based streaming.
- * Collects output via event listeners, yields as text chunks.
+ * Electron IPC path — uses grip: handlers for one-shot streaming.
+ * Collects output via event listeners, yields as text/metrics chunks.
+ * Line-buffers IPC chunks to prevent partial JSON from leaking through.
  */
 async function* sendToGripElectron(
   prompt: string,
   sessionId?: string,
   model: string = 'sonnet',
+  onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
   // Wait up to 2s for preload bridge to initialise (app:// protocol timing)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -252,51 +291,82 @@ async function* sendToGripElectron(
   }
 
   try {
-    // Use one-shot prompt mode (spawns claude -p with stream-json)
-    const result = await api.prompt({ prompt, model, sessionId });
-    if (!result.success) {
-      yield { type: 'error', data: result.error || 'Failed to start prompt' };
+    // Try persistent stream session first (ultra-fast, no cold start)
+    // Falls back to one-shot if stream session fails
+    let result: { success: boolean; sessionId?: string; error?: string };
+    let usingStreamSession = false;
+
+    if (api.streamMessage && !sessionId) {
+      // Persistent session doesn't support --resume, so only use for non-resumed messages
+      result = await api.streamMessage({ prompt, model });
+      usingStreamSession = result.success;
+    }
+
+    if (!usingStreamSession) {
+      // Fallback: one-shot prompt (spawns claude -p with stream-json)
+      result = await api.prompt({ prompt, model, sessionId });
+    }
+
+    if (!result!.success) {
+      yield { type: 'error', data: result!.error || 'Failed to start prompt' };
       return;
     }
 
-    const promptSessionId = result.sessionId;
+    const promptSessionId = result!.sessionId!;
+    onPromptSessionId?.(promptSessionId);
 
     // Collect output via events using a promise-based queue
-    const chunks: Array<{ type: 'text' | 'done'; data: string }> = [];
+    type ChunkType = 'text' | 'metrics' | 'done';
+    const chunks: Array<{ type: ChunkType; data: string | GripMetrics }> = [];
     let resolve: (() => void) | null = null;
     let done = false;
+    // Line buffer: accumulate partial IPC chunks until we get complete lines
+    let lineBuffer = '';
+
+    const pushChunk = (type: ChunkType, data: string | GripMetrics) => {
+      chunks.push({ type, data });
+      if (resolve) { resolve(); resolve = null; }
+    };
+
+    const processLine = (line: string) => {
+      if (!line.trim()) return;
+      try {
+        const parsed: StreamEvent = JSON.parse(line);
+        const text = extractTextFromEvent(parsed);
+        if (text) pushChunk('text', text);
+        const metrics = extractMetrics(parsed);
+        if (metrics) pushChunk('metrics', metrics);
+      } catch {
+        // Non-JSON line — only forward genuine human-readable text
+        if (isAllowedNonJsonLine(line)) {
+          pushChunk('text', stripAnsi(line));
+        }
+      }
+    };
 
     const unsubOutput = api.onPromptOutput((event: { sessionId: string; data: string }) => {
       if (event.sessionId !== promptSessionId) return;
 
-      // Parse stream-json lines
-      const lines = event.data.split('\n');
+      // Accumulate into line buffer and process complete lines
+      lineBuffer += event.data;
+      const lines = lineBuffer.split('\n');
+      // Keep the last (potentially incomplete) segment in the buffer
+      lineBuffer = lines.pop() || '';
+
       for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const parsed: StreamEvent = JSON.parse(line);
-          const text = extractTextFromEvent(parsed);
-          if (text) {
-            chunks.push({ type: 'text', data: text });
-            if (resolve) { resolve(); resolve = null; }
-          }
-        } catch {
-          // Non-JSON line — strip ANSI and only forward if it has real content
-          const cleaned = stripAnsi(line);
-          // Skip raw JSON objects that failed to parse (init events, etc.)
-          if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
-            chunks.push({ type: 'text', data: cleaned });
-            if (resolve) { resolve(); resolve = null; }
-          }
-        }
+        processLine(line);
       }
     });
 
     const unsubDone = api.onPromptDone((event: { sessionId: string; exitCode: number }) => {
       if (event.sessionId !== promptSessionId) return;
+      // Process any remaining buffered content
+      if (lineBuffer.trim()) {
+        processLine(lineBuffer);
+        lineBuffer = '';
+      }
       done = true;
-      chunks.push({ type: 'done', data: '' });
-      if (resolve) { resolve(); resolve = null; }
+      pushChunk('done', '');
     });
 
     // Yield chunks as they arrive
@@ -305,7 +375,7 @@ async function* sendToGripElectron(
         if (chunks.length > 0) {
           const chunk = chunks.shift()!;
           if (chunk.type === 'done') break;
-          yield { type: 'text', data: chunk.data };
+          yield { type: chunk.type as 'text' | 'metrics', data: chunk.data };
         } else {
           // Wait for next chunk
           await new Promise<void>(r => { resolve = r; });

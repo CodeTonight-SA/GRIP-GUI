@@ -14,12 +14,18 @@ import { app, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// V8 stability flags for unsigned development builds.
-// The ad-hoc code signing on macOS can cause V8's memory protection
+// V8 stability: ad-hoc code signing on macOS can cause V8's memory protection
 // (ThreadIsolation::WriteProtectMemory) to crash with EXC_BREAKPOINT.
-// These flags mitigate the issue until proper Apple Developer signing.
-app.commandLine.appendSwitch('js-flags', '--jitless');
-app.commandLine.appendSwitch('disable-gpu-sandbox');
+// --jitless disables JIT entirely (10-100x slower), so we only use it as a fallback.
+// In development: JIT enabled (no signing needed).
+// In production: try without jitless; env var GRIP_JITLESS=1 to force if crashes occur.
+if (process.env.GRIP_JITLESS === '1') {
+  app.commandLine.appendSwitch('js-flags', '--jitless');
+  app.commandLine.appendSwitch('disable-gpu-sandbox');
+} else if (process.env.NODE_ENV !== 'development' && process.platform === 'darwin') {
+  // Less aggressive mitigation that keeps JIT enabled
+  app.commandLine.appendSwitch('js-flags', '--no-v8-untrusted-code-mitigations');
+}
 
 // Crash recovery: log uncaught exceptions instead of silently dying
 process.on('uncaughtException', (error) => {
@@ -558,24 +564,26 @@ app.whenReady().then(async () => {
     saveAgents,
   });
 
-  // Initialize services
-  initTelegramBot();
-  initSlackBot(appSettings, (settings) => {
-    appSettings = settings;
-    saveAppSettingsToFile(settings);
-  }, getMainWindow());
-  initApiServer();
+  // Pre-warm a GRIP Engine session for instant first response (2s delay to not block window)
+  setTimeout(() => {
+    const { preWarmSession } = require('./handlers/grip-engine-handlers');
+    preWarmSession('sonnet');
+  }, 2000);
 
-  // Setup MCP orchestrator and hooks
-  await setupMcpOrchestrator(appSettings);
-  await configureStatusHooks();
+  // Defer non-essential services to speed up window appearance
+  setTimeout(async () => {
+    initTelegramBot();
+    initSlackBot(appSettings, (settings) => {
+      appSettings = settings;
+      saveAppSettingsToFile(settings);
+    }, getMainWindow());
+    initApiServer();
+    await setupMcpOrchestrator(appSettings);
+    await configureStatusHooks();
+    console.log('Deferred services initialized');
+  }, 3000);
 
-  // Auto-updater disabled — was pointing to Dorothy GitHub
-  // TODO: Re-enable with GRIP-specific update mechanism
-  // initAutoUpdater(getMainWindow);
-  // setMainWindowGetter(getMainWindow);
-
-  console.log('App initialization complete');
+  console.log('App initialization complete (core services ready)');
 });
 
 // Quit when all windows are closed (except on macOS)

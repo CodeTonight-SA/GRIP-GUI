@@ -8,6 +8,7 @@ import FocusMode from '@/components/Engine/FocusMode';
 import WelcomeAnimation from '@/components/Engine/WelcomeAnimation';
 import MobileToolbar from '@/components/Engine/MobileToolbar';
 import { useState, useCallback, useEffect } from 'react';
+import { isElectronEnv } from '@/lib/grip-session';
 import {
   getChatSessions,
   getActiveChatId,
@@ -17,12 +18,40 @@ import {
   type ChatSession,
 } from '@/lib/chat-storage';
 
+interface HealthData {
+  skillCount: number;
+  generation: number;
+  fitness: number;
+}
+
 export default function EnginePage() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const [model, setModel] = useState('sonnet');
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatKey, setChatKey] = useState(0); // Force re-mount ChatInterface on session switch
+  const [health, setHealth] = useState<HealthData>({ skillCount: 5, generation: 33, fitness: 0.467 });
+
+  // Fetch GRIP health data for live status bar
+  useEffect(() => {
+    const fetchHealth = async () => {
+      if (!isElectronEnv()) return;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = await (window as any).electronAPI?.grip?.getHealth();
+        if (data?.status === 'healthy') {
+          setHealth({
+            skillCount: data.skillCount ?? 5,
+            generation: data.generation ?? 33,
+            fitness: data.fitness ?? 0.467,
+          });
+        }
+      } catch { /* silently fail — status bar shows defaults */ }
+    };
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Initialise: migrate storage, load or create active chat
   useEffect(() => {
@@ -96,7 +125,7 @@ export default function EnginePage() {
           )}
         </div>
 
-        {!focusMode && <GripStatusBar />}
+        {!focusMode && <GripStatusBar skillCount={health.skillCount} />}
       </div>
 
       {/* Mobile bottom toolbar — visible on small screens only */}

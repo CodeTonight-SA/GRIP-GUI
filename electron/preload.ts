@@ -621,8 +621,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('grip:getSessionStatus'),
     killSession: () =>
       ipcRenderer.invoke('grip:killSession'),
+    killPrompt: (sessionId: string) =>
+      ipcRenderer.invoke('grip:killPrompt', sessionId),
     getHealth: () =>
       ipcRenderer.invoke('grip:getHealth'),
+
+    // Persistent stream-json session (ultra-fast follow-up messages)
+    startStreamSession: (options?: { model?: string }) =>
+      ipcRenderer.invoke('grip:startStreamSession', options),
+    streamMessage: (options: { prompt: string; model?: string }) =>
+      ipcRenderer.invoke('grip:streamMessage', options),
+    killStreamSession: () =>
+      ipcRenderer.invoke('grip:killStreamSession'),
 
     // Event listeners for streaming output
     onOutput: (callback: (event: { sessionId: string; data: string }) => void) => {
@@ -646,6 +656,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => { ipcRenderer.removeListener('grip:promptDone', handler); };
     },
   },
+
+  // Temp file operations (for clipboard image paste)
+  saveTemp: (dataUrl: string) =>
+    ipcRenderer.invoke('app:saveTemp', dataUrl),
 
   // Platform info
   platform: process.platform,

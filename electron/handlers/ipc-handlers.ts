@@ -1476,8 +1476,41 @@ function registerUpdateHandlers(): void {
   });
 
   ipcMain.handle('app:openExternal', async (_event, url: string) => {
-    shell.openExternal(url);
-    return { success: true };
+    // Only allow http/https URLs — block file://, javascript:, data:, etc.
+    if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
+      shell.openExternal(url);
+      return { success: true };
+    }
+    return { success: false, error: 'Blocked: only http/https URLs allowed' };
+  });
+
+  // Save clipboard data (e.g. pasted image) to a temp file
+  const ALLOWED_IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
+
+  ipcMain.handle('app:saveTemp', async (_event, dataUrl: string) => {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+      return { success: false, error: 'Invalid data URL' };
+    }
+    try {
+      const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!match) return { success: false, error: 'Not a valid image data URL' };
+
+      const rawExt = match[1].toLowerCase();
+      if (!ALLOWED_IMAGE_EXTS.includes(rawExt)) {
+        return { success: false, error: `Image type not allowed: ${rawExt}` };
+      }
+      const ext = rawExt === 'jpeg' ? 'jpg' : rawExt;
+      const buffer = Buffer.from(match[2], 'base64');
+      const tmpDir = path.join(os.tmpdir(), 'grip-commander');
+      const fs = await import('fs');
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+
+      const filePath = path.join(tmpDir, `paste-${Date.now()}.${ext}`);
+      fs.writeFileSync(filePath, buffer);
+      return filePath;
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
   });
 }
 

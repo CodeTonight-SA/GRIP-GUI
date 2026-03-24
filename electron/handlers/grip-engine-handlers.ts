@@ -13,15 +13,18 @@
  */
 import { ipcMain, BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
-import { spawn as cpSpawn } from 'child_process';
+import { spawn as cpSpawn, ChildProcess } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 
 /**
  * Build a PATH string that includes common claude installation directories.
  * The Electron process PATH may not include nvm/homebrew paths.
+ * Cached after first call — PATH doesn't change at runtime.
  */
+let cachedClaudePath: string | null = null;
 function buildClaudePath(): string {
+  if (cachedClaudePath) return cachedClaudePath;
   const home = os.homedir();
   const extras = [
     path.join(home, '.local', 'bin'),
@@ -32,10 +35,14 @@ function buildClaudePath(): string {
   ];
   const existing = (process.env.PATH || '').split(':');
   const seen = new Set<string>();
-  return [...extras, ...existing]
+  cachedClaudePath = [...extras, ...existing]
     .filter(p => { if (!p || seen.has(p)) return false; seen.add(p); return true; })
     .join(':');
+  return cachedClaudePath;
 }
+
+// Track active one-shot prompt processes for cancellation
+const activePrompts = new Map<string, ChildProcess>();
 
 const GRIP_DIR = path.join(os.homedir(), '.claude');
 
@@ -47,6 +54,77 @@ interface EngineSession {
 }
 
 let engineSession: EngineSession | null = null;
+
+/**
+ * Persistent streaming session — a long-lived `claude -p` process that uses
+ * stream-json on both stdin and stdout. Context stays loaded between messages,
+ * eliminating the 2-3s cold start per turn. This is the ultra-fast path.
+ */
+interface StreamSession {
+  proc: ChildProcess;
+  model: string;
+  sessionId: string;
+  alive: boolean;
+}
+
+let streamSession: StreamSession | null = null;
+
+function killStreamSession() {
+  if (streamSession?.proc) {
+    streamSession.alive = false;
+    streamSession.proc.kill('SIGTERM');
+    streamSession = null;
+  }
+}
+
+function startStreamSession(model: string = 'sonnet'): StreamSession {
+  killStreamSession();
+
+  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--model', model];
+  const proc = cpSpawn('claude', args, {
+    cwd: GRIP_DIR,
+    env: { ...process.env, HOME: os.homedir(), PATH: buildClaudePath() },
+  });
+
+  const sessionId = crypto.randomUUID();
+  const session: StreamSession = { proc, model, sessionId, alive: true };
+
+  proc.on('close', () => {
+    session.alive = false;
+    if (streamSession === session) {
+      streamSession = null;
+      console.log('Stream session closed');
+    }
+  });
+
+  proc.on('error', (err) => {
+    console.error('Stream session error:', err.message);
+    session.alive = false;
+    if (streamSession === session) streamSession = null;
+  });
+
+  proc.stderr?.on('data', (data: Buffer) => {
+    // Log but don't forward stderr from the persistent session
+    const text = data.toString().trim();
+    if (text) console.error('[stream-session stderr]', text);
+  });
+
+  streamSession = session;
+  console.log(`Stream session started: model=${model}, sessionId=${sessionId}`);
+  return session;
+}
+
+/**
+ * Pre-warm a GRIP session for instant first response.
+ * Called from main.ts after app init.
+ */
+export function preWarmSession(model: string = 'sonnet') {
+  try {
+    startStreamSession(model);
+  } catch (err) {
+    console.error('Failed to pre-warm session:', err);
+  }
+}
 
 function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows();
@@ -166,9 +244,25 @@ export function registerGripEngineHandlers() {
       });
 
       const promptSessionId = crypto.randomUUID();
+      activePrompts.set(promptSessionId, proc);
+
+      // Buffer stdout chunks for 16ms before sending to reduce IPC call count
+      let outputBuffer = '';
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const flushOutput = () => {
+        if (outputBuffer) {
+          sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data: outputBuffer });
+          outputBuffer = '';
+        }
+        flushTimer = null;
+      };
 
       proc.stdout.on('data', (data: Buffer) => {
-        sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data: data.toString() });
+        outputBuffer += data.toString();
+        if (!flushTimer) {
+          flushTimer = setTimeout(flushOutput, 16);
+        }
       });
 
       proc.stderr.on('data', (data: Buffer) => {
@@ -183,10 +277,15 @@ export function registerGripEngineHandlers() {
       });
 
       proc.on('close', (exitCode) => {
+        // Flush any remaining buffered output
+        if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+        flushOutput();
+        activePrompts.delete(promptSessionId);
         sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: exitCode || 0 });
       });
 
       proc.on('error', (err) => {
+        activePrompts.delete(promptSessionId);
         sendToRenderer('grip:promptOutput', {
           sessionId: promptSessionId,
           data: JSON.stringify({ type: 'error', message: err.message }) + '\n',
@@ -221,6 +320,169 @@ export function registerGripEngineHandlers() {
       return { success: true };
     }
     return { success: false, error: 'No active session' };
+  });
+
+  /**
+   * Kill a running one-shot prompt by session ID.
+   */
+  ipcMain.handle('grip:killPrompt', async (_event, sessionId: string) => {
+    if (typeof sessionId !== 'string') {
+      return { success: false, error: 'Invalid session ID' };
+    }
+    const proc = activePrompts.get(sessionId);
+    if (proc) {
+      proc.kill('SIGTERM');
+      // Force kill after 3s if SIGTERM doesn't work
+      const killTimeout = setTimeout(() => {
+        try { proc.kill('SIGKILL'); } catch { /* already dead */ }
+      }, 3000);
+      proc.once('exit', () => clearTimeout(killTimeout));
+      activePrompts.delete(sessionId);
+      return { success: true };
+    }
+    return { success: false, error: 'No active prompt with that ID' };
+  });
+
+  /**
+   * Start a persistent stream-json session.
+   * This keeps a claude -p process alive with --input-format stream-json
+   * for ultra-fast follow-up messages (no cold start).
+   */
+  ipcMain.handle('grip:startStreamSession', async (_event, options: {
+    model?: string;
+  } = {}) => {
+    try {
+      const session = startStreamSession(options.model);
+      return { success: true, sessionId: session.sessionId };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  });
+
+  /**
+   * Send a message through the persistent stream-json session.
+   * The session stays alive between messages — no cold start.
+   * Output is forwarded via grip:promptOutput events (same as one-shot).
+   *
+   * Uses line-based parsing to detect end-of-message (result event),
+   * with explicit cleanup of all listeners to prevent leaks.
+   */
+  ipcMain.handle('grip:streamMessage', async (_event, options: {
+    prompt: string;
+    model?: string;
+  }) => {
+    const { prompt, model = 'sonnet' } = options;
+
+    // Start or restart session if needed
+    if (!streamSession?.alive || (model && streamSession.model !== model)) {
+      startStreamSession(model);
+    }
+
+    if (!streamSession?.alive || !streamSession.proc.stdin) {
+      return { success: false, error: 'Failed to start stream session' };
+    }
+
+    const messageId = crypto.randomUUID();
+    const currentSession = streamSession;
+    let lineBuffer = '';
+    let outputBuffer = '';
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    let messageComplete = false;
+    let cleaned = false;
+
+    // Explicit cleanup — called once from any exit path
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+      currentSession.proc.stdout?.removeListener('data', onData);
+      currentSession.proc.removeListener('close', onClose);
+    };
+
+    const flushOutput = () => {
+      if (outputBuffer) {
+        sendToRenderer('grip:promptOutput', { sessionId: messageId, data: outputBuffer });
+        outputBuffer = '';
+      }
+      flushTimer = null;
+    };
+
+    const onData = (data: Buffer) => {
+      if (messageComplete) return; // Ignore data after completion
+
+      const text = data.toString();
+      lineBuffer += text;
+
+      // Parse complete lines (JSONL: one JSON object per line)
+      const lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop() || ''; // Keep incomplete line
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        outputBuffer += line + '\n';
+
+        // Detect result event by parsing the line as JSON
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.type === 'result') {
+            messageComplete = true;
+          }
+        } catch { /* not valid JSON, forward anyway */ }
+      }
+
+      // Batch flush every 16ms
+      if (!flushTimer) {
+        flushTimer = setTimeout(() => {
+          flushOutput();
+          if (messageComplete) {
+            // Flush any remaining line buffer
+            if (lineBuffer.trim()) {
+              sendToRenderer('grip:promptOutput', { sessionId: messageId, data: lineBuffer + '\n' });
+              lineBuffer = '';
+            }
+            cleanup();
+            sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 0 });
+          }
+        }, 16);
+      }
+    };
+
+    const onClose = () => {
+      flushOutput();
+      if (lineBuffer.trim()) {
+        sendToRenderer('grip:promptOutput', { sessionId: messageId, data: lineBuffer + '\n' });
+        lineBuffer = '';
+      }
+      cleanup();
+      if (!messageComplete) {
+        sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 1 });
+      }
+    };
+
+    currentSession.proc.stdout?.on('data', onData);
+    currentSession.proc.once('close', onClose);
+
+    // Write the message as JSON to stdin
+    const inputEvent = JSON.stringify({
+      type: 'user_message',
+      content: prompt,
+    }) + '\n';
+
+    try {
+      currentSession.proc.stdin.write(inputEvent);
+      return { success: true, sessionId: messageId };
+    } catch (err) {
+      cleanup();
+      return { success: false, error: err instanceof Error ? err.message : 'Write failed' };
+    }
+  });
+
+  /**
+   * Kill the persistent stream session.
+   */
+  ipcMain.handle('grip:killStreamSession', async () => {
+    killStreamSession();
+    return { success: true };
   });
 
   /**

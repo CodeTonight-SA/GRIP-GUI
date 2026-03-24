@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Sparkles, Terminal as TerminalIcon, Square } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
+import { Send, Sparkles, Square, X, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { sendToGrip, type GripMessage, type GripMetrics } from '@/lib/grip-session';
+import TypingIndicator from './TypingIndicator';
 import {
   getChatMessages,
   saveChatMessages,
@@ -55,12 +57,25 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   useEffect(() => {
     if (chatId !== undefined) setCurrentChatId(chatId);
   }, [chatId]);
+  const [pastedImage, setPastedImage] = useState<{ dataUrl: string; tempPath?: string } | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const reduceMotion = useReducedMotion();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  // Tracks the Electron IPC prompt session ID so the stop button can kill it
+  const activePromptSessionRef = useRef<string | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const pendingContentRef = useRef('');
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 80);
+    return () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
   }, [messages]);
 
   const handleSend = useCallback(async () => {
@@ -75,11 +90,16 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       setActiveChatId(chatId);
     }
 
+    const imageContext = pastedImage?.tempPath
+      ? `\n\n[Attached image: ${pastedImage.tempPath}]`
+      : '';
+
     const userMessage: GripMessage = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: input.trim(),
+      content: input.trim() + (pastedImage ? ' [image attached]' : ''),
       timestamp: new Date(),
+      imageDataUrl: pastedImage?.dataUrl,
     };
 
     const assistantMessage: GripMessage = {
@@ -93,6 +113,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     const newMessages = [...messages, userMessage, assistantMessage];
     setMessages(newMessages);
     setInput('');
+    setPastedImage(null);
     setIsStreaming(true);
     spinnerTimerRef.current = setTimeout(() => setShowSpinner(true), 200);
 
@@ -109,8 +130,14 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     let metrics: GripMetrics | undefined;
     let receivedFirstToken = false;
 
+    const promptText = input.trim() + imageContext;
     try {
-      for await (const event of sendToGrip(input.trim(), sessionId, model)) {
+      for await (const event of sendToGrip(
+        promptText,
+        sessionId,
+        model,
+        (id) => { activePromptSessionRef.current = id; },
+      )) {
         if (event.type === 'text') {
           if (!receivedFirstToken) {
             receivedFirstToken = true;
@@ -121,14 +148,10 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
             setShowSpinner(false);
           }
           fullText += event.data as string;
-          setMessages(prev => {
-            const updated = [...prev];
-            const lastMsg = updated[updated.length - 1];
-            if (lastMsg.role === 'assistant') {
-              lastMsg.content = fullText;
-            }
-            return [...updated];
-          });
+          pendingContentRef.current = fullText;
+          if (rafIdRef.current === null) {
+            rafIdRef.current = requestAnimationFrame(flushStreamUpdate);
+          }
         } else if (event.type === 'metrics') {
           metrics = event.data as GripMetrics;
           if (metrics.sessionId) {
@@ -136,18 +159,20 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
           }
         } else if (event.type === 'error') {
           fullText += `\n[GRIP Error: ${event.data}]`;
-          setMessages(prev => {
-            const updated = [...prev];
-            const lastMsg = updated[updated.length - 1];
-            if (lastMsg.role === 'assistant') {
-              lastMsg.content = fullText;
-            }
-            return [...updated];
-          });
+          pendingContentRef.current = fullText;
+          if (rafIdRef.current === null) {
+            rafIdRef.current = requestAnimationFrame(flushStreamUpdate);
+          }
         }
       }
     } catch (err) {
       fullText += `\n[Connection error: ${err instanceof Error ? err.message : String(err)}]`;
+    }
+
+    // Flush any pending RAF update before finalising
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
     }
 
     // Finalise the message and persist
@@ -168,17 +193,37 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     if (metrics?.sessionId && chatId) {
       updateSessionId(chatId, metrics.sessionId);
     }
+    activePromptSessionRef.current = null;
     setIsStreaming(false);
     setShowSpinner(false);
     if (spinnerTimerRef.current) {
       clearTimeout(spinnerTimerRef.current);
       spinnerTimerRef.current = null;
     }
-  }, [input, isStreaming, sessionId, model, currentChatId, messages]);
+  }, [input, isStreaming, sessionId, model, currentChatId, messages, flushStreamUpdate, pastedImage]);
 
   const handleStop = useCallback(() => {
-    abortRef.current?.abort();
+    const id = activePromptSessionRef.current;
+    if (id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).electronAPI?.grip?.killPrompt?.(id);
+      activePromptSessionRef.current = null;
+    }
     setIsStreaming(false);
+    setShowSpinner(false);
+  }, []);
+
+  const flushStreamUpdate = useCallback(() => {
+    rafIdRef.current = null;
+    const text = pendingContentRef.current;
+    setMessages(prev => {
+      const updated = [...prev];
+      const lastMsg = updated[updated.length - 1];
+      if (lastMsg?.role === 'assistant') {
+        lastMsg.content = text;
+      }
+      return updated;
+    });
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -193,29 +238,119 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     inputRef.current?.focus();
   };
 
+  // Shared helper for processing image files (paste or drag-and-drop)
+  const processImageFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (!dataUrl) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI?.saveTemp) {
+        electronAPI.saveTemp(dataUrl).then((tempPath: string) => {
+          setPastedImage({ dataUrl, tempPath });
+        });
+      } else {
+        setPastedImage({ dataUrl });
+      }
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handlePaste = useCallback((e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (file) processImageFile(file);
+  }, [processImageFile]);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(f => f.type.startsWith('image/'));
+    if (imageFile) processImageFile(imageFile);
+  }, [processImageFile]);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full max-w-xl mx-auto">
-            <div className="w-12 h-12 bg-[var(--primary)] mb-6" />
-            <h1 className="text-3xl font-bold tracking-tighter text-[var(--foreground)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+          <div
+            className="flex flex-col items-center justify-center h-full max-w-xl mx-auto relative"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 40%, var(--info-muted) 0%, transparent 60%)',
+            }}
+          >
+            {/* Animated pulse bars as centrepiece */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-end gap-1 h-12 mb-6"
+            >
+              {[0, 1, 2, 3, 4].map(i => (
+                <motion.div
+                  key={i}
+                  className="w-2 bg-[var(--primary)]"
+                  animate={{ height: ['8px', '48px', '8px'] }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1.6,
+                    delay: i * 0.2,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="text-3xl font-bold tracking-tighter text-[var(--foreground)] mb-2"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
               GRIP
-            </h1>
-            <p className="font-mono text-xs tracking-widest text-[var(--muted-foreground)] mb-8">
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
+              className="font-mono text-xs tracking-widest text-[var(--muted-foreground)] mb-8"
+            >
               KNOWLEDGE WORK ENGINE
-            </p>
-            <p className="text-center text-[var(--muted-foreground)] mb-8 max-w-md">
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+              className="text-center text-[var(--muted-foreground)] mb-8 max-w-md"
+            >
               Your AI thinking partner. Connected to your local GRIP instance
               with all skills, modes, and safety gates active.
-            </p>
+            </motion.p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
-              {SUGGESTED_PROMPTS.map((prompt) => (
-                <button
+              {SUGGESTED_PROMPTS.map((prompt, i) => (
+                <motion.button
                   key={prompt.text}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 + i * 0.05, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                   onClick={() => handleSuggestedPrompt(prompt.text)}
-                  className="flex items-start gap-3 p-4 border border-[var(--border)] hover:border-[var(--primary)] transition-colors text-left group"
+                  className="flex items-start gap-3 p-4 border border-[var(--border)] hover:border-[var(--primary)] hover:-translate-y-px transition-all text-left group"
                 >
                   <span className="font-mono text-xs text-[var(--primary)] mt-0.5 shrink-0 w-4">
                     {prompt.icon}
@@ -223,17 +358,29 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                   <span className="text-sm text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors">
                     {prompt.text}
                   </span>
-                </button>
+                </motion.button>
               ))}
             </div>
-            <p className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] mt-8 opacity-60">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+              className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] mt-8"
+            >
               CMD+K FOR COMMANDS | LOCAL GRIP BACKEND | REAL-TIME STREAMING
-            </p>
+            </motion.p>
           </div>
         ) : (
           <div className="max-w-3xl mx-auto space-y-6">
+            <AnimatePresence initial={false}>
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <motion.div
+                key={msg.id}
+                initial={reduceMotion ? false : { opacity: 0, x: msg.role === 'user' ? 12 : -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
                 <div className="max-w-[85%]">
                   {/* Auto-detection badges */}
                   {msg.detectedMode && !msg.streaming && (
@@ -254,6 +401,16 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                       ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                       : 'border border-[var(--border)] text-[var(--foreground)]'
                   }`}>
+                    {msg.imageDataUrl && (
+                      <div className="mb-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={msg.imageDataUrl}
+                          alt="Attached"
+                          className="max-h-48 w-auto border border-[var(--border)]"
+                        />
+                      </div>
+                    )}
                     <MarkdownContent content={msg.content} />
                     {msg.streaming && (
                       <span className="inline-block w-2 h-4 bg-[var(--primary)] animate-pulse ml-0.5" />
@@ -279,19 +436,11 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                     )}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
+            </AnimatePresence>
             {isStreaming && showSpinner && messages[messages.length - 1]?.content === '' && (
-              <div className="flex justify-start">
-                <div className="border border-[var(--border)] p-4">
-                  <div className="flex items-center gap-2">
-                    <TerminalIcon className="w-3 h-3 text-[var(--primary)] animate-pulse" />
-                    <span className="font-mono text-xs text-[var(--muted-foreground)]">
-                      GRIP is processing...
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <TypingIndicator />
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -299,8 +448,45 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       </div>
 
       {/* Input area */}
-      <div className="border-t border-[var(--border)] bg-[var(--card)] p-4">
+      <div
+        className="border-t border-[var(--border)] bg-[var(--card)] p-4 relative"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+      >
+        {/* Drag-and-drop overlay */}
+        {isDragOver && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-[var(--primary)] bg-[var(--primary)]/10">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-[var(--primary)]" />
+              <span className="font-mono text-xs tracking-widest text-[var(--primary)]">
+                DROP IMAGE HERE
+              </span>
+            </div>
+          </div>
+        )}
         <div className="max-w-3xl mx-auto">
+          {/* Image preview strip */}
+          {pastedImage && (
+            <div className="flex items-center gap-3 mb-2 p-2 border border-[var(--border)] bg-[var(--background)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={pastedImage.dataUrl}
+                alt="Pasted"
+                className="max-h-16 w-auto border border-[var(--border)]"
+              />
+              <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+                IMAGE ATTACHED
+              </span>
+              <button
+                onClick={() => setPastedImage(null)}
+                className="ml-auto p-1 hover:bg-[var(--secondary)] transition-colors"
+                title="Remove image"
+              >
+                <X className="w-3 h-3 text-[var(--muted-foreground)]" />
+              </button>
+            </div>
+          )}
           <div className="flex items-end gap-3">
             <div className="flex-1 relative">
               <textarea
@@ -308,6 +494,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 placeholder="Type your message..."
                 rows={1}
                 disabled={isStreaming}
