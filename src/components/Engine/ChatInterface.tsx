@@ -200,7 +200,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full max-w-xl mx-auto">
             <div className="w-12 h-12 bg-[var(--primary)] mb-6" />
-            <h1 className="text-3xl font-bold tracking-tighter text-[var(--foreground)] mb-2">
+            <h1 className="text-3xl font-bold tracking-tighter text-[var(--foreground)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
               GRIP
             </h1>
             <p className="font-mono text-xs tracking-widest text-[var(--muted-foreground)] mb-8">

@@ -67,6 +67,10 @@
   --chart-5: #000000;
 }
 
+html {
+  font-size: 17px;
+}
+
 /* ============================================
    DARK MODE
    ============================================ */
@@ -162,9 +166,10 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Typography — System fonts. Swiss Nihilism Law 1. */
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  /* Typography */
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'GeistMono', ui-monospace, monospace;
+  --font-display: 'Syne', ui-sans-serif, sans-serif;
 }
 
 /* ============================================
@@ -177,8 +182,8 @@
   body {
     background: var(--background);
     color: var(--foreground);
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 14px;
+    font-family: var(--font-sans);
+    font-size: 17px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -188,9 +193,9 @@
   td, th, code, pre {
     font-variant-numeric: tabular-nums;
   }
-  /* Headings — System sans, bold, tight tracking. Swiss Nihilism Law 5. */
+  /* Headings — Syne for display. Swiss Nihilism Law 5. */
   h1, h2, h3, h4, h5, h6 {
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     letter-spacing: -0.025em;
   }
@@ -384,8 +389,8 @@ input, textarea, select {
   background: var(--input);
   border: 1px solid var(--border);
   color: var(--foreground);
-  font-family: inherit;
-  font-size: 14px;
+  font-family: var(--font-sans);
+  font-size: 1rem;
   transition: border-color 0.15s ease;
 }
 
