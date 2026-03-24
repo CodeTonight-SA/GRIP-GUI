@@ -564,11 +564,9 @@ app.whenReady().then(async () => {
     saveAgents,
   });
 
-  // Pre-warm a GRIP Engine session for instant first response (2s delay to not block window)
-  setTimeout(() => {
-    const { preWarmSession } = require('./handlers/grip-engine-handlers');
-    preWarmSession('sonnet');
-  }, 2000);
+  // NOTE: Pre-warm disabled — stream-json input protocol needs investigation.
+  // One-shot grip:prompt with --resume is used for now.
+  // TODO: Re-enable when stream-json input format is confirmed.
 
   // Defer non-essential services to speed up window appearance
   setTimeout(async () => {
