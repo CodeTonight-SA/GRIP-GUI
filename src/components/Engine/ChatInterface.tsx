@@ -34,8 +34,10 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   const [messages, setMessages] = useState<GripMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [model, setModel] = useState('sonnet');
+  const spinnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load persisted messages on mount or chat switch
   useEffect(() => {
@@ -92,6 +94,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     setMessages(newMessages);
     setInput('');
     setIsStreaming(true);
+    spinnerTimerRef.current = setTimeout(() => setShowSpinner(true), 200);
 
     // Persist and auto-title
     if (chatId) {
@@ -104,10 +107,19 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     // Stream response from real GRIP backend
     let fullText = '';
     let metrics: GripMetrics | undefined;
+    let receivedFirstToken = false;
 
     try {
       for await (const event of sendToGrip(input.trim(), sessionId, model)) {
         if (event.type === 'text') {
+          if (!receivedFirstToken) {
+            receivedFirstToken = true;
+            if (spinnerTimerRef.current) {
+              clearTimeout(spinnerTimerRef.current);
+              spinnerTimerRef.current = null;
+            }
+            setShowSpinner(false);
+          }
           fullText += event.data as string;
           setMessages(prev => {
             const updated = [...prev];
@@ -157,6 +169,11 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       updateSessionId(chatId, metrics.sessionId);
     }
     setIsStreaming(false);
+    setShowSpinner(false);
+    if (spinnerTimerRef.current) {
+      clearTimeout(spinnerTimerRef.current);
+      spinnerTimerRef.current = null;
+    }
   }, [input, isStreaming, sessionId, model, currentChatId, messages]);
 
   const handleStop = useCallback(() => {
@@ -264,7 +281,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                 </div>
               </div>
             ))}
-            {isStreaming && messages[messages.length - 1]?.content === '' && (
+            {isStreaming && showSpinner && messages[messages.length - 1]?.content === '' && (
               <div className="flex justify-start">
                 <div className="border border-[var(--border)] p-4">
                   <div className="flex items-center gap-2">
