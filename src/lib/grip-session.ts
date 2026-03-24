@@ -291,28 +291,18 @@ async function* sendToGripElectron(
   }
 
   try {
-    // Try persistent stream session first (ultra-fast, no cold start)
-    // Falls back to one-shot if stream session fails
-    let result: { success: boolean; sessionId?: string; error?: string };
-    let usingStreamSession = false;
+    // Use one-shot prompt mode (spawns claude -p with stream-json)
+    // NOTE: Persistent stream session (streamMessage) disabled — the
+    // --input-format stream-json protocol needs investigation for the
+    // correct JSON schema. One-shot with --resume is reliable.
+    const result = await api.prompt({ prompt, model, sessionId });
 
-    if (api.streamMessage && !sessionId) {
-      // Persistent session doesn't support --resume, so only use for non-resumed messages
-      result = await api.streamMessage({ prompt, model });
-      usingStreamSession = result.success;
-    }
-
-    if (!usingStreamSession) {
-      // Fallback: one-shot prompt (spawns claude -p with stream-json)
-      result = await api.prompt({ prompt, model, sessionId });
-    }
-
-    if (!result!.success) {
-      yield { type: 'error', data: result!.error || 'Failed to start prompt' };
+    if (!result.success) {
+      yield { type: 'error', data: result.error || 'Failed to start prompt' };
       return;
     }
 
-    const promptSessionId = result!.sessionId!;
+    const promptSessionId = result.sessionId!;
     onPromptSessionId?.(promptSessionId);
 
     // Collect output via events using a promise-based queue
