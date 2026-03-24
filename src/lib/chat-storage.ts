@@ -26,7 +26,7 @@ const CHATS_KEY = 'grip-chats';
 const ACTIVE_KEY = 'grip-active-chat';
 const CHAT_PREFIX = 'grip-chat-';
 const VERSION_KEY = 'grip-storage-version';
-const CURRENT_STORAGE_VERSION = 2;
+const CURRENT_STORAGE_VERSION = 4;
 const MAX_CHATS = 50;
 
 /**
@@ -63,7 +63,23 @@ export function migrateStorageIfNeeded(): void {
     const stored = parseInt(localStorage.getItem(VERSION_KEY) || '0', 10);
     if (stored >= CURRENT_STORAGE_VERSION) return;
 
-    // Migration: sanitise all existing chat messages
+    // Migration v3: nuke all localStorage data (full reset)
+    if (stored < 4) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('grip-')) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
+      }
+      localStorage.setItem(VERSION_KEY, String(CURRENT_STORAGE_VERSION));
+      return;
+    }
+
+    // Migration v2: sanitise existing chat messages
     const sessions = getChatSessions();
     for (const session of sessions) {
       const key = CHAT_PREFIX + session.id;
