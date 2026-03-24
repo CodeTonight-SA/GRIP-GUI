@@ -90,10 +90,13 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
           </div>
         ) : (
           sessions.map(session => (
-            <button
+            <div
               key={session.id}
+              role="button"
+              tabIndex={0}
               onClick={() => handleSelectChat(session.id)}
-              className={`w-full text-left px-3 py-2 group transition-colors ${
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectChat(session.id); } }}
+              className={`w-full text-left px-3 py-2 group transition-colors cursor-pointer ${
                 session.id === activeId
                   ? 'border-l-2 border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--foreground)]'
                   : 'border-l-2 border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -121,7 +124,7 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
                   {session.model.toUpperCase()}
                 </span>
               </div>
-            </button>
+            </div>
           ))
         )}
       </div>

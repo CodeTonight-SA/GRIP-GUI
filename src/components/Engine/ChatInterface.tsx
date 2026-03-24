@@ -449,7 +449,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
 
       {/* Input area */}
       <div
-        className="border-t border-[var(--border)] bg-[var(--card)] p-4 relative"
+        className="border-t border-[var(--border)] bg-[var(--card)] p-4 pb-10 relative"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

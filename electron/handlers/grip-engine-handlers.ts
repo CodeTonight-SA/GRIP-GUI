@@ -469,7 +469,7 @@ export function registerGripEngineHandlers() {
     }) + '\n';
 
     try {
-      currentSession.proc.stdin.write(inputEvent);
+      currentSession.proc.stdin!.write(inputEvent);
       return { success: true, sessionId: messageId };
     } catch (err) {
       cleanup();

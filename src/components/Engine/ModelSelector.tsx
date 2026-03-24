@@ -25,18 +25,20 @@ export default function ModelSelector({ value, onChange, compact = false }: Mode
 
   if (compact) {
     return (
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors flex items-center gap-1"
-      >
-        {current.label}
-        <ChevronDown className={`w-2.5 h-2.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors flex items-center gap-1"
+        >
+          {current.label}
+          <ChevronDown className={`w-2.5 h-2.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
         {isOpen && (
           <div className="absolute bottom-full left-0 mb-1 border border-[var(--border)] bg-[var(--card)] z-50 min-w-[140px] animate-fade-in">
             {MODELS.map(model => (
               <button
                 key={model.id}
-                onClick={(e) => { e.stopPropagation(); onChange(model.id); setIsOpen(false); }}
+                onClick={() => { onChange(model.id); setIsOpen(false); }}
                 className={`w-full text-left px-3 py-2 flex items-center justify-between transition-colors ${
                   model.id === value
                     ? 'text-[var(--primary)]'
@@ -49,7 +51,7 @@ export default function ModelSelector({ value, onChange, compact = false }: Mode
             ))}
           </div>
         )}
-      </button>
+      </div>
     );
   }
 
