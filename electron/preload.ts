@@ -621,6 +621,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('grip:getSessionStatus'),
     killSession: () =>
       ipcRenderer.invoke('grip:killSession'),
+    killPrompt: (sessionId: string) =>
+      ipcRenderer.invoke('grip:killPrompt', sessionId),
     getHealth: () =>
       ipcRenderer.invoke('grip:getHealth'),
 
@@ -646,6 +648,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => { ipcRenderer.removeListener('grip:promptDone', handler); };
     },
   },
+
+  // Temp file operations (for clipboard image paste)
+  saveTemp: (dataUrl: string) =>
+    ipcRenderer.invoke('app:saveTemp', dataUrl),
 
   // Platform info
   platform: process.platform,

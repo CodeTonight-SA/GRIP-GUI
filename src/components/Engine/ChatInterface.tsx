@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Sparkles, Terminal as TerminalIcon, Square } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
+import { Send, Sparkles, Terminal as TerminalIcon, Square, X, Image as ImageIcon } from 'lucide-react';
 import { sendToGrip, type GripMessage, type GripMetrics } from '@/lib/grip-session';
 import {
   getChatMessages,
@@ -55,9 +55,12 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   useEffect(() => {
     if (chatId !== undefined) setCurrentChatId(chatId);
   }, [chatId]);
+  const [pastedImage, setPastedImage] = useState<{ dataUrl: string; tempPath?: string } | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  // Tracks the Electron IPC prompt session ID so the stop button can kill it
+  const activePromptSessionRef = useRef<string | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const pendingContentRef = useRef('');
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,11 +87,16 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       setActiveChatId(chatId);
     }
 
+    const imageContext = pastedImage?.tempPath
+      ? `\n\n[Attached image: ${pastedImage.tempPath}]`
+      : '';
+
     const userMessage: GripMessage = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: input.trim(),
+      content: input.trim() + (pastedImage ? ' [image attached]' : ''),
       timestamp: new Date(),
+      imageDataUrl: pastedImage?.dataUrl,
     };
 
     const assistantMessage: GripMessage = {
@@ -102,6 +110,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     const newMessages = [...messages, userMessage, assistantMessage];
     setMessages(newMessages);
     setInput('');
+    setPastedImage(null);
     setIsStreaming(true);
     spinnerTimerRef.current = setTimeout(() => setShowSpinner(true), 200);
 
@@ -118,8 +127,14 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     let metrics: GripMetrics | undefined;
     let receivedFirstToken = false;
 
+    const promptText = input.trim() + imageContext;
     try {
-      for await (const event of sendToGrip(input.trim(), sessionId, model)) {
+      for await (const event of sendToGrip(
+        promptText,
+        sessionId,
+        model,
+        (id) => { activePromptSessionRef.current = id; },
+      )) {
         if (event.type === 'text') {
           if (!receivedFirstToken) {
             receivedFirstToken = true;
@@ -175,17 +190,24 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     if (metrics?.sessionId && chatId) {
       updateSessionId(chatId, metrics.sessionId);
     }
+    activePromptSessionRef.current = null;
     setIsStreaming(false);
     setShowSpinner(false);
     if (spinnerTimerRef.current) {
       clearTimeout(spinnerTimerRef.current);
       spinnerTimerRef.current = null;
     }
-  }, [input, isStreaming, sessionId, model, currentChatId, messages, flushStreamUpdate]);
+  }, [input, isStreaming, sessionId, model, currentChatId, messages, flushStreamUpdate, pastedImage]);
 
   const handleStop = useCallback(() => {
-    abortRef.current?.abort();
+    const id = activePromptSessionRef.current;
+    if (id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).electronAPI?.grip?.killPrompt?.(id);
+      activePromptSessionRef.current = null;
+    }
     setIsStreaming(false);
+    setShowSpinner(false);
   }, []);
 
   const flushStreamUpdate = useCallback(() => {
@@ -212,6 +234,52 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     setInput(text);
     inputRef.current?.focus();
   };
+
+  // Shared helper for processing image files (paste or drag-and-drop)
+  const processImageFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (!dataUrl) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI?.saveTemp) {
+        electronAPI.saveTemp(dataUrl).then((tempPath: string) => {
+          setPastedImage({ dataUrl, tempPath });
+        });
+      } else {
+        setPastedImage({ dataUrl });
+      }
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handlePaste = useCallback((e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (file) processImageFile(file);
+  }, [processImageFile]);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(f => f.type.startsWith('image/'));
+    if (imageFile) processImageFile(imageFile);
+  }, [processImageFile]);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
@@ -274,6 +342,16 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                       ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                       : 'border border-[var(--border)] text-[var(--foreground)]'
                   }`}>
+                    {msg.imageDataUrl && (
+                      <div className="mb-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={msg.imageDataUrl}
+                          alt="Attached"
+                          className="max-h-48 w-auto border border-[var(--border)]"
+                        />
+                      </div>
+                    )}
                     <MarkdownContent content={msg.content} />
                     {msg.streaming && (
                       <span className="inline-block w-2 h-4 bg-[var(--primary)] animate-pulse ml-0.5" />
@@ -319,8 +397,45 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       </div>
 
       {/* Input area */}
-      <div className="border-t border-[var(--border)] bg-[var(--card)] p-4">
+      <div
+        className="border-t border-[var(--border)] bg-[var(--card)] p-4 relative"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+      >
+        {/* Drag-and-drop overlay */}
+        {isDragOver && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-[var(--primary)] bg-[var(--primary)]/5">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-[var(--primary)]" />
+              <span className="font-mono text-xs tracking-widest text-[var(--primary)]">
+                DROP IMAGE HERE
+              </span>
+            </div>
+          </div>
+        )}
         <div className="max-w-3xl mx-auto">
+          {/* Image preview strip */}
+          {pastedImage && (
+            <div className="flex items-center gap-3 mb-2 p-2 border border-[var(--border)] bg-[var(--background)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={pastedImage.dataUrl}
+                alt="Pasted"
+                className="max-h-16 w-auto border border-[var(--border)]"
+              />
+              <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+                IMAGE ATTACHED
+              </span>
+              <button
+                onClick={() => setPastedImage(null)}
+                className="ml-auto p-1 hover:bg-[var(--secondary)] transition-colors"
+                title="Remove image"
+              >
+                <X className="w-3 h-3 text-[var(--muted-foreground)]" />
+              </button>
+            </div>
+          )}
           <div className="flex items-end gap-3">
             <div className="flex-1 relative">
               <textarea
@@ -328,6 +443,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 placeholder="Type your message..."
                 rows={1}
                 disabled={isStreaming}

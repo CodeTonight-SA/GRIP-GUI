@@ -1,8 +1,11 @@
-import { BrowserWindow, protocol, app } from 'electron';
+import { BrowserWindow, protocol, app, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { getAppBasePath } from '../utils';
 import { MIME_TYPES } from '../constants';
+
+// Allowed origins for in-app navigation
+const ALLOWED_ORIGINS = ['http://localhost', 'app://-'];
 
 // Global reference to the main window
 let mainWindow: BrowserWindow | null = null;
@@ -53,6 +56,25 @@ export function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // Navigation guards — prevent external URLs loading in the Electron window
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const isAllowed = ALLOWED_ORIGINS.some(origin => url.startsWith(origin));
+    if (!isAllowed) {
+      event.preventDefault();
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        shell.openExternal(url);
+      }
+    }
+  });
+
+  // Block all new-window requests — open external links in system browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
   });
 
   // Handle loading errors

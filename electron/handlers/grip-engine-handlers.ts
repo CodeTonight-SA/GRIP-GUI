@@ -13,15 +13,18 @@
  */
 import { ipcMain, BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
-import { spawn as cpSpawn } from 'child_process';
+import { spawn as cpSpawn, ChildProcess } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 
 /**
  * Build a PATH string that includes common claude installation directories.
  * The Electron process PATH may not include nvm/homebrew paths.
+ * Cached after first call — PATH doesn't change at runtime.
  */
+let cachedClaudePath: string | null = null;
 function buildClaudePath(): string {
+  if (cachedClaudePath) return cachedClaudePath;
   const home = os.homedir();
   const extras = [
     path.join(home, '.local', 'bin'),
@@ -32,10 +35,14 @@ function buildClaudePath(): string {
   ];
   const existing = (process.env.PATH || '').split(':');
   const seen = new Set<string>();
-  return [...extras, ...existing]
+  cachedClaudePath = [...extras, ...existing]
     .filter(p => { if (!p || seen.has(p)) return false; seen.add(p); return true; })
     .join(':');
+  return cachedClaudePath;
 }
+
+// Track active one-shot prompt processes for cancellation
+const activePrompts = new Map<string, ChildProcess>();
 
 const GRIP_DIR = path.join(os.homedir(), '.claude');
 
@@ -166,9 +173,25 @@ export function registerGripEngineHandlers() {
       });
 
       const promptSessionId = crypto.randomUUID();
+      activePrompts.set(promptSessionId, proc);
+
+      // Buffer stdout chunks for 16ms before sending to reduce IPC call count
+      let outputBuffer = '';
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const flushOutput = () => {
+        if (outputBuffer) {
+          sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data: outputBuffer });
+          outputBuffer = '';
+        }
+        flushTimer = null;
+      };
 
       proc.stdout.on('data', (data: Buffer) => {
-        sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data: data.toString() });
+        outputBuffer += data.toString();
+        if (!flushTimer) {
+          flushTimer = setTimeout(flushOutput, 16);
+        }
       });
 
       proc.stderr.on('data', (data: Buffer) => {
@@ -183,10 +206,15 @@ export function registerGripEngineHandlers() {
       });
 
       proc.on('close', (exitCode) => {
+        // Flush any remaining buffered output
+        if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+        flushOutput();
+        activePrompts.delete(promptSessionId);
         sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: exitCode || 0 });
       });
 
       proc.on('error', (err) => {
+        activePrompts.delete(promptSessionId);
         sendToRenderer('grip:promptOutput', {
           sessionId: promptSessionId,
           data: JSON.stringify({ type: 'error', message: err.message }) + '\n',
@@ -221,6 +249,22 @@ export function registerGripEngineHandlers() {
       return { success: true };
     }
     return { success: false, error: 'No active session' };
+  });
+
+  /**
+   * Kill a running one-shot prompt by session ID.
+   */
+  ipcMain.handle('grip:killPrompt', async (_event, sessionId: string) => {
+    if (typeof sessionId !== 'string') {
+      return { success: false, error: 'Invalid session ID' };
+    }
+    const proc = activePrompts.get(sessionId);
+    if (proc) {
+      proc.kill('SIGTERM');
+      activePrompts.delete(sessionId);
+      return { success: true };
+    }
+    return { success: false, error: 'No active prompt with that ID' };
   });
 
   /**
