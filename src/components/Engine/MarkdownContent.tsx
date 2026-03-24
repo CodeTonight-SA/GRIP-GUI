@@ -1,5 +1,7 @@
 'use client';
 
+import React, { useMemo, memo } from 'react';
+
 /**
  * Lightweight markdown renderer for GRIP chat messages.
  * No external dependencies — uses regex-based parsing.
@@ -19,116 +21,122 @@ interface MarkdownContentProps {
   content: string;
 }
 
-export default function MarkdownContent({ content }: MarkdownContentProps) {
-  const blocks = content.split('\n');
-  const elements: React.ReactNode[] = [];
-  let inCodeBlock = false;
-  let codeBuffer: string[] = [];
-  let codeLanguage = '';
+function MarkdownContent({ content }: MarkdownContentProps) {
+  const elements = useMemo(() => {
+    const blocks = content.split('\n');
+    const result: React.ReactNode[] = [];
+    let inCodeBlock = false;
+    let codeBuffer: string[] = [];
+    let codeLanguage = '';
 
-  for (let i = 0; i < blocks.length; i++) {
-    const line = blocks[i];
+    for (let i = 0; i < blocks.length; i++) {
+      const line = blocks[i];
 
-    // Code block toggle
-    if (line.startsWith('```')) {
-      if (inCodeBlock) {
-        elements.push(
-          <pre key={`code-${i}`} className="bg-black text-[var(--primary)] p-4 font-mono text-xs overflow-x-auto my-2 border border-[var(--border)]">
-            {codeLanguage && (
-              <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] block mb-2">
-                {codeLanguage.toUpperCase()}
-              </span>
-            )}
-            <code>{codeBuffer.join('\n')}</code>
-          </pre>
-        );
-        codeBuffer = [];
-        codeLanguage = '';
-        inCodeBlock = false;
-      } else {
-        inCodeBlock = true;
-        codeLanguage = line.slice(3).trim();
+      // Code block toggle
+      if (line.startsWith('```')) {
+        if (inCodeBlock) {
+          result.push(
+            <pre key={`code-${i}`} className="bg-black text-[var(--primary)] p-4 font-mono text-xs overflow-x-auto my-2 border border-[var(--border)]">
+              {codeLanguage && (
+                <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] block mb-2">
+                  {codeLanguage.toUpperCase()}
+                </span>
+              )}
+              <code>{codeBuffer.join('\n')}</code>
+            </pre>
+          );
+          codeBuffer = [];
+          codeLanguage = '';
+          inCodeBlock = false;
+        } else {
+          inCodeBlock = true;
+          codeLanguage = line.slice(3).trim();
+        }
+        continue;
       }
-      continue;
-    }
 
-    if (inCodeBlock) {
-      codeBuffer.push(line);
-      continue;
-    }
+      if (inCodeBlock) {
+        codeBuffer.push(line);
+        continue;
+      }
 
-    // Empty line
-    if (!line.trim()) {
-      elements.push(<div key={`br-${i}`} className="h-2" />);
-      continue;
-    }
+      // Empty line
+      if (!line.trim()) {
+        result.push(<div key={`br-${i}`} className="h-2" />);
+        continue;
+      }
 
-    // Headings
-    if (line.startsWith('### ')) {
-      elements.push(
-        <h3 key={`h3-${i}`} className="text-sm font-bold tracking-tighter text-[var(--foreground)] mt-3 mb-1">
-          {renderInline(line.slice(4))}
-        </h3>
+      // Headings
+      if (line.startsWith('### ')) {
+        result.push(
+          <h3 key={`h3-${i}`} className="text-sm font-bold tracking-tighter text-[var(--foreground)] mt-3 mb-1">
+            {renderInline(line.slice(4))}
+          </h3>
+        );
+        continue;
+      }
+      if (line.startsWith('## ')) {
+        result.push(
+          <h2 key={`h2-${i}`} className="text-base font-bold tracking-tighter text-[var(--foreground)] mt-3 mb-1">
+            {renderInline(line.slice(3))}
+          </h2>
+        );
+        continue;
+      }
+      if (line.startsWith('# ')) {
+        result.push(
+          <h1 key={`h1-${i}`} className="text-lg font-bold tracking-tighter text-[var(--foreground)] mt-3 mb-1">
+            {renderInline(line.slice(2))}
+          </h1>
+        );
+        continue;
+      }
+
+      // Blockquote
+      if (line.startsWith('> ')) {
+        result.push(
+          <blockquote key={`bq-${i}`} className="border-l-2 border-[var(--primary)] pl-3 text-[var(--muted-foreground)] italic text-sm my-1">
+            {renderInline(line.slice(2))}
+          </blockquote>
+        );
+        continue;
+      }
+
+      // Bullet list
+      if (line.match(/^[-*] /)) {
+        result.push(
+          <div key={`li-${i}`} className="flex items-start gap-2 text-sm">
+            <span className="text-[var(--primary)] font-mono mt-0.5 shrink-0">-</span>
+            <span>{renderInline(line.slice(2))}</span>
+          </div>
+        );
+        continue;
+      }
+
+      // Regular paragraph
+      result.push(
+        <p key={`p-${i}`} className="text-sm leading-relaxed">
+          {renderInline(line)}
+        </p>
       );
-      continue;
-    }
-    if (line.startsWith('## ')) {
-      elements.push(
-        <h2 key={`h2-${i}`} className="text-base font-bold tracking-tighter text-[var(--foreground)] mt-3 mb-1">
-          {renderInline(line.slice(3))}
-        </h2>
-      );
-      continue;
-    }
-    if (line.startsWith('# ')) {
-      elements.push(
-        <h1 key={`h1-${i}`} className="text-lg font-bold tracking-tighter text-[var(--foreground)] mt-3 mb-1">
-          {renderInline(line.slice(2))}
-        </h1>
-      );
-      continue;
     }
 
-    // Blockquote
-    if (line.startsWith('> ')) {
-      elements.push(
-        <blockquote key={`bq-${i}`} className="border-l-2 border-[var(--primary)] pl-3 text-[var(--muted-foreground)] italic text-sm my-1">
-          {renderInline(line.slice(2))}
-        </blockquote>
+    // Handle unclosed code block
+    if (inCodeBlock && codeBuffer.length > 0) {
+      result.push(
+        <pre key="code-unclosed" className="bg-black text-[var(--primary)] p-4 font-mono text-xs overflow-x-auto my-2 border border-[var(--border)]">
+          <code>{codeBuffer.join('\n')}</code>
+        </pre>
       );
-      continue;
     }
 
-    // Bullet list
-    if (line.match(/^[-*] /)) {
-      elements.push(
-        <div key={`li-${i}`} className="flex items-start gap-2 text-sm">
-          <span className="text-[var(--primary)] font-mono mt-0.5 shrink-0">-</span>
-          <span>{renderInline(line.slice(2))}</span>
-        </div>
-      );
-      continue;
-    }
-
-    // Regular paragraph
-    elements.push(
-      <p key={`p-${i}`} className="text-sm leading-relaxed">
-        {renderInline(line)}
-      </p>
-    );
-  }
-
-  // Handle unclosed code block
-  if (inCodeBlock && codeBuffer.length > 0) {
-    elements.push(
-      <pre key="code-unclosed" className="bg-black text-[var(--primary)] p-4 font-mono text-xs overflow-x-auto my-2 border border-[var(--border)]">
-        <code>{codeBuffer.join('\n')}</code>
-      </pre>
-    );
-  }
+    return result;
+  }, [content]);
 
   return <div className="space-y-0.5">{elements}</div>;
 }
+
+export default memo(MarkdownContent);
 
 /**
  * Render inline markdown: bold, italic, code, links.

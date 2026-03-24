@@ -56,9 +56,18 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const pendingContentRef = useRef('');
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 80);
+    return () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
   }, [messages]);
 
   const handleSend = useCallback(async () => {
@@ -109,14 +118,10 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       for await (const event of sendToGrip(input.trim(), sessionId, model)) {
         if (event.type === 'text') {
           fullText += event.data as string;
-          setMessages(prev => {
-            const updated = [...prev];
-            const lastMsg = updated[updated.length - 1];
-            if (lastMsg.role === 'assistant') {
-              lastMsg.content = fullText;
-            }
-            return [...updated];
-          });
+          pendingContentRef.current = fullText;
+          if (rafIdRef.current === null) {
+            rafIdRef.current = requestAnimationFrame(flushStreamUpdate);
+          }
         } else if (event.type === 'metrics') {
           metrics = event.data as GripMetrics;
           if (metrics.sessionId) {
@@ -124,18 +129,20 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
           }
         } else if (event.type === 'error') {
           fullText += `\n[GRIP Error: ${event.data}]`;
-          setMessages(prev => {
-            const updated = [...prev];
-            const lastMsg = updated[updated.length - 1];
-            if (lastMsg.role === 'assistant') {
-              lastMsg.content = fullText;
-            }
-            return [...updated];
-          });
+          pendingContentRef.current = fullText;
+          if (rafIdRef.current === null) {
+            rafIdRef.current = requestAnimationFrame(flushStreamUpdate);
+          }
         }
       }
     } catch (err) {
       fullText += `\n[Connection error: ${err instanceof Error ? err.message : String(err)}]`;
+    }
+
+    // Flush any pending RAF update before finalising
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
     }
 
     // Finalise the message and persist
@@ -157,11 +164,24 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       updateSessionId(chatId, metrics.sessionId);
     }
     setIsStreaming(false);
-  }, [input, isStreaming, sessionId, model, currentChatId, messages]);
+  }, [input, isStreaming, sessionId, model, currentChatId, messages, flushStreamUpdate]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
     setIsStreaming(false);
+  }, []);
+
+  const flushStreamUpdate = useCallback(() => {
+    rafIdRef.current = null;
+    const text = pendingContentRef.current;
+    setMessages(prev => {
+      const updated = [...prev];
+      const lastMsg = updated[updated.length - 1];
+      if (lastMsg?.role === 'assistant') {
+        lastMsg.content = text;
+      }
+      return updated;
+    });
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
