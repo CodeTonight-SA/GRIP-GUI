@@ -24,7 +24,7 @@ export default function TypingIndicator() {
   useEffect(() => {
     const interval = setInterval(() => {
       setStateIndex(prev => (prev + 1) % PROCESSING_STATES.length);
-    }, 2500);
+    }, 3500);
     return () => clearInterval(interval);
   }, []);
 
@@ -33,17 +33,17 @@ export default function TypingIndicator() {
       <div className="border border-[var(--border)] p-4">
         <div className="flex items-center gap-3">
           {/* Three pulsing bars — sharp, not round */}
-          <div className="flex items-end gap-0.5 h-3">
+          <div className="flex items-end gap-0.5 h-4">
             {[0, 1, 2].map(i => (
               <motion.div
                 key={i}
                 className="w-1 bg-[var(--primary)]"
-                animate={{ height: ['4px', '12px', '4px'] }}
+                animate={{ height: ['3px', '16px', '3px'] }}
                 transition={{
                   repeat: Infinity,
                   duration: 0.8,
                   delay: i * 0.15,
-                  ease: 'easeInOut',
+                  ease: [0.16, 1, 0.3, 1],
                 }}
               />
             ))}
@@ -56,7 +56,7 @@ export default function TypingIndicator() {
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: 0.25 }}
               className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]"
             >
               {PROCESSING_STATES[stateIndex]}

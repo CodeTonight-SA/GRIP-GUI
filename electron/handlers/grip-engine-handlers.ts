@@ -332,6 +332,11 @@ export function registerGripEngineHandlers() {
     const proc = activePrompts.get(sessionId);
     if (proc) {
       proc.kill('SIGTERM');
+      // Force kill after 3s if SIGTERM doesn't work
+      const killTimeout = setTimeout(() => {
+        try { proc.kill('SIGKILL'); } catch { /* already dead */ }
+      }, 3000);
+      proc.once('exit', () => clearTimeout(killTimeout));
       activePrompts.delete(sessionId);
       return { success: true };
     }
@@ -358,6 +363,9 @@ export function registerGripEngineHandlers() {
    * Send a message through the persistent stream-json session.
    * The session stays alive between messages — no cold start.
    * Output is forwarded via grip:promptOutput events (same as one-shot).
+   *
+   * Uses line-based parsing to detect end-of-message (result event),
+   * with explicit cleanup of all listeners to prevent leaks.
    */
   ipcMain.handle('grip:streamMessage', async (_event, options: {
     prompt: string;
@@ -375,10 +383,21 @@ export function registerGripEngineHandlers() {
     }
 
     const messageId = crypto.randomUUID();
-
-    // Set up output forwarding for this message
+    const currentSession = streamSession;
+    let lineBuffer = '';
     let outputBuffer = '';
     let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    let messageComplete = false;
+    let cleaned = false;
+
+    // Explicit cleanup — called once from any exit path
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+      currentSession.proc.stdout?.removeListener('data', onData);
+      currentSession.proc.removeListener('close', onClose);
+    };
 
     const flushOutput = () => {
       if (outputBuffer) {
@@ -388,40 +407,60 @@ export function registerGripEngineHandlers() {
       flushTimer = null;
     };
 
-    // Track whether this message's response is complete
-    let messageComplete = false;
-
     const onData = (data: Buffer) => {
-      const text = data.toString();
-      outputBuffer += text;
+      if (messageComplete) return; // Ignore data after completion
 
-      // Check if this chunk contains a result event (end of message response)
-      if (text.includes('"type":"result"') || text.includes('"type": "result"')) {
-        messageComplete = true;
+      const text = data.toString();
+      lineBuffer += text;
+
+      // Parse complete lines (JSONL: one JSON object per line)
+      const lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop() || ''; // Keep incomplete line
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        outputBuffer += line + '\n';
+
+        // Detect result event by parsing the line as JSON
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.type === 'result') {
+            messageComplete = true;
+          }
+        } catch { /* not valid JSON, forward anyway */ }
       }
 
+      // Batch flush every 16ms
       if (!flushTimer) {
         flushTimer = setTimeout(() => {
           flushOutput();
           if (messageComplete) {
+            // Flush any remaining line buffer
+            if (lineBuffer.trim()) {
+              sendToRenderer('grip:promptOutput', { sessionId: messageId, data: lineBuffer + '\n' });
+              lineBuffer = '';
+            }
+            cleanup();
             sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 0 });
-            streamSession?.proc.stdout?.removeListener('data', onData);
           }
         }, 16);
       }
     };
 
-    streamSession.proc.stdout?.on('data', onData);
-
-    // Handle process death during this message
     const onClose = () => {
-      if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
       flushOutput();
+      if (lineBuffer.trim()) {
+        sendToRenderer('grip:promptOutput', { sessionId: messageId, data: lineBuffer + '\n' });
+        lineBuffer = '';
+      }
+      cleanup();
       if (!messageComplete) {
         sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 1 });
       }
     };
-    streamSession.proc.once('close', onClose);
+
+    currentSession.proc.stdout?.on('data', onData);
+    currentSession.proc.once('close', onClose);
 
     // Write the message as JSON to stdin
     const inputEvent = JSON.stringify({
@@ -430,11 +469,10 @@ export function registerGripEngineHandlers() {
     }) + '\n';
 
     try {
-      streamSession.proc.stdin.write(inputEvent);
+      currentSession.proc.stdin.write(inputEvent);
       return { success: true, sessionId: messageId };
     } catch (err) {
-      streamSession.proc.stdout?.removeListener('data', onData);
-      streamSession.proc.removeListener('close', onClose);
+      cleanup();
       return { success: false, error: err instanceof Error ? err.message : 'Write failed' };
     }
   });

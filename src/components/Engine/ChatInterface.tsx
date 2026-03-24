@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
 import { Send, Sparkles, Square, X, Image as ImageIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { sendToGrip, type GripMessage, type GripMetrics } from '@/lib/grip-session';
 import TypingIndicator from './TypingIndicator';
 import {
@@ -59,6 +59,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   }, [chatId]);
   const [pastedImage, setPastedImage] = useState<{ dataUrl: string; tempPath?: string } | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const reduceMotion = useReducedMotion();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // Tracks the Electron IPC prompt session ID so the stop button can kill it
@@ -375,9 +376,9 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
-                initial={{ opacity: 0, x: msg.role === 'user' ? 12 : -12 }}
+                initial={reduceMotion ? false : { opacity: 0, x: msg.role === 'user' ? 12 : -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: msg.role === 'user' ? 0.2 : 0.25, ease: [0.16, 1, 0.3, 1] }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div className="max-w-[85%]">
@@ -455,7 +456,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       >
         {/* Drag-and-drop overlay */}
         {isDragOver && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-[var(--primary)] bg-[var(--primary)]/5">
+          <div className="absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-[var(--primary)] bg-[var(--primary)]/10">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-[var(--primary)]" />
               <span className="font-mono text-xs tracking-widest text-[var(--primary)]">

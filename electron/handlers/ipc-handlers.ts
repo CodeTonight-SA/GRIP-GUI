@@ -1485,6 +1485,8 @@ function registerUpdateHandlers(): void {
   });
 
   // Save clipboard data (e.g. pasted image) to a temp file
+  const ALLOWED_IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
+
   ipcMain.handle('app:saveTemp', async (_event, dataUrl: string) => {
     if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
       return { success: false, error: 'Invalid data URL' };
@@ -1493,7 +1495,11 @@ function registerUpdateHandlers(): void {
       const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
       if (!match) return { success: false, error: 'Not a valid image data URL' };
 
-      const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+      const rawExt = match[1].toLowerCase();
+      if (!ALLOWED_IMAGE_EXTS.includes(rawExt)) {
+        return { success: false, error: `Image type not allowed: ${rawExt}` };
+      }
+      const ext = rawExt === 'jpeg' ? 'jpg' : rawExt;
       const buffer = Buffer.from(match[2], 'base64');
       const tmpDir = path.join(os.tmpdir(), 'grip-commander');
       const fs = await import('fs');
