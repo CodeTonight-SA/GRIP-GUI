@@ -24,6 +24,8 @@ export interface GripMessage {
   detectedSkills?: string[];
   metrics?: GripMetrics;
   streaming?: boolean;
+  /** Base64 data URL for an image pasted by the user with this message */
+  imageDataUrl?: string;
 }
 
 export interface GripMetrics {
@@ -135,15 +137,19 @@ export function isElectronEnv(): boolean {
  * In Electron: uses IPC to grip-engine-handlers (PTY-based, ultra-fast).
  * In Browser: uses /api/grip/chat API route (spawns claude -p).
  * Returns an async iterator of text chunks for streaming display.
+ *
+ * @param onPromptSessionId - called with the IPC prompt session ID immediately
+ *   after the process spawns, so callers can invoke killPrompt() to stop it.
  */
 export async function* sendToGrip(
   prompt: string,
   sessionId?: string,
   model: string = 'sonnet',
+  onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
   // Electron path: use IPC for real PTY streaming
   if (isElectronEnv()) {
-    yield* sendToGripElectron(prompt, sessionId, model);
+    yield* sendToGripElectron(prompt, sessionId, model, onPromptSessionId);
     return;
   }
 
@@ -234,6 +240,7 @@ async function* sendToGripElectron(
   prompt: string,
   sessionId?: string,
   model: string = 'sonnet',
+  onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
   // Wait up to 2s for preload bridge to initialise (app:// protocol timing)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -260,17 +267,28 @@ async function* sendToGripElectron(
     }
 
     const promptSessionId = result.sessionId;
+    onPromptSessionId?.(promptSessionId);
 
     // Collect output via events using a promise-based queue
     const chunks: Array<{ type: 'text' | 'done'; data: string }> = [];
     let resolve: (() => void) | null = null;
     let done = false;
 
+    // Line buffer: accumulate partial IPC chunks into complete newline-terminated
+    // lines before parsing. Without this, large JSON events (e.g. the system-init
+    // event containing the full tools list) arrive in multiple chunks — the
+    // continuation fragments don't start with '{', bypass the JSON-fragment filter,
+    // and leak raw API/session data into the chat UI.
+    let lineBuffer = '';
+
     const unsubOutput = api.onPromptOutput((event: { sessionId: string; data: string }) => {
       if (event.sessionId !== promptSessionId) return;
 
-      // Parse stream-json lines
-      const lines = event.data.split('\n');
+      // Accumulate into buffer and split on complete lines only
+      lineBuffer += event.data;
+      const lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop() || ''; // keep incomplete tail for next chunk
+
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
@@ -294,6 +312,20 @@ async function* sendToGripElectron(
 
     const unsubDone = api.onPromptDone((event: { sessionId: string; exitCode: number }) => {
       if (event.sessionId !== promptSessionId) return;
+      // Flush any remaining buffered line on stream end
+      if (lineBuffer.trim()) {
+        try {
+          const parsed: StreamEvent = JSON.parse(lineBuffer);
+          const text = extractTextFromEvent(parsed);
+          if (text) chunks.push({ type: 'text', data: text });
+        } catch {
+          const cleaned = stripAnsi(lineBuffer);
+          if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+            chunks.push({ type: 'text', data: cleaned });
+          }
+        }
+        lineBuffer = '';
+      }
       done = true;
       chunks.push({ type: 'done', data: '' });
       if (resolve) { resolve(); resolve = null; }

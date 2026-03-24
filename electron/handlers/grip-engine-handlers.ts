@@ -148,6 +148,20 @@ export function registerGripEngineHandlers() {
    * Uses child_process.spawn (NOT pty) with stream-json for clean JSONL output.
    * PTY adds ANSI escape codes that corrupt the JSON stream.
    */
+
+  // Track active prompt processes so they can be killed on stop
+  const activePrompts = new Map<string, ReturnType<typeof cpSpawn>>();
+
+  ipcMain.handle('grip:killPrompt', async (_event, promptSessionId: string) => {
+    const proc = activePrompts.get(promptSessionId);
+    if (proc) {
+      proc.kill('SIGTERM');
+      activePrompts.delete(promptSessionId);
+      return { success: true };
+    }
+    return { success: false, error: 'No active prompt with that session ID' };
+  });
+
   ipcMain.handle('grip:prompt', async (_event, options: {
     prompt: string;
     model?: string;
@@ -166,6 +180,7 @@ export function registerGripEngineHandlers() {
       });
 
       const promptSessionId = crypto.randomUUID();
+      activePrompts.set(promptSessionId, proc);
 
       proc.stdout.on('data', (data: Buffer) => {
         sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data: data.toString() });
@@ -183,10 +198,12 @@ export function registerGripEngineHandlers() {
       });
 
       proc.on('close', (exitCode) => {
+        activePrompts.delete(promptSessionId);
         sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: exitCode || 0 });
       });
 
       proc.on('error', (err) => {
+        activePrompts.delete(promptSessionId);
         sendToRenderer('grip:promptOutput', {
           sessionId: promptSessionId,
           data: JSON.stringify({ type: 'error', message: err.message }) + '\n',

@@ -623,6 +623,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('grip:killSession'),
     getHealth: () =>
       ipcRenderer.invoke('grip:getHealth'),
+    killPrompt: (promptSessionId: string) =>
+      ipcRenderer.invoke('grip:killPrompt', promptSessionId),
 
     // Event listeners for streaming output
     onOutput: (callback: (event: { sessionId: string; data: string }) => void) => {
@@ -649,4 +651,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Platform info
   platform: process.platform,
+
+  // Save a base64 data URL to a temp file; returns the file path.
+  // Used by the chat image-paste feature so claude CLI can read the image.
+  saveTemp: (dataUrl: string) =>
+    ipcRenderer.invoke('app:saveTemp', dataUrl),
 });

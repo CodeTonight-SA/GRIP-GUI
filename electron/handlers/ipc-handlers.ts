@@ -1844,4 +1844,17 @@ function registerShellHandlers(deps: IpcHandlerDependencies): void {
     }
     return { success: false, error: 'PTY not found' };
   });
+
+  // Save a base64 data URL to a temp file and return the path.
+  // Used by the Engine chat image-paste feature.
+  ipcMain.handle('app:saveTemp', async (_event, dataUrl: string) => {
+    const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!match) throw new Error('Invalid image data URL');
+    const [, ext, base64] = match;
+    const tmpDir = path.join(os.tmpdir(), 'grip-commander');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    const filePath = path.join(tmpDir, `paste-${Date.now()}.${ext}`);
+    fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+    return filePath;
+  });
 }
