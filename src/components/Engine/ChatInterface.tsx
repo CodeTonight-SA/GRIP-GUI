@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
-import { Send, Sparkles, Terminal as TerminalIcon, Square, X, Image as ImageIcon } from 'lucide-react';
+import { Send, Sparkles, Square, X, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { sendToGrip, type GripMessage, type GripMetrics } from '@/lib/grip-session';
+import TypingIndicator from './TypingIndicator';
 import {
   getChatMessages,
   saveChatMessages,
@@ -286,24 +288,68 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full max-w-xl mx-auto">
-            <div className="w-12 h-12 bg-[var(--primary)] mb-6" />
-            <h1 className="text-3xl font-bold tracking-tighter text-[var(--foreground)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+          <div
+            className="flex flex-col items-center justify-center h-full max-w-xl mx-auto relative"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 40%, var(--info-muted) 0%, transparent 60%)',
+            }}
+          >
+            {/* Animated pulse bars as centrepiece */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-end gap-1 h-12 mb-6"
+            >
+              {[0, 1, 2, 3, 4].map(i => (
+                <motion.div
+                  key={i}
+                  className="w-2 bg-[var(--primary)]"
+                  animate={{ height: ['8px', '48px', '8px'] }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1.6,
+                    delay: i * 0.2,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="text-3xl font-bold tracking-tighter text-[var(--foreground)] mb-2"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
               GRIP
-            </h1>
-            <p className="font-mono text-xs tracking-widest text-[var(--muted-foreground)] mb-8">
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
+              className="font-mono text-xs tracking-widest text-[var(--muted-foreground)] mb-8"
+            >
               KNOWLEDGE WORK ENGINE
-            </p>
-            <p className="text-center text-[var(--muted-foreground)] mb-8 max-w-md">
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+              className="text-center text-[var(--muted-foreground)] mb-8 max-w-md"
+            >
               Your AI thinking partner. Connected to your local GRIP instance
               with all skills, modes, and safety gates active.
-            </p>
+            </motion.p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
-              {SUGGESTED_PROMPTS.map((prompt) => (
-                <button
+              {SUGGESTED_PROMPTS.map((prompt, i) => (
+                <motion.button
                   key={prompt.text}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 + i * 0.05, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                   onClick={() => handleSuggestedPrompt(prompt.text)}
-                  className="flex items-start gap-3 p-4 border border-[var(--border)] hover:border-[var(--primary)] transition-colors text-left group"
+                  className="flex items-start gap-3 p-4 border border-[var(--border)] hover:border-[var(--primary)] hover:-translate-y-px transition-all text-left group"
                 >
                   <span className="font-mono text-xs text-[var(--primary)] mt-0.5 shrink-0 w-4">
                     {prompt.icon}
@@ -311,17 +357,29 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                   <span className="text-sm text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors">
                     {prompt.text}
                   </span>
-                </button>
+                </motion.button>
               ))}
             </div>
-            <p className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] mt-8 opacity-60">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+              className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] mt-8"
+            >
               CMD+K FOR COMMANDS | LOCAL GRIP BACKEND | REAL-TIME STREAMING
-            </p>
+            </motion.p>
           </div>
         ) : (
           <div className="max-w-3xl mx-auto space-y-6">
+            <AnimatePresence initial={false}>
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, x: msg.role === 'user' ? 12 : -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: msg.role === 'user' ? 0.2 : 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
                 <div className="max-w-[85%]">
                   {/* Auto-detection badges */}
                   {msg.detectedMode && !msg.streaming && (
@@ -377,19 +435,11 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                     )}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
+            </AnimatePresence>
             {isStreaming && showSpinner && messages[messages.length - 1]?.content === '' && (
-              <div className="flex justify-start">
-                <div className="border border-[var(--border)] p-4">
-                  <div className="flex items-center gap-2">
-                    <TerminalIcon className="w-3 h-3 text-[var(--primary)] animate-pulse" />
-                    <span className="font-mono text-xs text-[var(--muted-foreground)]">
-                      GRIP is processing...
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <TypingIndicator />
             )}
             <div ref={messagesEndRef} />
           </div>
