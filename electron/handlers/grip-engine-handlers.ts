@@ -17,6 +17,26 @@ import { spawn as cpSpawn } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 
+/**
+ * Build a PATH string that includes common claude installation directories.
+ * The Electron process PATH may not include nvm/homebrew paths.
+ */
+function buildClaudePath(): string {
+  const home = os.homedir();
+  const extras = [
+    path.join(home, '.local', 'bin'),
+    path.join(home, '.nvm', 'current', 'bin'),
+    '/opt/homebrew/bin',
+    '/usr/local/bin',
+    '/usr/bin',
+  ];
+  const existing = (process.env.PATH || '').split(':');
+  const seen = new Set<string>();
+  return [...extras, ...existing]
+    .filter(p => { if (!p || seen.has(p)) return false; seen.add(p); return true; })
+    .join(':');
+}
+
 const GRIP_DIR = path.join(os.homedir(), '.claude');
 
 interface EngineSession {
@@ -45,6 +65,11 @@ export function registerGripEngineHandlers() {
    * Start a new GRIP Engine session.
    * Spawns a claude CLI process with PTY.
    */
+  /**
+   * NOTE: This interactive PTY session is currently NOT used by the Engine chat UI.
+   * The chat uses grip:prompt (one-shot, child_process.spawn) for each message.
+   * This session is kept for future persistent-session streaming support.
+   */
   ipcMain.handle('grip:startSession', async (_event, options: {
     model?: string;
   } = {}) => {
@@ -68,6 +93,7 @@ export function registerGripEngineHandlers() {
           ...process.env,
           HOME: os.homedir(),
           TERM: 'xterm-256color',
+          PATH: buildClaudePath(),
         },
       });
 
@@ -136,7 +162,7 @@ export function registerGripEngineHandlers() {
     try {
       const proc = cpSpawn('claude', args, {
         cwd: GRIP_DIR,
-        env: { ...process.env, HOME: os.homedir() },
+        env: { ...process.env, HOME: os.homedir(), PATH: buildClaudePath() },
       });
 
       const promptSessionId = crypto.randomUUID();
