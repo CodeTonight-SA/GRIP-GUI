@@ -78,6 +78,19 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     };
   }, [messages]);
 
+  const flushStreamUpdate = useCallback(() => {
+    rafIdRef.current = null;
+    const text = pendingContentRef.current;
+    setMessages(prev => {
+      const updated = [...prev];
+      const lastMsg = updated[updated.length - 1];
+      if (lastMsg?.role === 'assistant') {
+        lastMsg.content = text;
+      }
+      return updated;
+    });
+  }, []);
+
   const handleSend = useCallback(async () => {
     if (!input.trim() || isStreaming) return;
 
@@ -211,19 +224,6 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     }
     setIsStreaming(false);
     setShowSpinner(false);
-  }, []);
-
-  const flushStreamUpdate = useCallback(() => {
-    rafIdRef.current = null;
-    const text = pendingContentRef.current;
-    setMessages(prev => {
-      const updated = [...prev];
-      const lastMsg = updated[updated.length - 1];
-      if (lastMsg?.role === 'assistant') {
-        lastMsg.content = text;
-      }
-      return updated;
-    });
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
