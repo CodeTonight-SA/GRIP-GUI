@@ -17,14 +17,10 @@ import * as path from 'path';
 // V8 stability: ad-hoc code signing on macOS can cause V8's memory protection
 // (ThreadIsolation::WriteProtectMemory) to crash with EXC_BREAKPOINT.
 // --jitless disables JIT entirely (10-100x slower), so we only use it as a fallback.
-// In development: JIT enabled (no signing needed).
-// In production: try without jitless; env var GRIP_JITLESS=1 to force if crashes occur.
+// GRIP_JITLESS=1 to force if V8 crashes occur with unsigned builds.
 if (process.env.GRIP_JITLESS === '1') {
   app.commandLine.appendSwitch('js-flags', '--jitless');
   app.commandLine.appendSwitch('disable-gpu-sandbox');
-} else if (process.env.NODE_ENV !== 'development' && process.platform === 'darwin') {
-  // Less aggressive mitigation that keeps JIT enabled
-  app.commandLine.appendSwitch('js-flags', '--no-v8-untrusted-code-mitigations');
 }
 
 // Crash recovery: log uncaught exceptions instead of silently dying

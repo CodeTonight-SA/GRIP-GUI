@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
 import { Send, Sparkles, Square, X, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { sendToGrip, type GripMessage, type GripMetrics } from '@/lib/grip-session';
+import { sendToGrip, filterResponseMetadata, type GripMessage, type GripMetrics } from '@/lib/grip-session';
 import TypingIndicator from './TypingIndicator';
 import {
   getChatMessages,
@@ -18,6 +18,28 @@ import {
 } from '@/lib/chat-storage';
 import MarkdownContent from './MarkdownContent';
 import ModelSelector from './ModelSelector';
+
+// Module-level: tracks active streams across component mount/unmount cycles.
+// Enables session persistence when user switches tabs during streaming.
+const activeStreams = new Map<string, string | null>(); // chatId -> promptSessionId
+
+function persistStreamContent(
+  chatId: string,
+  content: string,
+  streaming: boolean,
+  metrics?: GripMetrics,
+): void {
+  try {
+    const messages = getChatMessages(chatId);
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === 'assistant') {
+      lastMsg.content = content;
+      lastMsg.streaming = streaming;
+      if (metrics) lastMsg.metrics = metrics;
+    }
+    saveChatMessages(chatId, messages);
+  } catch { /* ignore persist errors */ }
+}
 
 const SUGGESTED_PROMPTS = [
   { text: 'What can GRIP help me with?', icon: '?' },
@@ -41,15 +63,30 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   const [model, setModel] = useState('sonnet');
   const spinnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load persisted messages on mount or chat switch
+  // Load persisted messages on mount or chat switch, reconnect active streams
   useEffect(() => {
     if (currentChatId) {
       const stored = getChatMessages(currentChatId);
       setMessages(stored);
-      // Restore session ID for --resume
       const sessions = getChatSessions();
       const session = sessions.find(s => s.id === currentChatId);
       if (session?.sessionId) setSessionId(session.sessionId);
+
+      // Reconnect to active stream after tab switch
+      if (activeStreams.has(currentChatId)) {
+        setIsStreaming(true);
+        activePromptSessionRef.current = activeStreams.get(currentChatId) ?? null;
+        const poll = setInterval(() => {
+          const latest = getChatMessages(currentChatId);
+          setMessages(latest);
+          if (!activeStreams.has(currentChatId)) {
+            setIsStreaming(false);
+            setShowSpinner(false);
+            clearInterval(poll);
+          }
+        }, 250);
+        return () => clearInterval(poll);
+      }
     }
   }, [currentChatId]);
 
@@ -128,6 +165,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     setInput('');
     setPastedImage(null);
     setIsStreaming(true);
+    if (chatId) activeStreams.set(chatId, null);
     spinnerTimerRef.current = setTimeout(() => setShowSpinner(true), 200);
 
     // Persist and auto-title
@@ -142,6 +180,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     let fullText = '';
     let metrics: GripMetrics | undefined;
     let receivedFirstToken = false;
+    let lastPersistTime = 0;
 
     const promptText = input.trim() + imageContext;
     try {
@@ -149,7 +188,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
         promptText,
         sessionId,
         model,
-        (id) => { activePromptSessionRef.current = id; },
+        (id) => { activePromptSessionRef.current = id; if (chatId) activeStreams.set(chatId, id); },
       )) {
         if (event.type === 'text') {
           if (!receivedFirstToken) {
@@ -161,9 +200,15 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
             setShowSpinner(false);
           }
           fullText += event.data as string;
-          pendingContentRef.current = fullText;
+          pendingContentRef.current = filterResponseMetadata(fullText);
           if (rafIdRef.current === null) {
             rafIdRef.current = requestAnimationFrame(flushStreamUpdate);
+          }
+          // Periodic persist for tab-switch resilience
+          const now = Date.now();
+          if (chatId && now - lastPersistTime > 500) {
+            lastPersistTime = now;
+            persistStreamContent(chatId, pendingContentRef.current, true);
           }
         } else if (event.type === 'metrics') {
           metrics = event.data as GripMetrics;
@@ -172,7 +217,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
           }
         } else if (event.type === 'error') {
           fullText += `\n[GRIP Error: ${event.data}]`;
-          pendingContentRef.current = fullText;
+          pendingContentRef.current = filterResponseMetadata(fullText);
           if (rafIdRef.current === null) {
             rafIdRef.current = requestAnimationFrame(flushStreamUpdate);
           }
@@ -189,11 +234,12 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     }
 
     // Finalise the message and persist
+    const filteredFinal = filterResponseMetadata(fullText) || '[No response from GRIP]';
     setMessages(prev => {
       const updated = [...prev];
       const lastMsg = updated[updated.length - 1];
       if (lastMsg.role === 'assistant') {
-        lastMsg.content = fullText || '[No response from GRIP]';
+        lastMsg.content = filteredFinal;
         lastMsg.streaming = false;
         lastMsg.metrics = metrics;
         lastMsg.detectedMode = detectMode(userMessage.content);
@@ -202,6 +248,11 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       if (chatId) saveChatMessages(chatId, updated);
       return [...updated];
     });
+    // Direct persist — works even if component is unmounted after tab switch
+    if (chatId) {
+      persistStreamContent(chatId, filteredFinal, false, metrics);
+      activeStreams.delete(chatId);
+    }
     // Store session ID for --resume ultra-fast responses
     if (metrics?.sessionId && chatId) {
       updateSessionId(chatId, metrics.sessionId);
@@ -221,6 +272,10 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).electronAPI?.grip?.killPrompt?.(id);
       activePromptSessionRef.current = null;
+      // Clean up module-level stream tracking
+      for (const [cId, promptId] of activeStreams) {
+        if (promptId === id) { activeStreams.delete(cId); break; }
+      }
     }
     setIsStreaming(false);
     setShowSpinner(false);

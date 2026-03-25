@@ -74,6 +74,24 @@ export function stripAnsi(text: string): string {
 }
 
 /**
+ * Strip metadata blocks from response text that shouldn't be shown to users.
+ * Filters <system-reminder>, <command-*>, and <claude-mem-context> blocks
+ * that leak through from Claude CLI's stream-json output.
+ */
+const METADATA_TAGS = 'system-reminder|command-message|command-name|command-args|claude-mem-context';
+const CLOSED_METADATA_RE = new RegExp(`<(?:${METADATA_TAGS})>[\\s\\S]*?<\\/(?:${METADATA_TAGS})>`, 'g');
+const UNCLOSED_METADATA_RE = new RegExp(`<(?:${METADATA_TAGS})>[\\s\\S]*$`);
+
+export function filterResponseMetadata(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(CLOSED_METADATA_RE, '')
+    .replace(UNCLOSED_METADATA_RE, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
  * Detect CLI noise lines that should not be shown in the chat UI.
  * These are status/progress messages from the claude CLI or stderr.
  */
