@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import { Loader2, AlertTriangle, GitBranch, Pencil, Crown } from 'lucide-react';
 import type { AgentStatus } from '@/types/electron';
 import { STATUS_COLORS, CHARACTER_FACES, getProjectColor, isSuperAgentCheck } from '@/app/agents/constants';
@@ -14,17 +15,23 @@ interface AgentCardProps {
   isSelected: boolean;
   onSelect: () => void;
   onEdit: () => void;
+  index?: number;
 }
 
-export function AgentCard({ agent, isSelected, onSelect, onEdit }: AgentCardProps) {
+export function AgentCard({ agent, isSelected, onSelect, onEdit, index = 0 }: AgentCardProps) {
   const statusConfig = STATUS_COLORS[agent.status];
   const StatusIcon = statusConfig.icon;
   const projectName = agent.projectPath.split('/').pop() || 'Unknown';
   const projectColor = getProjectColor(projectName);
   const isSuper = isSuperAgentCheck(agent);
+  const reduceMotion = useReducedMotion();
 
   return (
-    <div
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: reduceMotion ? 0 : index * 0.05, ease: 'easeOut' }}
+      whileHover={reduceMotion ? undefined : { x: 2 }}
       onClick={onSelect}
       className={`
         p-4 cursor-pointer transition-all relative
@@ -150,6 +157,6 @@ export function AgentCard({ agent, isSelected, onSelect, onEdit }: AgentCardProp
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

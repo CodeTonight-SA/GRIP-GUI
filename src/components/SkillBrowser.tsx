@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Search, Sparkles, Shield } from 'lucide-react';
 import { GRIP_SKILLS, SKILL_CATEGORIES, type SkillCategory, searchSkills, getParamountSkills } from '@/lib/grip-skills';
 import SkillPill from '@/components/Engine/SkillPill';
@@ -15,6 +16,7 @@ import SkillPill from '@/components/Engine/SkillPill';
 export default function SkillBrowser() {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<SkillCategory | 'all'>('all');
+  const reduceMotion = useReducedMotion();
 
   const filteredSkills = useMemo(() => {
     let skills = query ? searchSkills(query) : GRIP_SKILLS;
@@ -99,9 +101,13 @@ export default function SkillBrowser() {
 
       {/* Skill grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filteredSkills.map((skill) => (
-          <div
+        {filteredSkills.map((skill, index) => (
+          <motion.div
             key={skill.id}
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2, delay: reduceMotion ? 0 : Math.min(index * 0.015, 0.3) }}
+            whileHover={reduceMotion ? undefined : { y: -1, borderColor: 'var(--primary)' }}
             className={`p-4 border transition-colors ${
               skill.paramount
                 ? 'border-[var(--primary)]/30 bg-[var(--primary)]/5'
@@ -122,7 +128,7 @@ export default function SkillBrowser() {
             <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] opacity-60">
               {SKILL_CATEGORIES[skill.category]?.label || skill.category.toUpperCase()}
             </span>
-          </div>
+          </motion.div>
         ))}
       </div>
 
