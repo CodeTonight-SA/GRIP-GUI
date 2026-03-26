@@ -80,7 +80,7 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
         href={item.href}
         onClick={onClick}
         className={`
-          group flex items-center gap-3 px-3 py-2.5 transition-all duration-150
+          group/nav relative flex items-center gap-3 px-3 py-2.5 transition-all duration-150
           font-mono text-xs tracking-wider
           ${isActive
             ? 'text-[var(--primary)] border-l-2 border-[var(--primary)] bg-[var(--primary)]/5'
@@ -104,6 +104,13 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
         {showLabels && item.shortcut && (
           <span className="text-[10px] text-[var(--muted-foreground)] opacity-50 font-mono">
             {item.shortcut}
+          </span>
+        )}
+        {/* Collapsed tooltip — shows label on hover when sidebar is collapsed */}
+        {!showLabels && (
+          <span className="absolute left-full ml-2 px-2 py-1 bg-[var(--card)] border border-[var(--border)] font-mono text-[9px] tracking-widest text-[var(--foreground)] whitespace-nowrap opacity-0 group-hover/nav:opacity-100 pointer-events-none transition-opacity z-50">
+            {item.label}
+            {item.shortcut && <span className="text-[var(--muted-foreground)] ml-2">{item.shortcut}</span>}
           </span>
         )}
         {item.href === '/vault' && vaultUnreadCount > 0 && showLabels && (
