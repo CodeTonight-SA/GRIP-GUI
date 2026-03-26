@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { applyTheme, getTheme, DEFAULT_THEME } from '@/lib/themes';
 import KeyboardToast, { showKeyboardToast } from './KeyboardToast';
+import FPSCounter from './FPSCounter';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -315,6 +316,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <CommandPalette />
       <KeyboardShortcutsHelp />
       <KeyboardToast />
+      <FPSCounter />
 
       {/* Main Content */}
       <motion.main

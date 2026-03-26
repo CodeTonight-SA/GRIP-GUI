@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import SystemOverview from '@/components/Engine/SystemOverview';
 import VortexScene from '@/components/Vortex';
+import TradingCards from '@/components/TradingCards';
 
 export default function LearnPage() {
   const reduceMotion = useReducedMotion();
@@ -33,6 +34,16 @@ export default function LearnPage() {
       {/* System Overview */}
       <div className="mb-8">
         <SystemOverview />
+      </div>
+
+      {/* Trading Cards — GRIP Collectibles */}
+      <div className="mb-10">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-2 h-2 bg-[var(--primary)]" />
+          <span className="font-mono text-xs tracking-widest text-[var(--foreground)]">GRIP COLLECTIBLES</span>
+          <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)]">CLICK TO FLIP</span>
+        </div>
+        <TradingCards />
       </div>
 
       {/* Quick start */}
