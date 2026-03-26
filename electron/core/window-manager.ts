@@ -60,7 +60,10 @@ export function createWindow() {
   const isDev = process.env.NODE_ENV === 'development';
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
-    mainWindow.webContents.openDevTools();
+    // Only open DevTools if explicitly requested — keeps demo mode clean
+    if (process.env.GRIP_DEVTOOLS === '1') {
+      mainWindow.webContents.openDevTools();
+    }
   } else {
     // In production, use the custom app:// protocol to properly serve static files
     // This fixes issues with absolute paths like /logo.png not resolving correctly

@@ -261,7 +261,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
         <div className="flex items-center gap-2 ml-2">
-          <div className="w-5 h-5 bg-[var(--primary)] shrink-0" />
+          <div className="w-5 h-5 bg-[var(--primary)] shrink-0 grip-logo-heartbeat" />
           <span className="font-mono text-sm font-bold tracking-widest text-[var(--foreground)]">GRIP</span>
         </div>
       </div>
