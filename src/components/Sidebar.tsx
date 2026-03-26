@@ -127,7 +127,7 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
         }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 bg-[var(--primary)] shrink-0" />
+          <div className="w-6 h-6 bg-[var(--primary)] shrink-0 grip-logo-heartbeat" />
           {showLabels && (
             <div>
               <span className="font-mono text-sm font-bold tracking-widest text-[var(--foreground)] transition-all duration-300 hover:text-[var(--primary)] hover:drop-shadow-[0_0_6px_var(--primary)]">

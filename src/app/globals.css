@@ -426,6 +426,18 @@ html {
   animation: slide-up 0.2s ease-out;
 }
 
+/* Logo heartbeat — subtle breathing pulse on the GRIP identity square.
+   Slow enough to be ambient, fast enough to feel alive. */
+@keyframes grip-heartbeat {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.85; }
+}
+
+.grip-logo-heartbeat {
+  animation: grip-heartbeat 3s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 /* GPU compositing hints for animated elements */
 .grip-gpu-layer {
   will-change: transform, opacity;
