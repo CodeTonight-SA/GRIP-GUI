@@ -9,6 +9,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Menu, X, Download, ExternalLink, RotateCw, Loader2 } from 'lucide-react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { applyTheme, getTheme, DEFAULT_THEME } from '@/lib/themes';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -47,7 +48,7 @@ function loadVaultReadDocs(): Set<string> {
 }
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { sidebarCollapsed, mobileMenuOpen, setMobileMenuOpen, darkMode, setDarkMode, setVaultUnreadCount } = useStore();
+  const { sidebarCollapsed, mobileMenuOpen, setMobileMenuOpen, setVaultUnreadCount } = useStore();
   const isMobile = useIsMobile();
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
@@ -116,33 +117,40 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     window.electronAPI?.updates?.quitAndInstall();
   }, []);
 
-  // Initialize dark mode from localStorage on mount
+  // Initialize theme from localStorage on mount
+  const setTheme = useStore(s => s.setTheme);
+  const theme = useStore(s => s.theme);
   useEffect(() => {
-    // Check system preference first, then localStorage override
-    const savedPref = localStorage.getItem('grip-dark-mode');
-    if (savedPref !== null) {
-      setDarkMode(savedPref === 'true');
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setDarkMode(true);
+    const savedTheme = localStorage.getItem('grip-theme');
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else {
+      // Migrate from old darkMode preference
+      const savedPref = localStorage.getItem('grip-dark-mode');
+      if (savedPref !== null) {
+        setTheme(savedPref === 'true' ? 'swiss-nihilism-dark' : 'swiss-nihilism-light');
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        setTheme('swiss-nihilism-dark');
+      } else {
+        setTheme(DEFAULT_THEME);
+      }
     }
-  }, [setDarkMode]);
+  }, [setTheme]);
 
-  // Sync dark class on <html> with smooth theme transition
+  // Apply theme CSS variables with smooth transition
   useEffect(() => {
-    // Add transitioning class to enable CSS colour transitions
     document.documentElement.classList.add('theme-transitioning');
-    document.documentElement.classList.toggle('dark', darkMode);
-    localStorage.setItem('grip-dark-mode', String(darkMode));
-    // Sync Electron window background to prevent native bg flash
+    applyTheme(theme);
+    localStorage.setItem('grip-theme', theme);
+    // Sync Electron window background
+    const themeData = getTheme(theme);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).electronAPI?.grip?.notifyThemeChanged?.(darkMode);
-    // Remove transitioning class after animation completes to avoid
-    // unnecessary transition overhead during normal interactions
+    (window as any).electronAPI?.grip?.notifyThemeChanged?.(themeData.isDark);
     const timer = setTimeout(() => {
       document.documentElement.classList.remove('theme-transitioning');
     }, 350);
     return () => clearTimeout(timer);
-  }, [darkMode]);
+  }, [theme]);
 
   // Global vault unread badge: listen for new documents even when VaultView is not mounted
   useEffect(() => {
@@ -221,10 +229,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         return;
       }
 
-      // D = toggle dark mode, M = memory
+      // D = toggle dark mode, T = cycle theme, M = memory
       if (e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         useStore.getState().toggleDarkMode();
+        return;
+      }
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        useStore.getState().cycleTheme();
         return;
       }
       if (e.key === 'm' || e.key === 'M') {
