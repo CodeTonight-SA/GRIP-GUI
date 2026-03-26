@@ -68,7 +68,7 @@ export function AgentDetailPanel({
                 </span>
               )}
               {agent.branchName && (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-purple/20 text-accent-purple text-xs">
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-accent-purple/20 text-accent-purple text-xs">
                   <GitBranch className="w-3 h-3" />
                   {agent.branchName}
                 </span>
@@ -141,7 +141,7 @@ export function AgentDetailPanel({
           {agent.skills.map((skill) => (
             <span
               key={skill}
-              className="px-2 py-0.5 rounded-full bg-accent-purple/20 text-accent-purple text-xs shrink-0"
+              className="px-2 py-0.5 bg-accent-purple/20 text-accent-purple text-xs shrink-0"
             >
               {skill}
             </span>
