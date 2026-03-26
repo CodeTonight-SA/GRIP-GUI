@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Plus, Trash2, MessageSquare } from 'lucide-react';
 import {
   getChatSessions,
@@ -25,6 +26,7 @@ interface ChatHistoryProps {
 export default function ChatHistory({ onSessionChange, onNewChat, currentModel }: ChatHistoryProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     setSessions(getChatSessions());
@@ -89,9 +91,14 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
             </span>
           </div>
         ) : (
-          sessions.map(session => (
-            <div
+          <AnimatePresence initial={!reduceMotion}>
+          {sessions.map((session, index) => (
+            <motion.div
               key={session.id}
+              initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ duration: 0.2, delay: reduceMotion ? 0 : index * 0.03 }}
               role="button"
               tabIndex={0}
               onClick={() => handleSelectChat(session.id)}
@@ -124,8 +131,9 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
                   {session.model.toUpperCase()}
                 </span>
               </div>
-            </div>
-          ))
+            </motion.div>
+          ))}
+          </AnimatePresence>
         )}
       </div>
     </div>
