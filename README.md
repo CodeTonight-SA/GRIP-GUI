@@ -29,7 +29,6 @@ Claude Code runs one agent at a time, in one terminal. GRIP Commander removes th
 - **Automations** — trigger agents on GitHub PRs, JIRA issues, and external events
 - **Kanban** — visual task board with automatic agent assignment
 - **Scheduling** — cron-based tasks that run autonomously
-- **Remote control** — Telegram and Slack integration
 
 ---
 
@@ -69,7 +68,6 @@ graph TB
 
     subgraph MCP["MCP Servers (stdio)"]
         Orchestrator[mcp-orchestrator<br/>26+ tools]
-        MCPTelegram[mcp-telegram]
         MCPKanban[mcp-kanban]
         MCPVault[mcp-vault]
     end
@@ -140,7 +138,6 @@ GRIP Commander bundles MCP servers for programmatic control:
 | Server | Purpose |
 |--------|---------|
 | mcp-orchestrator | Agent management, messaging, scheduling, automations (26+ tools) |
-| mcp-telegram | Telegram messaging with media support |
 | mcp-kanban | Task board CRUD |
 | mcp-vault | Persistent document storage with FTS5 search |
 
