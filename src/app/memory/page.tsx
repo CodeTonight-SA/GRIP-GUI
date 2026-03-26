@@ -648,37 +648,17 @@ function GripStatusPanel() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        // Load genome
-        if (window.electronAPI?.grip?.runCommand) {
-          const genomeRaw = await window.electronAPI.grip.runCommand('cat ~/.claude/cache/genome.json 2>/dev/null');
-          if (genomeRaw) {
-            try {
-              const g = JSON.parse(genomeRaw);
-              setGenome({ generation: g.generation || 0, geneCount: g.genes?.length || 0, fitness: g.fitness || 0 });
-            } catch { /* no genome */ }
-          }
-
-          // Load active modes
-          const modesRaw = await window.electronAPI.grip.runCommand('cat ~/.claude/.active-modes 2>/dev/null');
-          if (modesRaw) {
-            setActiveModes(modesRaw.trim().split('\n').filter(Boolean));
-          }
-
-          // Load instance
-          const instanceRaw = await window.electronAPI.grip.runCommand('cat ~/.claude/projects/*/grip/index.json 2>/dev/null | head -1');
-          if (instanceRaw) {
-            try {
-              const inst = JSON.parse(instanceRaw);
-              setInstance({ sha: inst.sha?.slice(0, 8) || '?', gen: inst.generation || 0, messages: inst.messages || 0 });
-            } catch { /* no instance */ }
-          }
+    fetch('/api/grip/status')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          if (data.genome) setGenome(data.genome);
+          if (data.activeModes) setActiveModes(data.activeModes);
+          if (data.instance) setInstance(data.instance);
         }
-      } catch { /* fallback */ }
-      setLoading(false);
-    };
-    load();
+      })
+      .catch(() => { /* fallback */ })
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
