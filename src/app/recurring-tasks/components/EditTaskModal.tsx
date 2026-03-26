@@ -49,7 +49,7 @@ export function EditTaskModal({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-card border border-border rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="bg-card border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto"
           >
             <div className="p-6 border-b border-border flex items-center justify-between">
               <h2 className="text-lg font-semibold">Edit Scheduled Task</h2>

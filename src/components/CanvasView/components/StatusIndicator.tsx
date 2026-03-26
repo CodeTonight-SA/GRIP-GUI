@@ -17,7 +17,7 @@ export function StatusIndicator({ status }: StatusIndicatorProps) {
         transition={{ type: 'spring', stiffness: 500, damping: 25 }}
       >
         <motion.div
-          className="relative flex items-center justify-center w-8 h-8 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50"
+          className="relative flex items-center justify-center w-8 h-8 rounded-full bg-amber-500 shadow-amber-500/50"
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 1.5, repeat: Infinity }}
         >
@@ -35,7 +35,7 @@ export function StatusIndicator({ status }: StatusIndicatorProps) {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500 shadow-lg shadow-cyan-500/30">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500 shadow-cyan-500/30">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
@@ -55,7 +55,7 @@ export function StatusIndicator({ status }: StatusIndicatorProps) {
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 500, damping: 25 }}
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 shadow-lg shadow-green-500/50">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 shadow-green-500/50">
           <CheckCircle2 className="w-5 h-5 text-white" />
         </div>
       </motion.div>
@@ -70,7 +70,7 @@ export function StatusIndicator({ status }: StatusIndicatorProps) {
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 500, damping: 25 }}
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 shadow-lg shadow-red-500/50">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 shadow-red-500/50">
           <XCircle className="w-5 h-5 text-white" />
         </div>
       </motion.div>

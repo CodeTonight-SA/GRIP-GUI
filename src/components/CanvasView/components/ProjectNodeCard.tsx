@@ -60,7 +60,7 @@ export function ProjectNodeCard({
     >
       <div
         className={`w-56 rounded-none border backdrop-blur-sm transition-all duration-200 ${isSelected
-          ? 'bg-zinc-900/95 border-purple-500/50 shadow-lg shadow-purple-500/20'
+          ? 'bg-zinc-900/95 border-purple-500/50 shadow-purple-500/20'
           : 'bg-zinc-900/80 border-zinc-700/50 hover:border-zinc-600'
           }`}
       >
@@ -94,7 +94,7 @@ export function ProjectNodeCard({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -5 }}
                   transition={{ duration: 0.1 }}
-                  className="absolute right-0 top-full mt-1 w-40 bg-zinc-800 border border-zinc-700 rounded-none shadow-xl z-50 overflow-hidden"
+                  className="absolute right-0 top-full mt-1 w-40 bg-zinc-800 border border-zinc-700 rounded-none z-50 overflow-hidden"
                 >
                   <button
                     onClick={(e) => {

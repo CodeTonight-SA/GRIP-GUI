@@ -33,7 +33,7 @@ export function AgentListHeader({
             flex items-center justify-center gap-2 px-3 lg:px-4 py-2 font-medium rounded-none transition-all text-sm lg:text-base
             ${superAgent
               ? superAgent.status === 'running' || superAgent.status === 'waiting'
-                ? 'bg-green-500/20 border border-green-500/50 text-green-700 hover:bg-green-500/30 shadow-lg shadow-green-500/20'
+                ? 'bg-green-500/20 border border-green-500/50 text-green-700 hover:bg-green-500/30 shadow-green-500/20'
                 : 'bg-bg-tertiary border border-green-500/30 text-green-600 hover:bg-green-500/10 hover:border-green-500/50'
               : 'bg-bg-tertiary border border-border-primary text-text-secondary hover:bg-bg-secondary hover:border-green-500/50 hover:text-green-600'
             }

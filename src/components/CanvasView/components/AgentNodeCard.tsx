@@ -71,9 +71,9 @@ export function AgentNodeCard({
 
       <div
         className={`w-72 rounded-none border backdrop-blur-sm transition-all duration-200 ${isSelected
-          ? 'bg-zinc-900/95 border-cyan-500/50 shadow-lg shadow-cyan-500/20'
+          ? 'bg-zinc-900/95 border-cyan-500/50 shadow-cyan-500/20'
           : node.status === 'waiting'
-            ? 'bg-zinc-900/95 border-amber-500/50 shadow-lg shadow-amber-500/20'
+            ? 'bg-zinc-900/95 border-amber-500/50 shadow-amber-500/20'
             : 'bg-zinc-900/80 border-zinc-700/50 hover:border-zinc-600'
           }`}
       >
@@ -104,7 +104,7 @@ export function AgentNodeCard({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -5 }}
                     transition={{ duration: 0.1 }}
-                    className="absolute right-0 top-full mt-1 w-36 bg-zinc-800 border border-zinc-700 rounded-none shadow-xl z-50 overflow-hidden"
+                    className="absolute right-0 top-full mt-1 w-36 bg-zinc-800 border border-zinc-700 rounded-none z-50 overflow-hidden"
                   >
                     <button
                       onClick={(e) => {

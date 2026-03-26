@@ -105,7 +105,7 @@ export function KanbanColumn({
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 60 }}
-            className="border-2 border-dashed border-primary/30 rounded-xl bg-primary/5"
+            className="border-2 border-dashed border-primary/30 bg-primary/5"
           />
         )}
       </div>

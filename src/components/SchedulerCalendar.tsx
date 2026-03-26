@@ -385,7 +385,7 @@ export default function SchedulerCalendar({
 
   return (
     <>
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className="bg-card border border-border overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
@@ -613,7 +613,7 @@ export default function SchedulerCalendar({
         <div className="fixed inset-0 z-[9998]" onClick={() => setTooltip(null)} />
         {/* Tooltip card */}
         <div
-          className="bg-card border border-border rounded-xl shadow-2xl p-4"
+          className="bg-card border border-border shadow-2xl p-4"
           style={getTooltipStyle(tooltip.anchor)}
           onClick={e => e.stopPropagation()}
         >

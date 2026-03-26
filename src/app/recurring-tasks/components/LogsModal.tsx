@@ -59,7 +59,7 @@ export function LogsModal({ selectedLogs, onClose, onRunIndexChange, logsContain
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            className="bg-card border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
           >
             <div className="p-4 border-b border-border flex items-center justify-between gap-3">
               <h2 className="font-semibold shrink-0">Task Logs</h2>

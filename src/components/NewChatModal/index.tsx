@@ -319,7 +319,7 @@ export default function NewChatModal({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl mx-4 bg-card border border-border rounded-xl shadow-2xl overflow-hidden h-[85vh] lg:h-[90vh] flex flex-col"
+          className="w-full max-w-2xl mx-4 bg-card border border-border shadow-2xl overflow-hidden h-[85vh] lg:h-[90vh] flex flex-col"
         >
           {/* Header: Step Indicator + Close */}
           <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-border flex items-center justify-between bg-secondary">

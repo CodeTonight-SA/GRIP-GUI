@@ -135,7 +135,7 @@ export function KanbanCardDetail({ task, onClose, onUpdate, onDelete }: KanbanCa
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add a description..."
                 rows={4}
-                className="w-full text-sm bg-secondary/30 border border-border/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none placeholder:text-muted-foreground/50"
+                className="w-full text-sm bg-secondary/30 border border-border/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none placeholder:text-muted-foreground/50"
               />
             </div>
 

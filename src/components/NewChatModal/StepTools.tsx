@@ -165,7 +165,7 @@ const StepTools = React.memo(function StepTools({
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
             {showCategoryDropdown && (
-              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border shadow-lg min-w-[160px] overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border min-w-[160px] overflow-hidden">
                 <button
                   onClick={() => { setSelectedCategory(null); setShowCategoryDropdown(false); }}
                   className={`w-full text-left px-3 py-2 text-sm hover:bg-secondary transition-colors ${!selectedCategory ? 'text-accent-purple font-medium' : ''}`}
