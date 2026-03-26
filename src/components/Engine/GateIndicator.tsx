@@ -71,7 +71,7 @@ export default function GateIndicator({ gates }: GateIndicatorProps) {
         <span className="font-mono text-xs text-[var(--muted-foreground)] truncate flex-1">
           {latest.gate}
         </span>
-        <span className="font-mono text-[9px] text-[var(--muted-foreground)] opacity-50 flex-shrink-0">
+        <span className="font-mono text-[10px] text-[var(--muted-foreground)] opacity-50 flex-shrink-0">
           {gates.length > 1 ? `${gates.length} gates` : ''}
         </span>
         {expanded ? (
@@ -95,7 +95,7 @@ export default function GateIndicator({ gates }: GateIndicatorProps) {
                 const gStyle = TYPE_STYLES[gate.type];
                 return (
                   <div key={gate.id} className="flex items-start gap-2">
-                    <span className={`font-mono text-[9px] tracking-widest ${gStyle.labelColor} mt-0.5 flex-shrink-0`}>
+                    <span className={`font-mono text-[10px] tracking-widest ${gStyle.labelColor} mt-0.5 flex-shrink-0`}>
                       {gStyle.label}
                     </span>
                     <span className="font-mono text-xs text-[var(--muted-foreground)]">

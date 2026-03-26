@@ -100,7 +100,7 @@ export default function SystemOverview() {
           >
             <div className="flex items-center gap-1.5 mb-1">
               <stat.icon className={`w-3 h-3 ${stat.accent ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`} strokeWidth={1.5} />
-              <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)]">
+              <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
                 {stat.label}
               </span>
             </div>

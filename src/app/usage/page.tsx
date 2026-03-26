@@ -542,7 +542,7 @@ export default function UsagePage() {
                 <div key={item.date} className="flex-1 flex flex-col items-center gap-0.5 relative">
                   <div className="w-full flex flex-col items-center justify-end h-44">
                     {showCostLabel && (
-                      <span className={`${isDaily ? 'text-[9px]' : 'text-xs'} text-accent-green font-medium mb-0.5 whitespace-nowrap`}>
+                      <span className={`${isDaily ? 'text-[10px]' : 'text-xs'} text-accent-green font-medium mb-0.5 whitespace-nowrap`}>
                         ${item.cost < 1 ? item.cost.toFixed(2) : item.cost.toFixed(0)}
                       </span>
                     )}
@@ -554,7 +554,7 @@ export default function UsagePage() {
                       title={`${item.label}: $${item.cost.toFixed(2)}`}
                     />
                   </div>
-                  <span className={`${isDaily ? 'text-[8px]' : 'text-[10px]'} text-text-muted text-center leading-tight ${!showDateLabel ? 'invisible' : ''}`}>
+                  <span className={`${isDaily ? 'text-[10px]' : 'text-[10px]'} text-text-muted text-center leading-tight ${!showDateLabel ? 'invisible' : ''}`}>
                     {item.label}
                   </span>
                 </div>

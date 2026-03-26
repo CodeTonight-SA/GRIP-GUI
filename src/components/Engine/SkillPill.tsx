@@ -21,7 +21,7 @@ export default function SkillPill({ name, active = false, paramount = false, onC
     <button
       onClick={onClick}
       className={`
-        inline-flex items-center gap-1 px-2 py-0.5 font-mono text-[9px] tracking-wider
+        inline-flex items-center gap-1 px-2 py-0.5 font-mono text-[10px] tracking-wider
         transition-colors border
         ${paramount
           ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5'

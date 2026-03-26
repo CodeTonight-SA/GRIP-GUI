@@ -125,7 +125,7 @@ export default function SkillBrowser() {
             <p className="text-[11px] text-[var(--muted-foreground)] leading-relaxed mb-2">
               {skill.description}
             </p>
-            <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] opacity-60">
+            <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-60">
               {SKILL_CATEGORIES[skill.category]?.label || skill.category.toUpperCase()}
             </span>
           </motion.div>

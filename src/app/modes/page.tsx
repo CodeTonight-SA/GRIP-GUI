@@ -80,7 +80,7 @@ export default function ModesPage() {
             </span>
             {saving && <Loader2 className="w-3 h-3 text-[var(--primary)] animate-spin" />}
             {loaded && !saving && activeModes.length > 0 && (
-              <span className="font-mono text-[8px] tracking-widest text-[var(--success)]">SAVED</span>
+              <span className="font-mono text-[10px] tracking-widest text-[var(--success)]">SAVED</span>
             )}
           </div>
         )}
@@ -148,18 +148,18 @@ export default function ModesPage() {
                 {mode.description}
               </p>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+                <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
                   {MODE_CATEGORIES[mode.category].label}
                 </span>
-                <span className="font-mono text-[9px] text-[var(--muted-foreground)]">|</span>
-                <span className="font-mono text-[9px] tracking-wider text-[var(--muted-foreground)]">
+                <span className="font-mono text-[10px] text-[var(--muted-foreground)]">|</span>
+                <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)]">
                   ~{(mode.tokenBudget / 1000).toFixed(1)}K TOKENS
                 </span>
               </div>
               {mode.skills.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {mode.skills.slice(0, 3).map(skill => (
-                    <span key={skill} className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] border border-[var(--border)] px-1 py-0.5">
+                    <span key={skill} className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] border border-[var(--border)] px-1 py-0.5">
                       {skill}
                     </span>
                   ))}

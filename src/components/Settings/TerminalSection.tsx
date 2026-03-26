@@ -51,7 +51,7 @@ export const TerminalSection = ({ appSettings, onSaveAppSettings }: TerminalSect
             </div>
             {/* Mini preview */}
             <div className="rounded-sm overflow-hidden border border-border">
-              <div className="bg-[#1a1a2e] p-2 h-16 font-mono text-[9px] leading-relaxed">
+              <div className="bg-[#1a1a2e] p-2 h-16 font-mono text-[10px] leading-relaxed">
                 <span className="text-[#22c55e]">$</span>{' '}
                 <span className="text-[#e4e4e7]">npm start</span>
                 <br />
@@ -79,7 +79,7 @@ export const TerminalSection = ({ appSettings, onSaveAppSettings }: TerminalSect
             </div>
             {/* Mini preview */}
             <div className="rounded-sm overflow-hidden border border-border">
-              <div className="bg-[#FFFFFF] p-2 h-16 font-mono text-[9px] leading-relaxed">
+              <div className="bg-[#FFFFFF] p-2 h-16 font-mono text-[10px] leading-relaxed">
                 <span className="text-[#16a34a]">$</span>{' '}
                 <span className="text-[#1a1a2e]">npm start</span>
                 <br />

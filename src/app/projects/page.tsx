@@ -528,7 +528,7 @@ export default function ProjectsPage() {
                     {/* Agent badge */}
                     {linkedAgents.length > 0 && (
                       <div
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 text-[9px] font-bold flex items-center justify-center text-white"
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 text-[10px] font-bold flex items-center justify-center text-white"
                         style={{ backgroundColor: color.main }}
                       >
                         {linkedAgents.length}
@@ -569,7 +569,7 @@ export default function ProjectsPage() {
                 {/* Custom badge */}
                 {isCustomProject(project.path) && (
                   <div className="absolute top-2 left-2">
-                    <span className="text-[9px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400">
+                    <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400">
                       Custom
                     </span>
                   </div>

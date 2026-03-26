@@ -569,18 +569,18 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="font-mono text-[9px] tracking-wider text-[var(--muted-foreground)]">
+                    <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)]">
                       {msg.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {msg.metrics && (
                       <>
                         {msg.metrics.totalDurationMs && (
-                          <span className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] opacity-50">
+                          <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] opacity-50">
                             {(msg.metrics.totalDurationMs / 1000).toFixed(1)}s
                           </span>
                         )}
                         {msg.metrics.model && (
-                          <span className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] opacity-50">
+                          <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] opacity-50">
                             {msg.metrics.model}
                           </span>
                         )}
@@ -611,7 +611,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.15 }}
             onClick={scrollToBottom}
-            className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] hover:border-[var(--primary)] transition-colors font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+            className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] hover:border-[var(--primary)] transition-colors font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)]"
           >
             <ArrowDown className="w-3 h-3" strokeWidth={1.5} />
             LATEST
@@ -647,7 +647,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                 alt="Pasted"
                 className="max-h-16 w-auto border border-[var(--border)]"
               />
-              <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+              <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
                 IMAGE ATTACHED
               </span>
               <button
@@ -706,14 +706,14 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
             </div>
             <div className="flex items-center gap-3">
               {input.length > 0 && (
-                <span className={`font-mono text-[8px] tracking-wider transition-colors ${
+                <span className={`font-mono text-[10px] tracking-wider transition-colors ${
                   input.length > 4000 ? 'text-[var(--warning)]' : 'text-[var(--muted-foreground)] opacity-40'
                 }`}>
                   {input.length.toLocaleString()}
                 </span>
               )}
               {sessionId && (
-                <span className="font-mono text-[8px] tracking-wider text-[var(--primary)] opacity-60">
+                <span className="font-mono text-[10px] tracking-wider text-[var(--primary)] opacity-60">
                   SESSION: {sessionId.slice(0, 8)}
                 </span>
               )}

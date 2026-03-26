@@ -162,7 +162,7 @@ function ProjectCard({
           <FolderOpen className={`w-4 h-4 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
           <span className="text-sm font-medium truncate">{project.projectName}</span>
           {project.provider && project.provider !== 'claude' && (
-            <span className={`text-[9px] px-1 py-0.5 font-medium uppercase tracking-wider shrink-0 ${
+            <span className={`text-[10px] px-1 py-0.5 font-medium uppercase tracking-wider shrink-0 ${
               project.provider === 'codex' ? 'bg-green-500/15 text-green-600 dark:text-green-400' :
               project.provider === 'gemini' ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400' :
               'bg-secondary text-muted-foreground'
@@ -533,7 +533,7 @@ export default function MemoryPage() {
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-mono truncate">{file.name}</p>
                             {file.isEntrypoint && (
-                              <p className="text-[9px] text-primary/70 mt-0.5">entrypoint</p>
+                              <p className="text-[10px] text-primary/70 mt-0.5">entrypoint</p>
                             )}
                           </div>
                           {selectedFile?.path === file.path && (

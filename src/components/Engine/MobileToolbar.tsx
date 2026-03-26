@@ -38,7 +38,7 @@ export default function MobileToolbar() {
               className={`w-4 h-4 ${activeTab === tab.id ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`}
               strokeWidth={1.5}
             />
-            <span className={`font-mono text-[8px] tracking-widest ${
+            <span className={`font-mono text-[10px] tracking-widest ${
               activeTab === tab.id ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'
             }`}>
               {tab.label}

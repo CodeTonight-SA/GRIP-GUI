@@ -91,7 +91,7 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
         <div className="relative shrink-0">
           <item.icon className="w-4 h-4" strokeWidth={1.5} />
           {item.href === '/vault' && vaultUnreadCount > 0 && !showLabels && (
-            <span className="absolute -top-1 -right-1 min-w-[12px] h-[12px] flex items-center justify-center text-[7px] font-bold bg-[var(--primary)] text-[var(--primary-foreground)] px-0.5">
+            <span className="absolute -top-1 -right-1 min-w-[12px] h-[12px] flex items-center justify-center text-[9px] font-bold bg-[var(--primary)] text-[var(--primary-foreground)] px-0.5">
               {vaultUnreadCount}
             </span>
           )}
@@ -108,13 +108,13 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
         )}
         {/* Collapsed tooltip — shows label on hover when sidebar is collapsed */}
         {!showLabels && (
-          <span className="absolute left-full ml-2 px-2 py-1 bg-[var(--card)] border border-[var(--border)] font-mono text-[9px] tracking-widest text-[var(--foreground)] whitespace-nowrap opacity-0 group-hover/nav:opacity-100 pointer-events-none transition-opacity z-50">
+          <span className="absolute left-full ml-2 px-2 py-1 bg-[var(--card)] border border-[var(--border)] font-mono text-[10px] tracking-widest text-[var(--foreground)] whitespace-nowrap opacity-0 group-hover/nav:opacity-100 pointer-events-none transition-opacity z-50">
             {item.label}
             {item.shortcut && <span className="text-[var(--muted-foreground)] ml-2">{item.shortcut}</span>}
           </span>
         )}
         {item.href === '/vault' && vaultUnreadCount > 0 && showLabels && (
-          <span className="min-w-[18px] h-[18px] flex items-center justify-center text-[9px] font-mono font-bold bg-[var(--primary)] text-[var(--primary-foreground)] px-0.5">
+          <span className="min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-mono font-bold bg-[var(--primary)] text-[var(--primary-foreground)] px-0.5">
             {vaultUnreadCount}
           </span>
         )}
@@ -140,7 +140,7 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
               <span className="font-mono text-sm font-bold tracking-widest text-[var(--foreground)] transition-all duration-300 hover:text-[var(--primary)] hover:drop-shadow-[0_0_6px_var(--primary)]">
                 GRIP
               </span>
-              <span className="block font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] leading-none mt-0.5">
+              <span className="block font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] leading-none mt-0.5">
                 KNOWLEDGE WORK ENGINE
               </span>
             </div>

@@ -58,7 +58,7 @@ export default function ModeQuickSwitch() {
             return (
               <div key={category}>
                 <div className="px-3 py-1.5 bg-[var(--secondary)]">
-                  <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+                  <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
                     {category.toUpperCase()}
                   </span>
                 </div>
@@ -74,7 +74,7 @@ export default function ModeQuickSwitch() {
                   >
                     <div>
                       <span className="font-mono text-[10px] tracking-widest block">{mode.name}</span>
-                      <span className="text-[9px] text-[var(--muted-foreground)] block mt-0.5 max-w-[200px] truncate">
+                      <span className="text-[10px] text-[var(--muted-foreground)] block mt-0.5 max-w-[200px] truncate">
                         {mode.description}
                       </span>
                     </div>

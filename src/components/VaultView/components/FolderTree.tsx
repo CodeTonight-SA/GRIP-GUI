@@ -21,16 +21,16 @@ function DocTags({ tags }: { tags: string[] }) {
   if (tags.length === 0) return null;
   return (
     <span className="relative flex items-center gap-0.5 shrink-0 group/tags">
-      <span className="px-1 text-[9px] rounded bg-secondary text-muted-foreground">
+      <span className="px-1 text-[10px] rounded bg-secondary text-muted-foreground">
         {tags[0]}
       </span>
       {tags.length > 1 && (
-        <span className="text-[9px] text-muted-foreground">+{tags.length - 1}</span>
+        <span className="text-[10px] text-muted-foreground">+{tags.length - 1}</span>
       )}
       {tags.length > 1 && (
         <span className="absolute right-0 top-full mt-1 z-50 hidden group-hover/tags:flex flex-col gap-0.5 p-1.5 bg-popover border border-border rounded min-w-max">
           {tags.map(tag => (
-            <span key={tag} className="px-1.5 py-0.5 text-[9px] rounded bg-secondary text-muted-foreground whitespace-nowrap">
+            <span key={tag} className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-muted-foreground whitespace-nowrap">
               {tag}
             </span>
           ))}

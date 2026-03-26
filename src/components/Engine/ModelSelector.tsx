@@ -42,7 +42,7 @@ export default function ModelSelector({ value, onChange, compact = false }: Mode
       <div className="relative" ref={containerRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors flex items-center gap-1"
+          className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors flex items-center gap-1"
         >
           {current.label}
           <ChevronDown className={`w-2.5 h-2.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -66,8 +66,8 @@ export default function ModelSelector({ value, onChange, compact = false }: Mode
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)]'
                   }`}
                 >
-                  <span className="font-mono text-[9px] tracking-widest">{model.label}</span>
-                  <span className="font-mono text-[7px] tracking-wider opacity-50">{model.badge}</span>
+                  <span className="font-mono text-[10px] tracking-widest">{model.label}</span>
+                  <span className="font-mono text-[9px] tracking-wider opacity-50">{model.badge}</span>
                 </button>
               ))}
             </motion.div>
@@ -110,9 +110,9 @@ export default function ModelSelector({ value, onChange, compact = false }: Mode
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[10px] tracking-widest">{model.label}</span>
-                  <span className="font-mono text-[8px] tracking-wider opacity-50">{model.badge}</span>
+                  <span className="font-mono text-[10px] tracking-wider opacity-50">{model.badge}</span>
                 </div>
-                <span className="text-[9px] opacity-60 block mt-0.5">{model.description}</span>
+                <span className="text-[10px] opacity-60 block mt-0.5">{model.description}</span>
               </button>
             ))}
           </motion.div>

@@ -128,7 +128,7 @@ export default function KeyboardShortcutsHelp() {
 
           {/* Footer */}
           <div className="px-6 py-3 border-t border-[var(--border)]">
-            <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+            <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
               PRESS ? TO TOGGLE | ESC TO CLOSE
             </span>
           </div>
