@@ -359,6 +359,12 @@ html {
 /* ============================================
    ANIMATIONS — Minimal, respectful
    ============================================ */
+/* Sleek typing cursor blink — thin line, not block */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

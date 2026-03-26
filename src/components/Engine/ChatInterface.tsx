@@ -565,7 +565,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                       </div>
                     )}
                     {msg.streaming && (
-                      <span className="inline-block w-2 h-4 bg-[var(--primary)] animate-pulse ml-0.5" />
+                      <span className="inline-block w-0.5 h-4 bg-[var(--primary)] ml-0.5 animate-[cursor-blink_1s_ease-in-out_infinite]" />
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-1">
