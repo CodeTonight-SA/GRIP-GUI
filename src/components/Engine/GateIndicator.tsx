@@ -54,7 +54,12 @@ export default function GateIndicator({ gates }: GateIndicatorProps) {
   const style = TYPE_STYLES[latest.type];
 
   return (
-    <div className="my-2">
+    <motion.div
+      className="my-2"
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
       <button
         onClick={() => setExpanded(!expanded)}
         className={`w-full flex items-center gap-2 px-3 py-2 border ${style.border} ${style.bg} text-left transition-colors hover:opacity-90`}
@@ -103,6 +108,6 @@ export default function GateIndicator({ gates }: GateIndicatorProps) {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }

@@ -204,6 +204,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       // Don't trigger in input fields
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      // Cmd+, = Settings (macOS convention) — must be before modifier guard
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        router.push('/settings');
+        return;
+      }
+
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       // Number key navigation

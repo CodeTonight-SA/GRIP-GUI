@@ -15,7 +15,9 @@ const SHORTCUTS = [
   { category: 'COMMANDS', items: [
     { keys: ['Cmd', 'K'], description: 'Command Palette' },
     { keys: ['Cmd', 'Shift', 'F'], description: 'Focus Mode' },
+    { keys: ['Cmd', ','], description: 'Settings' },
     { keys: ['D'], description: 'Toggle Dark Mode' },
+    { keys: ['M'], description: 'Memory' },
     { keys: ['?'], description: 'This Help' },
   ]},
   { category: 'CHAT', items: [
