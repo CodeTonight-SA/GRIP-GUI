@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
 import { Send, Sparkles, Square, X, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { sendToGrip, filterResponseMetadata, type GripMessage, type GripMetrics, type ToolUseEvent, type ToolResultEvent } from '@/lib/grip-session';
+import { sendToGrip, filterResponseMetadata, detectGateInText, type GripMessage, type GripMetrics, type ToolUseEvent, type ToolResultEvent, type GateEvent } from '@/lib/grip-session';
 import TypingIndicator from './TypingIndicator';
+import ThinkingIndicator from './ThinkingIndicator';
 import ToolUseBlock from './ToolUseBlock';
+import GateIndicator from './GateIndicator';
 import {
   getChatMessages,
   saveChatMessages,
@@ -60,6 +62,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [model, setModel] = useState('sonnet');
   const spinnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -184,6 +187,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     let lastPersistTime = 0;
     const toolUses: ToolUseEvent[] = [];
     const toolResults: ToolResultEvent[] = [];
+    const gates: GateEvent[] = [];
 
     const promptText = input.trim() + imageContext;
     try {
@@ -193,7 +197,17 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
         model,
         (id) => { activePromptSessionRef.current = id; if (chatId) activeStreams.set(chatId, id); },
       )) {
-        if (event.type === 'text') {
+        if (event.type === 'thinking') {
+          // Show thinking indicator — extended reasoning in progress
+          setIsThinking(true);
+          if (spinnerTimerRef.current) {
+            clearTimeout(spinnerTimerRef.current);
+            spinnerTimerRef.current = null;
+          }
+          setShowSpinner(false);
+        } else if (event.type === 'text') {
+          // Text arrived — thinking phase is over
+          setIsThinking(false);
           if (!receivedFirstToken) {
             receivedFirstToken = true;
             if (spinnerTimerRef.current) {
@@ -202,10 +216,23 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
             }
             setShowSpinner(false);
           }
-          fullText += event.data as string;
+          const textChunk = event.data as string;
+          fullText += textChunk;
           pendingContentRef.current = filterResponseMetadata(fullText);
           if (rafIdRef.current === null) {
             rafIdRef.current = requestAnimationFrame(flushStreamUpdate);
+          }
+          // Detect GRIP gate patterns in text chunks
+          const gate = detectGateInText(textChunk);
+          if (gate) {
+            gates.push(gate);
+            setMessages(prev => {
+              const last = prev[prev.length - 1];
+              if (last?.role === 'assistant' && last?.streaming) {
+                return [...prev.slice(0, -1), { ...last, gates: [...gates] }];
+              }
+              return prev;
+            });
           }
           // Periodic persist for tab-switch resilience
           const now = Date.now();
@@ -278,6 +305,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
         lastMsg.detectedSkills = detectSkills(userMessage.content);
         if (toolUses.length) lastMsg.toolUses = toolUses;
         if (toolResults.length) lastMsg.toolResults = toolResults;
+        if (gates.length) lastMsg.gates = gates;
       }
       if (chatId) saveChatMessages(chatId, updated);
       return [...updated];
@@ -293,6 +321,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     }
     activePromptSessionRef.current = null;
     setIsStreaming(false);
+    setIsThinking(false);
     setShowSpinner(false);
     if (spinnerTimerRef.current) {
       clearTimeout(spinnerTimerRef.current);
@@ -501,6 +530,10 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                       </div>
                     )}
                     <MarkdownContent content={msg.content} />
+                    {/* Gate indicators — show when GRIP safety gates fire */}
+                    {msg.gates && msg.gates.length > 0 && (
+                      <GateIndicator gates={msg.gates} />
+                    )}
                     {/* Tool use blocks — show what the agent is doing */}
                     {msg.toolUses && msg.toolUses.length > 0 && (
                       <div className="mt-2 space-y-0.5">
@@ -540,7 +573,10 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
               </motion.div>
             ))}
             </AnimatePresence>
-            {isStreaming && showSpinner && messages[messages.length - 1]?.content === '' && (
+            {isStreaming && isThinking && (
+              <ThinkingIndicator />
+            )}
+            {isStreaming && showSpinner && !isThinking && messages[messages.length - 1]?.content === '' && (
               <TypingIndicator />
             )}
             <div ref={messagesEndRef} />

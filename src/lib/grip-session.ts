@@ -27,6 +27,14 @@ export interface ToolResultEvent {
   isError?: boolean;
 }
 
+export interface GateEvent {
+  id: string;
+  type: 'deny' | 'warn' | 'info';
+  gate: string;
+  message: string;
+  timestamp: Date;
+}
+
 export interface GripMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -39,6 +47,7 @@ export interface GripMessage {
   imageDataUrl?: string;
   toolUses?: ToolUseEvent[];
   toolResults?: ToolResultEvent[];
+  gates?: GateEvent[];
   isThinking?: boolean;
 }
 
@@ -155,7 +164,7 @@ export function extractTextFromEvent(event: StreamEvent): string | null {
   // Skip non-text events entirely — these should NEVER be shown to the user
   const skipTypes = ['system', 'init', 'tool_use', 'tool_result', 'content_block_start',
     'content_block_stop', 'message_start', 'message_stop', 'ping',
-    'result', 'error', 'input_json'];
+    'result', 'error', 'input_json', 'thinking'];
   if (skipTypes.includes(event.type)) return null;
   // Also skip if event has subtype 'init' (system init events)
   if ((event as unknown as Record<string, unknown>).subtype === 'init') return null;
@@ -207,6 +216,86 @@ export function extractToolResult(event: StreamEvent): ToolResultEvent | null {
         : '';
     return { toolId: event.tool_use_id, output, isError: event.is_error };
   }
+  return null;
+}
+
+/**
+ * Extract thinking event data.
+ * Claude CLI emits thinking events during extended thinking (stream-json).
+ * Returns the thinking text content, or null if not a thinking event.
+ */
+export function extractThinking(event: StreamEvent): string | null {
+  if (event.type === 'thinking' && typeof event.text === 'string') {
+    return event.text;
+  }
+  // Content block with thinking type
+  if (event.type === 'content_block_start' && event.delta?.type === 'thinking') {
+    return '';
+  }
+  if (event.delta?.type === 'thinking_delta' && event.delta.text) {
+    return event.delta.text;
+  }
+  return null;
+}
+
+/**
+ * Detect GRIP gate patterns in text.
+ * Returns a GateEvent if a gate pattern is found, null otherwise.
+ * Gate patterns: [GRIP], [QUALITY], [GRIP SECRET WARNING], [LEARNING]
+ */
+export function detectGateInText(text: string): GateEvent | null {
+  if (!text) return null;
+
+  // Blocked actions
+  const denyMatch = text.match(/\[GRIP\]\s*Blocked:\s*(.+)/i);
+  if (denyMatch) {
+    return {
+      id: crypto.randomUUID(),
+      type: 'deny',
+      gate: 'Dependency Guardian',
+      message: denyMatch[1].trim(),
+      timestamp: new Date(),
+    };
+  }
+
+  // Quality warnings
+  const qualityMatch = text.match(/\[QUALITY\]\s*(.+)/i);
+  if (qualityMatch) {
+    const msg = qualityMatch[1].trim();
+    const isDeny = msg.toLowerCase().includes('exceeds threshold');
+    return {
+      id: crypto.randomUUID(),
+      type: isDeny ? 'deny' : 'warn',
+      gate: 'Quality Gate',
+      message: msg,
+      timestamp: new Date(),
+    };
+  }
+
+  // Secret warnings
+  const secretMatch = text.match(/\[GRIP SECRET WARNING\]\s*(.+)/i);
+  if (secretMatch) {
+    return {
+      id: crypto.randomUUID(),
+      type: 'warn',
+      gate: 'Secrets Detection',
+      message: secretMatch[1].trim(),
+      timestamp: new Date(),
+    };
+  }
+
+  // Anti-drift reminders
+  const driftMatch = text.match(/\[GRIP\]\s*Task completed\.\s*(.+)/i);
+  if (driftMatch) {
+    return {
+      id: crypto.randomUUID(),
+      type: 'info',
+      gate: 'Anti-Drift',
+      message: driftMatch[1].trim(),
+      timestamp: new Date(),
+    };
+  }
+
   return null;
 }
 
@@ -304,6 +393,10 @@ export async function* sendToGrip(
 
         try {
           const event: StreamEvent = JSON.parse(line);
+          const thinking = extractThinking(event);
+          if (thinking !== null) {
+            yield { type: 'thinking', data: thinking };
+          }
           const text = extractTextFromEvent(event);
           if (text) {
             yield { type: 'text', data: text };
@@ -393,7 +486,7 @@ async function* sendToGripElectron(
     onPromptSessionId?.(promptSessionId);
 
     // Collect output via events using a promise-based queue
-    type ChunkType = 'text' | 'metrics' | 'tool_use' | 'tool_result' | 'done';
+    type ChunkType = 'text' | 'metrics' | 'tool_use' | 'tool_result' | 'thinking' | 'done';
     const chunks: Array<{ type: ChunkType; data: string | GripMetrics | ToolUseEvent | ToolResultEvent }> = [];
     let resolve: (() => void) | null = null;
     let done = false;
@@ -409,6 +502,8 @@ async function* sendToGripElectron(
       if (!line.trim()) return;
       try {
         const parsed: StreamEvent = JSON.parse(line);
+        const thinking = extractThinking(parsed);
+        if (thinking !== null) pushChunk('thinking', thinking);
         const text = extractTextFromEvent(parsed);
         if (text) pushChunk('text', text);
         const toolUse = extractToolUse(parsed);

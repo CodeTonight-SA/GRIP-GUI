@@ -119,6 +119,7 @@ import {
   getSuperAgent,
   ensureDataDir,
   ensureGripClaudeMd,
+  installGripStarterPack,
   migrateFromDorothy,
   migrateFromClaudeManager,
 } from './utils';
@@ -319,6 +320,9 @@ app.whenReady().then(async () => {
 
   // Write GRIP's CLAUDE.md to ~/.grip/ so all spawned agents can load it
   ensureGripClaudeMd();
+
+  // Install GRIP Starter Pack to ~/.claude/ on first launch
+  installGripStarterPack();
 
   // Migrate data from ~/.claude-manager if it exists (legacy migration)
   migrateFromClaudeManager();
