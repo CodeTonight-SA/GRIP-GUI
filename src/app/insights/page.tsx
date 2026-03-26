@@ -82,8 +82,9 @@ export default function InsightsPage() {
   }, [fetchInsights, data]);
 
   const insights = data?.insights || [];
-  const sources = ['all', ...new Set(insights.map(i => i.source || 'unknown'))];
-  const filtered = filter === 'all' ? insights : insights.filter(i => (i.source || 'unknown') === filter);
+  const toStr = (v: unknown): string => (typeof v === 'string' ? v : String(v || 'unknown'));
+  const sources = ['all', ...new Set(insights.map(i => toStr(i.source)))];
+  const filtered = filter === 'all' ? insights : insights.filter(i => toStr(i.source) === filter);
 
   return (
     <div className="flex flex-col h-[calc(100vh-7rem)] lg:h-[calc(100vh-3rem)] pt-4 lg:pt-6 overflow-hidden">
@@ -178,7 +179,7 @@ export default function InsightsPage() {
                     : 'border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--primary)]'
                 }`}
               >
-                {s.toUpperCase()}
+                {String(s).toUpperCase()}
               </button>
             ))}
           </div>
@@ -216,7 +217,7 @@ export default function InsightsPage() {
                         insight.consolidated ? 'text-accent-green border-accent-green/30 bg-accent-green/5' :
                         'text-[var(--muted-foreground)] border-[var(--border)]'
                       }`}>
-                        {(insight.source || 'unknown').toUpperCase()}
+                        {String(insight.source || 'unknown').toUpperCase()}
                       </span>
                       {insight.tags?.slice(0, 3).map(tag => (
                         <span key={tag} className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] border border-[var(--border)] px-1 py-0.5">
