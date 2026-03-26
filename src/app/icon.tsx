@@ -10,7 +10,7 @@ export const size = {
 export const contentType = 'image/png'
 
 export default async function Icon() {
-  const iconData = await readFile(join(process.cwd(), 'public', 'dorothy-without-text.png'))
+  const iconData = await readFile(join(process.cwd(), 'public', 'logo.png'))
   const base64 = iconData.toString('base64')
 
   return new ImageResponse(

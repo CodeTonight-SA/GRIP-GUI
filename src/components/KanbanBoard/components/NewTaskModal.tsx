@@ -297,7 +297,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                 <textarea
                   value={quickPrompt}
                   onChange={(e) => setQuickPrompt(e.target.value)}
-                  placeholder="Describe your task in natural language...&#10;&#10;e.g., Fix the login bug on the dorothy project where users can't sign in with Google"
+                  placeholder="Describe your task in natural language...&#10;&#10;e.g., Fix the login bug on the GRIP project where users can't sign in with Google"
                   rows={5}
                   className="w-full px-3 py-2 bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                   autoFocus

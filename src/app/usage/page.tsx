@@ -523,7 +523,20 @@ export default function UsagePage() {
           </div>
         </div>
 
-        <div className="flex items-end gap-1 h-52 group">
+        <div className="flex h-52 group">
+          {/* Y-axis labels */}
+          <div className="flex flex-col justify-between w-10 shrink-0 pr-2 text-right">
+            <span className="text-[10px] text-text-muted font-mono">${maxCost > 0 ? maxCost.toFixed(0) : '0'}</span>
+            <span className="text-[10px] text-text-muted font-mono">${maxCost > 0 ? (maxCost / 2).toFixed(0) : '0'}</span>
+            <span className="text-[10px] text-text-muted font-mono">$0</span>
+          </div>
+          {/* Bars */}
+          <div className="flex items-end gap-1 flex-1 relative">
+          {/* Grid lines */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-0 right-0 border-t border-dashed border-border-primary/30" />
+            <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-border-primary/30" />
+          </div>
           {costChartData.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
               No cost data available
@@ -561,6 +574,7 @@ export default function UsagePage() {
               );
             })
           )}
+        </div>
         </div>
       </motion.div>
 
@@ -644,7 +658,15 @@ export default function UsagePage() {
             <Calendar className="w-4 h-4 text-text-muted" />
             Messages (Last 7 Days)
           </h3>
-          <div className="flex items-end gap-2 h-32">
+          <div className="flex h-32">
+            {/* Y-axis */}
+            <div className="flex flex-col justify-between w-10 shrink-0 pr-2 text-right">
+              <span className="text-[10px] text-text-muted font-mono">{weeklyActivity.length > 0 ? Math.max(...weeklyActivity.map(d => d.messageCount)).toLocaleString() : '0'}</span>
+              <span className="text-[10px] text-text-muted font-mono">0</span>
+            </div>
+            <div className="flex items-end gap-2 flex-1 relative">
+            <div className="absolute top-0 left-0 right-0 border-t border-dashed border-border-primary/30 pointer-events-none" />
+            <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-border-primary/30 pointer-events-none" />
             {weeklyActivity.length === 0 ? (
               <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
                 No activity data
@@ -671,6 +693,7 @@ export default function UsagePage() {
                 );
               })
             )}
+          </div>
           </div>
         </motion.div>
 
@@ -718,7 +741,14 @@ export default function UsagePage() {
             <Clock className="w-4 h-4 text-text-muted" />
             Activity by Hour of Day
           </h3>
-          <div className="flex items-end gap-1 h-24">
+          <div className="flex h-24">
+            {/* Y-axis */}
+            <div className="flex flex-col justify-between w-10 shrink-0 pr-2 text-right">
+              <span className="text-[10px] text-text-muted font-mono">{Math.max(...Object.values(stats.hourCounts))}</span>
+              <span className="text-[10px] text-text-muted font-mono">0</span>
+            </div>
+            <div className="flex items-end gap-1 flex-1 relative">
+            <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-border-primary/30 pointer-events-none" />
             {Array.from({ length: 24 }, (_, hour) => {
               const count = stats.hourCounts[hour.toString()] || 0;
               const maxCount = Math.max(...Object.values(stats.hourCounts));
@@ -740,7 +770,8 @@ export default function UsagePage() {
               );
             })}
           </div>
-          <div className="flex justify-between mt-2 text-xs text-text-muted">
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-text-muted ml-10">
             <span>12 AM</span>
             <span>6 AM</span>
             <span>12 PM</span>

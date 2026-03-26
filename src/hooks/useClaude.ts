@@ -23,9 +23,32 @@ interface ClaudeData {
   activeSessions: string[];
 }
 
+const CACHE_KEY = 'grip-claude-data-cache';
+
+function loadCachedData(): ClaudeData | null {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    const parsed = JSON.parse(cached);
+    // Rehydrate Date objects
+    if (parsed.projects) {
+      parsed.projects = parsed.projects.map((p: Record<string, unknown>) => ({
+        ...p,
+        lastActivity: new Date(p.lastActivity as string),
+        sessions: ((p.sessions as Array<Record<string, unknown>>) || []).map((s: Record<string, unknown>) => ({
+          ...s,
+          startTime: new Date(s.startTime as string),
+          lastActivity: new Date(s.lastActivity as string),
+        })),
+      }));
+    }
+    return parsed;
+  } catch { return null; }
+}
+
 export function useClaude() {
-  const [data, setData] = useState<ClaudeData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ClaudeData | null>(() => loadCachedData());
+  const [loading, setLoading] = useState(() => !loadCachedData());
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -86,6 +109,7 @@ export function useClaude() {
             return prev;
           });
           setError(null);
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* quota */ }
         } else {
           throw new Error('Failed to get Claude data from Electron');
         }

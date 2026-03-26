@@ -10,6 +10,14 @@ import type { AgentPersonaValues } from './types';
 import type { AgentProvider } from '@/types/electron';
 import AgentPersonaEditor from './AgentPersonaEditor';
 
+/* Static class map — dynamic template literals (border-${x}) break Tailwind JIT */
+const ACCENT = {
+  'accent-blue':   { border: 'border-accent-blue',   bg: 'bg-accent-blue/10',   text: 'text-accent-blue' },
+  'accent-green':  { border: 'border-accent-green',  bg: 'bg-accent-green/10',  text: 'text-accent-green' },
+  'accent-purple': { border: 'border-accent-purple', bg: 'bg-accent-purple/10', text: 'text-accent-purple' },
+} as const;
+type AccentKey = keyof typeof ACCENT;
+
 interface TasmaniaModel {
   name: string;
   filename: string;
@@ -153,7 +161,7 @@ const StepModel = React.memo(function StepModel({
                   ${!installed
                     ? 'opacity-40 cursor-not-allowed border-border-primary'
                     : provider === id
-                      ? `border-${accent} bg-${accent}/10`
+                      ? `${ACCENT[accent as AccentKey].border} ${ACCENT[accent as AccentKey].bg}`
                       : 'border-border-primary hover:border-border-accent'
                   }
                 `}
@@ -198,7 +206,8 @@ const StepModel = React.memo(function StepModel({
           <label className="block text-sm font-medium mb-2">Model</label>
           <div className={`grid gap-3 ${(PROVIDER_MODELS[provider] || PROVIDER_MODELS.claude).length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
             {(PROVIDER_MODELS[provider] || PROVIDER_MODELS.claude).map((m) => {
-              const accentColor = provider === 'codex' ? 'accent-green' : provider === 'gemini' ? 'accent-purple' : 'accent-blue';
+              const accentKey: AccentKey = provider === 'codex' ? 'accent-green' : provider === 'gemini' ? 'accent-purple' : 'accent-blue';
+              const ac = ACCENT[accentKey];
               return (
                 <button
                   key={m.id}
@@ -206,12 +215,12 @@ const StepModel = React.memo(function StepModel({
                   className={`
                     p-3 border transition-all text-center
                     ${model === m.id
-                      ? `border-${accentColor} bg-${accentColor}/10`
+                      ? `${ac.border} ${ac.bg}`
                       : 'border-border-primary hover:border-border-accent'
                     }
                   `}
                 >
-                  <Zap className={`w-5 h-5 mx-auto mb-1 ${model === m.id ? `text-${accentColor}` : 'text-text-muted'}`} />
+                  <Zap className={`w-5 h-5 mx-auto mb-1 ${model === m.id ? ac.text : 'text-text-muted'}`} />
                   <span className="font-medium">{m.name}</span>
                   <p className="text-xs text-text-muted mt-0.5">{m.description}</p>
                 </button>

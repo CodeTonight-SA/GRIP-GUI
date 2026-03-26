@@ -59,6 +59,13 @@
   --info: #0891b2;
   --info-muted: rgba(8, 145, 178, 0.12);
 
+  /* Named accent colours — used by provider selectors, agent status, terminals */
+  --accent-blue: #0891b2;
+  --accent-green: #22c55e;
+  --accent-purple: #8B5CF6;
+  --accent-cyan: #22d3ee;
+  --accent-red: #ef4444;
+
   /* Charts */
   --chart-1: #0891b2;
   --chart-2: #525252;
@@ -111,6 +118,12 @@ html {
   --danger-muted: rgba(239, 68, 68, 0.15);
   --info: #22d3ee;
   --info-muted: rgba(34, 211, 238, 0.15);
+
+  --accent-blue: #22d3ee;
+  --accent-green: #4ade80;
+  --accent-purple: #a78bfa;
+  --accent-cyan: #22d3ee;
+  --accent-red: #f87171;
 
   --chart-1: #22d3ee;
   --chart-2: #a3a3a3;
@@ -165,6 +178,13 @@ html {
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Named accent colours */
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-green: var(--accent-green);
+  --color-accent-purple: var(--accent-purple);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-red: var(--accent-red);
 
   /* Typography */
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
