@@ -4,6 +4,7 @@ import { useStore } from '@/store';
 import Sidebar from './Sidebar';
 import CommandPalette from './CommandPalette';
 import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
+import ErrorBoundary from './ErrorBoundary';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Menu, X, Download, ExternalLink, RotateCw, Loader2 } from 'lucide-react';
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -239,17 +240,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="min-h-screen pt-16 lg:pt-0 p-4 lg:p-6 pb-6"
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pathname}
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        <ErrorBoundary>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </ErrorBoundary>
       </motion.main>
 
       {/* Update Available Dialog */}
