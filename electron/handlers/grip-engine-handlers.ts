@@ -13,6 +13,7 @@
  */
 import { ipcMain, BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
+import { updateWindowBackground } from '../core/window-manager';
 import { spawn as cpSpawn, ChildProcess } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
@@ -514,5 +515,13 @@ export function registerGripEngineHandlers() {
     } catch {
       return { status: 'error', generation: 33, skillCount: 149 };
     }
+  });
+
+  /**
+   * Theme sync — update Electron window background when renderer toggles dark mode.
+   * Prevents the native window bg from flashing the wrong colour on resize/reflow.
+   */
+  ipcMain.on('grip:themeChanged', (_event, isDark: boolean) => {
+    updateWindowBackground(isDark);
   });
 }
