@@ -119,24 +119,24 @@ html {
   --chart-5: #e5e5e5;
 }
 
-/* Dark mode scrollbar */
+/* Theme-aware scrollbar — uses CSS variables set by theme engine */
 .dark * {
-  scrollbar-color: #333 #171717;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 .dark *::-webkit-scrollbar-track {
-  background: #171717;
+  background: var(--scrollbar-track);
 }
 .dark *::-webkit-scrollbar-thumb {
-  background: #333;
+  background: var(--scrollbar-thumb);
 }
 .dark *::-webkit-scrollbar-thumb:hover {
-  background: #22d3ee;
+  background: var(--scrollbar-thumb-hover);
 }
 .dark *::-webkit-scrollbar-corner {
-  background: #171717;
+  background: var(--scrollbar-track);
 }
 .dark .xterm-viewport::-webkit-scrollbar-thumb {
-  background: #333;
+  background: var(--scrollbar-thumb);
 }
 
 @theme inline {
@@ -235,7 +235,7 @@ html {
    ============================================ */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #b0b0b0 #e0e0e0;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 *::-webkit-scrollbar {
@@ -244,19 +244,19 @@ html {
 }
 
 *::-webkit-scrollbar-track {
-  background: #e0e0e0;
+  background: var(--scrollbar-track);
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #b0b0b0;
+  background: var(--scrollbar-thumb);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
+  background: var(--scrollbar-thumb-hover);
 }
 
 *::-webkit-scrollbar-corner {
-  background: #e0e0e0;
+  background: var(--scrollbar-track);
 }
 
 /* ============================================

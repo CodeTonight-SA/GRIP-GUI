@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, RefreshCw, Download, ExternalLink, CheckCircle, AlertCircle, Loader2, RotateCw } from 'lucide-react';
 import { Toggle } from './Toggle';
+import ThemePicker from './ThemePicker';
 import type { ClaudeInfo, AppSettings } from './types';
 
 interface UpdateInfo {
@@ -138,6 +139,11 @@ export const GeneralSection = ({ info, appSettings, onSaveAppSettings }: General
       <div>
         <h2 className="text-lg font-semibold mb-1">General Settings</h2>
         <p className="text-sm text-muted-foreground">Configure general application preferences</p>
+      </div>
+
+      {/* Theme Picker */}
+      <div className="border border-border bg-card p-6">
+        <ThemePicker />
       </div>
 
       <div className="border border-border bg-card p-6">

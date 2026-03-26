@@ -29,3 +29,4 @@ export { PermissionsSection } from './PermissionsSection';
 export { SkillsSection } from './SkillsSection';
 export { CLIPathsSection } from './CLIPathsSection';
 export { SystemSection } from './SystemSection';
+export { default as ThemePicker } from './ThemePicker';

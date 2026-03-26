@@ -12,8 +12,7 @@ import {
   CalendarClock,
   Zap,
   Columns,
-  Moon,
-  Sun,
+  Palette,
   Archive,
   Brain,
   Sparkles,
@@ -21,6 +20,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { useStore } from '@/store';
+import { getTheme } from '@/lib/themes';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -58,7 +58,7 @@ const navItemVariants = {
 export default function Sidebar({ isMobile = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen, darkMode, toggleDarkMode, vaultUnreadCount } = useStore();
+  const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen, theme, vaultUnreadCount } = useStore();
   const reduceMotion = useReducedMotion();
 
   const sidebarWidth = isMobile ? 240 : (sidebarCollapsed ? 64 : 240);
@@ -187,11 +187,12 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
           {showLabels && <span className="text-xs tracking-widest">SETTINGS</span>}
         </Link>
         <button
-          onClick={toggleDarkMode}
+          onClick={() => useStore.getState().cycleTheme()}
           className="w-full flex items-center gap-3 px-4 py-2.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors font-mono text-xs tracking-wider border-l-2 border-transparent"
+          title={`Theme: ${getTheme(theme).name} (T to cycle)`}
         >
-          {darkMode ? <Sun className="w-4 h-4" strokeWidth={1.5} /> : <Moon className="w-4 h-4" strokeWidth={1.5} />}
-          {showLabels && <span className="text-xs tracking-widest">{darkMode ? 'LIGHT' : 'DARK'}</span>}
+          <Palette className="w-4 h-4" strokeWidth={1.5} />
+          {showLabels && <span className="text-[10px] tracking-widest truncate">{getTheme(theme).name.toUpperCase()}</span>}
         </button>
         {!isMobile && (
           <button

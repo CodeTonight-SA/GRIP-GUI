@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Agent, Task, Project, Skill, Entity, Chat, DashboardStats } from '@/types';
+import { DEFAULT_THEME, isDarkTheme, getNextThemeId } from '@/lib/themes';
 
 // Sample data generators
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -219,7 +220,8 @@ interface AppState {
   selectedChat: string | null;
   sidebarCollapsed: boolean;
   mobileMenuOpen: boolean;
-  darkMode: boolean;
+  darkMode: boolean; // computed from theme — backward compat
+  theme: string;
   vaultUnreadCount: number;
 
   // Actions - Agents
@@ -253,6 +255,8 @@ interface AppState {
   toggleMobileMenu: () => void;
   setDarkMode: (dark: boolean) => void;
   toggleDarkMode: () => void;
+  setTheme: (id: string) => void;
+  cycleTheme: () => void;
   setVaultUnreadCount: (count: number) => void;
 
   // Computed
@@ -277,7 +281,8 @@ export const useStore = create<AppState>((set, get) => ({
   selectedChat: null,
   sidebarCollapsed: false,
   mobileMenuOpen: false,
-  darkMode: false,
+  darkMode: true, // computed default — matches DEFAULT_THEME (swiss-nihilism-dark)
+  theme: DEFAULT_THEME,
   vaultUnreadCount: 0,
 
   // Agent Actions
@@ -406,8 +411,18 @@ export const useStore = create<AppState>((set, get) => ({
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
   toggleMobileMenu: () => set((state) => ({ mobileMenuOpen: !state.mobileMenuOpen })),
-  setDarkMode: (dark) => set({ darkMode: dark }),
-  toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
+  setDarkMode: (dark) => set({ darkMode: dark, theme: dark ? 'swiss-nihilism-dark' : 'swiss-nihilism-light' }),
+  toggleDarkMode: () => set((state) => {
+    const newTheme = state.theme === 'swiss-nihilism-dark' ? 'swiss-nihilism-light'
+      : state.theme === 'swiss-nihilism-light' ? 'swiss-nihilism-dark'
+      : isDarkTheme(state.theme) ? 'swiss-nihilism-light' : 'swiss-nihilism-dark';
+    return { darkMode: isDarkTheme(newTheme), theme: newTheme };
+  }),
+  setTheme: (id) => set({ theme: id, darkMode: isDarkTheme(id) }),
+  cycleTheme: () => set((state) => {
+    const next = getNextThemeId(state.theme);
+    return { theme: next, darkMode: isDarkTheme(next) };
+  }),
   setVaultUnreadCount: (count) => set({ vaultUnreadCount: count }),
 
   // Computed
