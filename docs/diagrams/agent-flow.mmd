@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant User
+    participant UI as React UI
+    participant IPC as Electron IPC
+    participant AM as Agent Manager
+    participant PTY as node-pty
+    participant Claude as Claude Code CLI
+
+    User->>UI: Create agent + assign task
+    UI->>IPC: createAgent(project, skills)
+    IPC->>AM: Spawn agent
+    AM->>PTY: Allocate PTY session
+    PTY->>Claude: Launch claude CLI
+    Claude-->>PTY: Terminal output stream
+    PTY-->>AM: Parse status (running/waiting/done)
+    AM-->>IPC: Status update
+    IPC-->>UI: Real-time output
+    AM-->>Telegram: Notify on completion
+    AM-->>Slack: Notify on completion

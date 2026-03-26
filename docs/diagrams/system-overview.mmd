@@ -1,0 +1,45 @@
+graph TB
+    subgraph Electron["Electron App"]
+        subgraph Renderer["React / Next.js (Renderer)"]
+            Dashboard[Agent Dashboard]
+            Kanban[Kanban Board]
+            Automations[Automations]
+            Scheduler[Scheduled Tasks]
+            Usage[Usage Stats]
+            Skills[Skills & Plugins]
+            Settings[Settings]
+            Learn[Learning Hub]
+            Modes[Mode Switcher]
+        end
+
+        subgraph Main["Electron Main Process"]
+            AgentMgr[Agent Manager<br/>node-pty, N parallel]
+            PTY[PTY Manager<br/>terminal multiplexing]
+            subgraph Services
+                Telegram[Telegram Bot]
+                Slack[Slack Bot]
+                KanbanAuto[Kanban Automation]
+                MCPLauncher[MCP Server Launcher]
+                API[API Server]
+            end
+        end
+
+        Renderer <-->|IPC| Main
+    end
+
+    subgraph MCP["MCP Servers (stdio)"]
+        Orchestrator[mcp-orchestrator<br/>26+ tools]
+        MCPTelegram[mcp-telegram<br/>4 tools]
+        MCPKanban[mcp-kanban<br/>8 tools]
+        MCPVault[mcp-vault<br/>10 tools]
+        MCPSocial[mcp-socialdata<br/>5 tools]
+        MCPX[mcp-x<br/>3 tools]
+        MCPWorld[mcp-world<br/>5 tools]
+    end
+
+    Main <-->|stdio| MCP
+
+    style Electron fill:#0a0a0a,stroke:#22d3ee,color:#fff
+    style Renderer fill:#1a1a1a,stroke:#333,color:#fff
+    style Main fill:#1a1a1a,stroke:#333,color:#fff
+    style MCP fill:#0a0a0a,stroke:#22d3ee,color:#fff
