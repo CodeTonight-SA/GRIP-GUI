@@ -60,10 +60,12 @@ export default function ToolUseBlock({ toolUse, result }: ToolUseBlockProps) {
   };
 
   return (
-    <div className={`my-1.5 border-l-2 ${categoryColors[category] || 'border-zinc-700'} bg-zinc-900/50`}>
+    <div className={`my-1.5 border-l-2 ${categoryColors[category] || 'border-zinc-700'} bg-zinc-900/50 tool-enter relative overflow-hidden`}>
+      {/* Scanning line while tool is pending */}
+      {isPending && <div className="tool-scan-line" />}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-zinc-800/50 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-zinc-800/50 transition-colors relative z-10"
       >
         {/* Status indicator */}
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
