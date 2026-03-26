@@ -1,7 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, useReducedMotion, useInView } from 'framer-motion';
 import { Activity, Dna, Layers, Sparkles, Shield, Cpu, Brain, type LucideIcon } from 'lucide-react';
+
+/** Animated number counter — counts from 0 to target over duration. GPU-friendly: only text updates. */
+function AnimatedCounter({ value, duration = 1.2 }: { value: number; duration?: number }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!inView || reduceMotion) { setDisplay(value); return; }
+    const start = performance.now();
+    const step = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / (duration * 1000), 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(eased * value));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [inView, value, duration, reduceMotion]);
+
+  return <span ref={ref}>{display}</span>;
+}
 
 interface SystemStat {
   label: string;
@@ -64,8 +89,11 @@ export default function SystemOverview() {
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-0">
         {stats.map((stat, i) => (
-          <div
+          <motion.div
             key={stat.label}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: i * 0.08, ease: 'easeOut' }}
             className={`p-4 ${i < stats.length - 1 ? 'border-b border-r border-[var(--border)]' : ''} ${
               i % 3 === 2 ? 'lg:border-r-0' : ''
             } ${i % 2 === 1 ? 'border-r-0 lg:border-r' : ''}`}
@@ -79,9 +107,9 @@ export default function SystemOverview() {
             <span className={`font-mono text-lg font-bold tracking-tighter ${
               stat.accent ? 'text-[var(--primary)]' : 'text-[var(--foreground)]'
             }`}>
-              {stat.value}
+              {typeof stat.value === 'number' ? <AnimatedCounter value={stat.value} /> : stat.value}
             </span>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
