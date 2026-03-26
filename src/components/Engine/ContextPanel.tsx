@@ -1,7 +1,8 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Layers, Sparkles, Activity, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Layers, Sparkles, Activity, Plus, Terminal, ChevronDown, ChevronRight } from 'lucide-react';
 import RetrievalTierIndicator from './RetrievalTierIndicator';
 import ConvergenceIndicator from './ConvergenceIndicator';
 import ModeQuickSwitch from './ModeQuickSwitch';
@@ -93,28 +94,8 @@ export default function ContextPanel({
         <ConvergenceIndicator depth={0} maxDepth={11} active={false} />
       </div>
 
-      {/* Quick Actions */}
-      <div className="p-4 flex-1">
-        <span className="grip-label block mb-2">ACTIONS</span>
-        <div className="space-y-1">
-          {[
-            { label: 'NEW CHAT', shortcut: 'N' },
-            { label: 'SWITCH MODE', shortcut: '6' },
-            { label: 'BROWSE SKILLS', shortcut: '5' },
-            { label: 'COMMANDS', shortcut: 'K' },
-          ].map((action) => (
-            <button
-              key={action.label}
-              className="w-full flex items-center justify-between py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-            >
-              <span className="font-mono text-[10px] tracking-widest">{action.label}</span>
-              <span className="font-mono text-[10px] text-[var(--muted-foreground)] opacity-50">
-                {action.shortcut}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Slash Command Quick Stack */}
+      <SlashCommandStack />
 
       {/* Safety Status */}
       <div className="p-4 border-t border-[var(--border)]">
@@ -125,6 +106,69 @@ export default function ContextPanel({
           </span>
         </div>
       </div>
+    </div>
+  );
+}
+
+const SLASH_COMMANDS = [
+  { cmd: '/recall', desc: 'Load all memory', category: 'session' },
+  { cmd: '/save', desc: 'Persist session state', category: 'session' },
+  { cmd: '/mode', desc: 'Switch operating mode', category: 'session' },
+  { cmd: '/converge', desc: 'Recursive convergence', category: 'workflow' },
+  { cmd: '/rsi', desc: 'RSI sprint loop', category: 'workflow' },
+  { cmd: '/broly', desc: 'Meta-agent protocol', category: 'workflow' },
+  { cmd: '/learn', desc: 'Run learning pipeline', category: 'workflow' },
+  { cmd: '/create-pr', desc: 'Automated PR creation', category: 'git' },
+  { cmd: '/shipit', desc: 'Commit + push + PR', category: 'git' },
+  { cmd: '/review-pr', desc: 'Review contribution', category: 'git' },
+  { cmd: '/coffee', desc: 'Session diagnostic', category: 'easter' },
+  { cmd: '/demo', desc: 'Demo protocols', category: 'easter' },
+];
+
+function SlashCommandStack() {
+  const [expanded, setExpanded] = useState(true);
+  const [selected, setSelected] = useState<Set<string>>(new Set(['/recall', '/save']));
+
+  const toggle = (cmd: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(cmd)) next.delete(cmd);
+      else next.add(cmd);
+      return next;
+    });
+  };
+
+  return (
+    <div className="p-4 flex-1 overflow-y-auto">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="grip-label flex items-center gap-1 mb-2 w-full text-left"
+      >
+        {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+        <Terminal className="w-3 h-3" />
+        COMMANDS ({selected.size})
+      </button>
+      {expanded && (
+        <div className="space-y-0.5">
+          {SLASH_COMMANDS.map(({ cmd, desc }) => {
+            const isSelected = selected.has(cmd);
+            return (
+              <button
+                key={cmd}
+                onClick={() => toggle(cmd)}
+                className={`w-full flex items-center justify-between py-1 px-1.5 text-left transition-colors ${
+                  isSelected
+                    ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <span className="font-mono text-[10px] tracking-wider">{cmd}</span>
+                <span className="font-mono text-[8px] tracking-wider opacity-50 truncate ml-2">{desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

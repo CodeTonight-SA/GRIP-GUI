@@ -18,6 +18,7 @@ import {
   Sparkles,
   BookOpen,
   Layers,
+  Lightbulb,
 } from 'lucide-react';
 import { useStore } from '@/store';
 import { getTheme } from '@/lib/themes';
@@ -35,6 +36,7 @@ const navItems = [
   { href: '/recurring-tasks', icon: CalendarClock, label: 'SCHEDULED', shortcut: '8' },
   { href: '/usage', icon: BarChart2, label: 'USAGE', shortcut: '9' },
   { href: '/memory', icon: Brain, label: 'MEMORY', shortcut: 'M' },
+  { href: '/insights', icon: Lightbulb, label: 'INSIGHTS', shortcut: 'I' },
 ];
 
 const bottomItems = [
