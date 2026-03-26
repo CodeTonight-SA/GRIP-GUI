@@ -87,7 +87,7 @@ export function KanbanCard({ task, onEdit, onDelete, onStart, onOpenTerminal, is
       {...listeners}
       className={`
         group relative bg-card p-4
-        shadow-sm transition-all duration-200
+        transition-all duration-200
         border border-border/50
         ${isLocked ? 'cursor-default' : 'cursor-pointer hover:shadow-md hover:border-border'}
         ${isTaskDragging ? 'scale-105 z-50 rotate-2' : ''}

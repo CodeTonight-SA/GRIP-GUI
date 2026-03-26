@@ -316,7 +316,7 @@ export default function DocumentEditor({ document, folders, defaultFolderId, onS
                   <button
                     onClick={() => setActiveTab('write')}
                     className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded transition-colors ${activeTab === 'write'
-                      ? 'bg-card text-foreground shadow-sm'
+                      ? 'bg-card text-foreground'
                       : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
@@ -326,7 +326,7 @@ export default function DocumentEditor({ document, folders, defaultFolderId, onS
                   <button
                     onClick={() => setActiveTab('preview')}
                     className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded transition-colors ${activeTab === 'preview'
-                      ? 'bg-card text-foreground shadow-sm'
+                      ? 'bg-card text-foreground'
                       : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
