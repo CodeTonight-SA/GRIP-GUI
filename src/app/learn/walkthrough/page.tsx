@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -25,9 +26,11 @@ const EXPERIENCE_LEVELS = [
 
 export default function WalkthroughPage() {
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedExperience, setSelectedExperience] = useState<string | null>(null);
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
 
   const handleComplete = () => {
     // Store user preferences
@@ -180,28 +183,40 @@ export default function WalkthroughPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-xl">
-        {/* Progress */}
+        {/* Progress — animated fill */}
         <div className="flex gap-1 mb-8">
           {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`h-0.5 flex-1 transition-colors ${
-                i <= step ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'
-              }`}
-            />
+            <div key={i} className="h-0.5 flex-1 bg-[var(--border)] overflow-hidden">
+              <motion.div
+                className="h-full bg-[var(--primary)]"
+                initial={false}
+                animate={{ width: i <= step ? '100%' : '0%' }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              />
+            </div>
           ))}
         </div>
 
         {/* Content */}
-        <div className="border border-[var(--border)] bg-[var(--card)]">
-          <div className="p-8">
-            {currentStep.content}
-          </div>
+        <div className="border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              initial={reduceMotion ? false : { opacity: 0, x: direction * 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, x: direction * -20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="p-8"
+            >
+              {currentStep.content}
+            </motion.div>
+          </AnimatePresence>
 
           {/* Navigation */}
           <div className="flex items-center justify-between px-8 py-4 border-t border-[var(--border)]">
             <button
-              onClick={() => setStep(Math.max(0, step - 1))}
+              onClick={() => { setDirection(-1); setStep(Math.max(0, step - 1)); }}
               disabled={step === 0}
               className="flex items-center gap-2 font-mono text-xs tracking-widest text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-30 transition-colors min-h-[48px]"
             >
@@ -217,7 +232,7 @@ export default function WalkthroughPage() {
               </button>
             ) : (
               <button
-                onClick={() => setStep(Math.min(steps.length - 1, step + 1))}
+                onClick={() => { setDirection(1); setStep(Math.min(steps.length - 1, step + 1)); }}
                 disabled={!canProceed}
                 className="flex items-center gap-2 bg-[var(--foreground)] text-[var(--background)] px-6 py-3 font-mono text-xs tracking-widest hover:opacity-90 disabled:opacity-30 transition-opacity min-h-[48px]"
               >

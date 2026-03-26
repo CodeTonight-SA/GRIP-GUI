@@ -487,6 +487,14 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
 }
 
+/* Chat input focus glow — subtle cyan ambient glow on the primary input */
+.chat-input-glow:focus {
+  box-shadow: 0 0 0 1px var(--primary), 0 0 12px rgba(8, 145, 178, 0.15);
+}
+.dark .chat-input-glow:focus {
+  box-shadow: 0 0 0 1px var(--primary), 0 0 16px rgba(34, 211, 238, 0.2);
+}
+
 input::placeholder, textarea::placeholder {
   color: var(--muted-foreground);
 }
