@@ -284,7 +284,7 @@ export default function KanbanBoard() {
         <p className="text-red-400">{error}</p>
         <button
           onClick={refresh}
-          className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-md hover:bg-secondary/80 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-secondary hover:bg-secondary/80 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Retry

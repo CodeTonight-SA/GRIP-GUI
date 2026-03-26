@@ -178,7 +178,7 @@ export const SocialDataSection = ({ appSettings, onSaveAppSettings, onUpdateLoca
           </div>
 
           {testResult && (
-            <div className={`p-3 text-sm flex rounded-md items-center gap-2 ${testResult.success
+            <div className={`p-3 text-sm flex items-center gap-2 ${testResult.success
               ? 'bg-green-700/10 text-green-700 border border-green-700/20'
               : 'bg-red-700/10 text-red-700 border border-red-700/20'
               }`}>
@@ -301,7 +301,7 @@ export const SocialDataSection = ({ appSettings, onSaveAppSettings, onUpdateLoca
           </div>
 
           {testXResult && (
-            <div className={`p-3 text-sm flex rounded-md items-center gap-2 ${testXResult.success
+            <div className={`p-3 text-sm flex items-center gap-2 ${testXResult.success
               ? 'bg-green-700/10 text-green-700 border border-green-700/20'
               : 'bg-red-700/10 text-red-700 border border-red-700/20'
               }`}>

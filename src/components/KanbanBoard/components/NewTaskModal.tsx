@@ -260,7 +260,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setActiveTab('quick')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'quick'
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'quick'
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                   }`}
@@ -270,7 +270,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
               </button>
               <button
                 onClick={() => setActiveTab('manual')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'manual'
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'manual'
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                   }`}
@@ -299,7 +299,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                   onChange={(e) => setQuickPrompt(e.target.value)}
                   placeholder="Describe your task in natural language...&#10;&#10;e.g., Fix the login bug on the dorothy project where users can't sign in with Google"
                   rows={5}
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                  className="w-full px-3 py-2 bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                   autoFocus
                 />
               </div>
@@ -352,7 +352,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                 <button
                   onClick={handleGenerateTask}
                   disabled={!quickPrompt.trim() || isGenerating}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-md hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isGenerating ? (
                     <>
@@ -457,7 +457,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                     <button
                       onClick={handleQuickSubmit}
                       disabled={isSubmitting || !generatedTask.projectPath}
-                      className="px-4 py-1.5 bg-primary text-primary-foreground text-sm rounded-md hover:bg-primary/90 disabled:opacity-50"
+                      className="px-4 py-1.5 bg-primary text-primary-foreground text-sm hover:bg-primary/90 disabled:opacity-50"
                     >
                       {isSubmitting ? 'Creating...' : 'Create Task'}
                     </button>
@@ -480,7 +480,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="What needs to be done?"
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full px-3 py-2 bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   autoFocus
                 />
               </div>
@@ -495,7 +495,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Detailed instructions for the agent..."
                   rows={3}
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                  className="w-full px-3 py-2 bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                 />
               </div>
 
@@ -508,7 +508,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                   <select
                     value={selectedProjectPath}
                     onChange={(e) => setSelectedProjectPath(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="flex-1 px-3 py-2 bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     {projects.length === 0 && (
                       <option value="">Select a project</option>
@@ -522,7 +522,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                   <button
                     type="button"
                     onClick={handleSelectFolder}
-                    className="px-3 py-2 bg-secondary border border-border rounded-md hover:bg-secondary/80 transition-colors"
+                    className="px-3 py-2 bg-secondary border border-border hover:bg-secondary/80 transition-colors"
                     title="Browse folders"
                   >
                     <FolderOpen className="w-4 h-4 text-muted-foreground" />
@@ -542,7 +542,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                       type="button"
                       onClick={() => setPriority(p)}
                       className={`
-                        flex-1 px-3 py-1.5 text-sm rounded-md border transition-colors
+                        flex-1 px-3 py-1.5 text-sm border transition-colors
                         ${priority === p
                           ? p === 'high'
                             ? 'bg-red-900/30 border-red-500/50 text-red-400'
@@ -576,12 +576,12 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                       }
                     }}
                     placeholder="e.g., commit, test"
-                    className="flex-1 px-3 py-1.5 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="flex-1 px-3 py-1.5 bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <button
                     type="button"
                     onClick={handleAddSkill}
-                    className="px-2 py-1.5 bg-secondary border border-border rounded-md hover:bg-secondary/80"
+                    className="px-2 py-1.5 bg-secondary border border-border hover:bg-secondary/80"
                   >
                     <Plus className="w-4 h-4 text-muted-foreground" />
                   </button>
@@ -620,12 +620,12 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                       }
                     }}
                     placeholder="e.g., bug, feature"
-                    className="flex-1 px-3 py-1.5 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="flex-1 px-3 py-1.5 bg-secondary border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <button
                     type="button"
                     onClick={handleAddLabel}
-                    className="px-2 py-1.5 bg-secondary border border-border rounded-md hover:bg-secondary/80"
+                    className="px-2 py-1.5 bg-secondary border border-border hover:bg-secondary/80"
                   >
                     <Plus className="w-4 h-4 text-muted-foreground" />
                   </button>
@@ -703,7 +703,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
                 <button
                   type="submit"
                   disabled={!title.trim() || !selectedProjectPath || isSubmitting}
-                  className="px-4 py-2 bg-primary text-primary-foreground text-sm rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Creating...' : 'Create Task'}
                 </button>

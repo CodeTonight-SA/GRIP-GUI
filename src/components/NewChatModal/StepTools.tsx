@@ -201,7 +201,7 @@ const StepTools = React.memo(function StepTools({
                 }`}
               >
                 {/* Icon */}
-                <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${installedAnywhere ? 'bg-primary/10' : 'bg-secondary'}`}>
+                <div className={`w-7 h-7 flex items-center justify-center shrink-0 ${installedAnywhere ? 'bg-primary/10' : 'bg-secondary'}`}>
                   {installedAnywhere ? (
                     <CheckCircle className="w-3.5 h-3.5 text-primary" />
                   ) : (
@@ -232,7 +232,7 @@ const StepTools = React.memo(function StepTools({
                 {installedOnProvider ? (
                   <button
                     onClick={() => onToggleSkill(skill.name)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md transition-colors shrink-0 ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors shrink-0 ${
                       isSelected
                         ? 'bg-accent-purple/15 text-accent-purple'
                         : 'bg-foreground text-background hover:bg-foreground/90'
@@ -253,7 +253,7 @@ const StepTools = React.memo(function StepTools({
                       e.stopPropagation();
                       onInstallSkill(skill);
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors shrink-0"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors shrink-0"
                   >
                     <Download className="w-3 h-3" />
                     Install

@@ -120,7 +120,7 @@ export function MarkdownEditor({
       <div className="border-b border-border bg-secondary/30">
         {/* Tabs */}
         <div className="flex items-center justify-between px-3 py-2">
-          <div className="flex items-center bg-secondary rounded-md p-0.5">
+          <div className="flex items-center bg-secondary p-0.5">
             <button
               onClick={() => setActiveTab('write')}
               className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded transition-colors ${
