@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, memo } from 'react';
+import React, { useMemo, memo, useState, useCallback } from 'react';
+import { Copy, Check } from 'lucide-react';
 
 /**
  * Lightweight markdown renderer for GRIP chat messages.
@@ -16,6 +17,68 @@ import React, { useMemo, memo } from 'react';
  *
  * Swiss Nihilism: code blocks have black bg, monospace, no rounded corners.
  */
+
+/** Code block with copy button and line numbers — the WOW detail. */
+function CodeBlock({ code, language }: { code: string; language: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [code]);
+
+  const lines = code.split('\n');
+
+  return (
+    <div className="relative group my-2 border border-[var(--border)] bg-black overflow-hidden">
+      {/* Header bar */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--border)] bg-zinc-950">
+        {language && (
+          <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)]">
+            {language.toUpperCase()}
+          </span>
+        )}
+        {!language && <span />}
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1 font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors opacity-0 group-hover:opacity-100"
+          title="Copy to clipboard"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-[var(--success)]" strokeWidth={1.5} />
+              <span className="text-[var(--success)]">COPIED</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3" strokeWidth={1.5} />
+              <span>COPY</span>
+            </>
+          )}
+        </button>
+      </div>
+      {/* Code with line numbers */}
+      <pre className="p-0 font-mono text-xs overflow-x-auto">
+        <table className="w-full border-collapse">
+          <tbody>
+            {lines.map((line, i) => (
+              <tr key={i} className="hover:bg-zinc-900/50">
+                <td className="text-right pr-3 pl-3 py-0 select-none font-mono text-[10px] text-zinc-700 border-r border-zinc-800 w-8 align-top">
+                  {i + 1}
+                </td>
+                <td className="pl-3 pr-4 py-0 text-[var(--primary)] whitespace-pre">
+                  {line || ' '}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </pre>
+    </div>
+  );
+}
 
 interface MarkdownContentProps {
   content: string;
@@ -36,14 +99,7 @@ function MarkdownContent({ content }: MarkdownContentProps) {
       if (line.startsWith('```')) {
         if (inCodeBlock) {
           result.push(
-            <pre key={`code-${i}`} className="bg-black text-[var(--primary)] p-4 font-mono text-xs overflow-x-auto my-2 border border-[var(--border)]">
-              {codeLanguage && (
-                <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] block mb-2">
-                  {codeLanguage.toUpperCase()}
-                </span>
-              )}
-              <code>{codeBuffer.join('\n')}</code>
-            </pre>
+            <CodeBlock key={`code-${i}`} code={codeBuffer.join('\n')} language={codeLanguage} />
           );
           codeBuffer = [];
           codeLanguage = '';
@@ -121,12 +177,10 @@ function MarkdownContent({ content }: MarkdownContentProps) {
       );
     }
 
-    // Handle unclosed code block
+    // Handle unclosed code block (streaming — code still arriving)
     if (inCodeBlock && codeBuffer.length > 0) {
       result.push(
-        <pre key="code-unclosed" className="bg-black text-[var(--primary)] p-4 font-mono text-xs overflow-x-auto my-2 border border-[var(--border)]">
-          <code>{codeBuffer.join('\n')}</code>
-        </pre>
+        <CodeBlock key="code-unclosed" code={codeBuffer.join('\n')} language={codeLanguage} />
       );
     }
 
