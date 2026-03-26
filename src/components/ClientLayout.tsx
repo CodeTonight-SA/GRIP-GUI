@@ -400,7 +400,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 {updateFlowState === 'ready' && (
                   <button
                     onClick={handleQuitAndInstall}
-                    className="flex-1 px-4 py-2 text-sm bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2 text-sm bg-[var(--success)] text-[var(--primary-foreground)] hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                   >
                     <RotateCw className="w-4 h-4" />
                     Restart to Apply

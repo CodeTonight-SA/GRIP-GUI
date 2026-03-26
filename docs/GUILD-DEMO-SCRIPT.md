@@ -2,11 +2,12 @@
 
 ## Pre-Demo Checklist
 
-- [ ] `npm run electron:dev` running and responsive
-- [ ] Dark mode ON (Swiss Nihilism looks best in dark)
+- [ ] `npm run electron:dev` running and responsive (no DevTools auto-open)
+- [ ] Dark mode ON — press D (Swiss Nihilism looks best in dark)
 - [ ] Screen sharing set up (full screen, no notifications)
 - [ ] Terminal font size increased for visibility
 - [ ] Close unrelated apps (clean desktop)
+- [ ] If you need DevTools: `GRIP_DEVTOOLS=1 npm run electron:dev`
 
 ## Demo Flow (15-20 minutes)
 
@@ -117,9 +118,26 @@
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd+K` | Command palette |
-| `1-9` | Navigate sidebar items |
-| `?` | Open Learn hub |
-| `Cmd+N` | New chat |
+| `1-9` | Navigate sidebar pages (Engine, Agents, Tasks, Vault, Skills, Modes, Automations, Scheduled, Usage) |
+| `D` | Toggle dark mode (cinematic cross-fade!) |
+| `M` | Memory page |
+| `?` | Keyboard shortcuts overlay |
+| `Cmd+K` | Command palette (with recently-used) |
+| `Cmd+Shift+F` | Focus Mode (cinematic zoom) |
+| `Cmd+,` | Settings (macOS convention) |
 | Triple-click logo | Vortex easter egg |
 | Konami code | Also Vortex |
+
+## Visual Features to Point Out
+
+| Feature | Where |
+|---------|-------|
+| Logo heartbeat | Sidebar — cyan square pulses |
+| Tool scanner | Chat — progress line sweeps on pending tools |
+| Status bar sweep | Bottom — ambient light crosses every 8s |
+| Session sparkline | Status bar — message frequency histogram |
+| Code block copy | Chat — hover code for copy button + line numbers |
+| Collapsed tooltips | Sidebar — collapse then hover icons |
+| Animated counters | Learn page — numbers count up from 0 |
+| Context bar fill | Engine context panel — smooth cyan fill |
+| Mode card glow | Modes page — hover for cyan glow |
