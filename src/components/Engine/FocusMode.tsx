@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Minimize2, Maximize2 } from 'lucide-react';
 
 interface FocusModeProps {
@@ -21,6 +22,7 @@ interface FocusModeProps {
  */
 export default function FocusMode({ children, onToggle }: FocusModeProps) {
   const [focused, setFocused] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -41,11 +43,11 @@ export default function FocusMode({ children, onToggle }: FocusModeProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [focused, onToggle]);
 
-  if (!focused) {
-    return (
-      <div className="relative">
-        {children}
-        {/* Focus mode trigger */}
+  return (
+    <div className="relative">
+      {children}
+      {/* Focus mode trigger */}
+      {!focused && (
         <button
           onClick={() => { setFocused(true); onToggle?.(true); }}
           className="absolute top-3 right-3 p-2 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors opacity-0 hover:opacity-100"
@@ -53,32 +55,49 @@ export default function FocusMode({ children, onToggle }: FocusModeProps) {
         >
           <Maximize2 className="w-4 h-4" strokeWidth={1.5} />
         </button>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-[var(--background)] animate-fade-in">
-      {/* Exit button */}
-      <button
-        onClick={() => { setFocused(false); onToggle?.(false); }}
-        className="fixed top-4 right-4 z-[101] p-2 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors border border-[var(--border)] bg-[var(--card)]"
-        title="Exit Focus Mode (Esc)"
-      >
-        <Minimize2 className="w-4 h-4" strokeWidth={1.5} />
-      </button>
+      {/* Cinematic focus overlay */}
+      <AnimatePresence>
+        {focused && (
+          <motion.div
+            className="fixed inset-0 z-[100] bg-[var(--background)]"
+            initial={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.02 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {/* Exit button */}
+            <motion.button
+              onClick={() => { setFocused(false); onToggle?.(false); }}
+              className="fixed top-4 right-4 z-[101] p-2 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors border border-[var(--border)] bg-[var(--card)]"
+              title="Exit Focus Mode (Esc)"
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Minimize2 className="w-4 h-4" strokeWidth={1.5} />
+            </motion.button>
 
-      {/* Mode indicator */}
-      <div className="fixed top-4 left-4 z-[101]">
-        <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] opacity-40">
-          FOCUS MODE
-        </span>
-      </div>
+            {/* Mode indicator */}
+            <motion.div
+              className="fixed top-4 left-4 z-[101]"
+              initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+              animate={{ opacity: 0.4, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+            >
+              <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+                FOCUS MODE
+              </span>
+            </motion.div>
 
-      {/* Full-width chat */}
-      <div className="h-full max-w-4xl mx-auto">
-        {children}
-      </div>
+            {/* Full-width chat */}
+            <div className="h-full max-w-4xl mx-auto">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
