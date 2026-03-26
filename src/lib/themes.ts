@@ -50,11 +50,7 @@ export interface ThemeDefinition {
   colors: ThemeColors;
 }
 
-function lightScrollbar(track: string, thumb: string, accent: string) {
-  return { 'scrollbar-track': track, 'scrollbar-thumb': thumb, 'scrollbar-thumb-hover': accent };
-}
-
-function darkScrollbar(track: string, thumb: string, accent: string) {
+function scrollbarColors(track: string, thumb: string, accent: string) {
   return { 'scrollbar-track': track, 'scrollbar-thumb': thumb, 'scrollbar-thumb-hover': accent };
 }
 
@@ -80,7 +76,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#dc2626', 'danger-muted': 'rgba(220, 38, 38, 0.12)',
       info: '#0891b2', 'info-muted': 'rgba(8, 145, 178, 0.12)',
       'chart-1': '#0891b2', 'chart-2': '#525252', 'chart-3': '#16a34a', 'chart-4': '#dc2626', 'chart-5': '#000000',
-      ...lightScrollbar('#e0e0e0', '#b0b0b0', '#0891b2'),
+      ...scrollbarColors('#e0e0e0', '#b0b0b0', '#0891b2'),
       'vortex-glow': '0 0 20px rgba(8, 145, 178, 0.3)',
     },
   },
@@ -104,7 +100,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#ef4444', 'danger-muted': 'rgba(239, 68, 68, 0.15)',
       info: '#22d3ee', 'info-muted': 'rgba(34, 211, 238, 0.15)',
       'chart-1': '#22d3ee', 'chart-2': '#a3a3a3', 'chart-3': '#22c55e', 'chart-4': '#ef4444', 'chart-5': '#e5e5e5',
-      ...darkScrollbar('#171717', '#333', '#22d3ee'),
+      ...scrollbarColors('#171717', '#333', '#22d3ee'),
       'vortex-glow': '0 0 30px rgba(34, 211, 238, 0.4)',
     },
   },
@@ -128,7 +124,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#c0392b', 'danger-muted': 'rgba(192, 57, 43, 0.12)',
       info: '#B8860B', 'info-muted': 'rgba(184, 134, 11, 0.12)',
       'chart-1': '#B8860B', 'chart-2': '#6b5f50', 'chart-3': '#27ae60', 'chart-4': '#c0392b', 'chart-5': '#1a1a1a',
-      ...lightScrollbar('#E5E0D8', '#C0B8A8', '#B8860B'),
+      ...scrollbarColors('#E5E0D8', '#C0B8A8', '#B8860B'),
       'vortex-glow': '0 0 20px rgba(184, 134, 11, 0.3)',
     },
   },
@@ -152,7 +148,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#dc2626', 'danger-muted': 'rgba(220, 38, 38, 0.12)',
       info: '#16a34a', 'info-muted': 'rgba(22, 163, 74, 0.12)',
       'chart-1': '#16a34a', 'chart-2': '#4a6040', 'chart-3': '#0891b2', 'chart-4': '#dc2626', 'chart-5': '#1a2e1a',
-      ...lightScrollbar('#E8F0E0', '#B0C8A0', '#16a34a'),
+      ...scrollbarColors('#E8F0E0', '#B0C8A0', '#16a34a'),
       'vortex-glow': '0 0 20px rgba(22, 163, 74, 0.3)',
     },
   },
@@ -176,7 +172,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#dc2626', 'danger-muted': 'rgba(220, 38, 38, 0.12)',
       info: '#8B5CF6', 'info-muted': 'rgba(139, 92, 246, 0.12)',
       'chart-1': '#8B5CF6', 'chart-2': '#6B5A8A', 'chart-3': '#16a34a', 'chart-4': '#dc2626', 'chart-5': '#1a1028',
-      ...lightScrollbar('#EDE5FF', '#C0A8E8', '#8B5CF6'),
+      ...scrollbarColors('#EDE5FF', '#C0A8E8', '#8B5CF6'),
       'vortex-glow': '0 0 20px rgba(139, 92, 246, 0.3)',
     },
   },
@@ -202,7 +198,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#dc2626', 'danger-muted': 'rgba(220, 38, 38, 0.12)',
       info: '#D97706', 'info-muted': 'rgba(217, 119, 6, 0.12)',
       'chart-1': '#D97706', 'chart-2': '#7A6548', 'chart-3': '#16a34a', 'chart-4': '#dc2626', 'chart-5': '#3C2A14',
-      ...lightScrollbar('#F0E4CC', '#C8B090', '#D97706'),
+      ...scrollbarColors('#F0E4CC', '#C8B090', '#D97706'),
       'vortex-glow': '0 0 20px rgba(217, 119, 6, 0.3)',
     },
   },
@@ -226,7 +222,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#b91c1c', 'danger-muted': 'rgba(185, 28, 28, 0.12)',
       info: '#EF4444', 'info-muted': 'rgba(239, 68, 68, 0.12)',
       'chart-1': '#EF4444', 'chart-2': '#8B6050', 'chart-3': '#16a34a', 'chart-4': '#ca8a04', 'chart-5': '#2D1810',
-      ...lightScrollbar('#FFF0E0', '#D8C0A8', '#EF4444'),
+      ...scrollbarColors('#FFF0E0', '#D8C0A8', '#EF4444'),
       'vortex-glow': '0 0 20px rgba(239, 68, 68, 0.3)',
     },
   },
@@ -250,7 +246,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#dc2626', 'danger-muted': 'rgba(220, 38, 38, 0.12)',
       info: '#3B82F6', 'info-muted': 'rgba(59, 130, 246, 0.12)',
       'chart-1': '#3B82F6', 'chart-2': '#475569', 'chart-3': '#16a34a', 'chart-4': '#dc2626', 'chart-5': '#0F172A',
-      ...lightScrollbar('#E2E8F0', '#A0B0C0', '#3B82F6'),
+      ...scrollbarColors('#E2E8F0', '#A0B0C0', '#3B82F6'),
       'vortex-glow': '0 0 20px rgba(59, 130, 246, 0.3)',
     },
   },
@@ -274,7 +270,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#ef4444', 'danger-muted': 'rgba(239, 68, 68, 0.15)',
       info: '#7C3AED', 'info-muted': 'rgba(124, 58, 237, 0.15)',
       'chart-1': '#7C3AED', 'chart-2': '#8888AA', 'chart-3': '#22c55e', 'chart-4': '#ef4444', 'chart-5': '#E0E0F0',
-      ...darkScrollbar('#22223A', '#444466', '#7C3AED'),
+      ...scrollbarColors('#22223A', '#444466', '#7C3AED'),
       'vortex-glow': '0 0 30px rgba(124, 58, 237, 0.4)',
     },
   },
@@ -298,7 +294,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#ef4444', 'danger-muted': 'rgba(239, 68, 68, 0.15)',
       info: '#22C55E', 'info-muted': 'rgba(34, 197, 94, 0.15)',
       'chart-1': '#22C55E', 'chart-2': '#6A9A6E', 'chart-3': '#0891b2', 'chart-4': '#ef4444', 'chart-5': '#D0E8D0',
-      ...darkScrollbar('#152418', '#2E4830', '#22C55E'),
+      ...scrollbarColors('#152418', '#2E4830', '#22C55E'),
       'vortex-glow': '0 0 30px rgba(34, 197, 94, 0.4)',
     },
   },
@@ -324,7 +320,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#FF4060', 'danger-muted': 'rgba(255, 64, 96, 0.15)',
       info: '#FF6B9D', 'info-muted': 'rgba(255, 107, 157, 0.15)',
       'chart-1': '#FF6B9D', 'chart-2': '#B090D0', 'chart-3': '#50FA7B', 'chart-4': '#FF4060', 'chart-5': '#F0D0FF',
-      ...darkScrollbar('#3A2580', '#5A40A8', '#FF6B9D'),
+      ...scrollbarColors('#3A2580', '#5A40A8', '#FF6B9D'),
       'vortex-glow': '0 0 30px rgba(255, 107, 157, 0.4)',
     },
   },
@@ -348,7 +344,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#FF2060', 'danger-muted': 'rgba(255, 32, 96, 0.15)',
       info: '#FF00FF', 'info-muted': 'rgba(255, 0, 255, 0.15)',
       'chart-1': '#FF00FF', 'chart-2': '#9080C0', 'chart-3': '#00FF80', 'chart-4': '#FF2060', 'chart-5': '#E0D0FF',
-      ...darkScrollbar('#1A1240', '#3A2870', '#FF00FF'),
+      ...scrollbarColors('#1A1240', '#3A2870', '#FF00FF'),
       'vortex-glow': '0 0 30px rgba(255, 0, 255, 0.5)',
     },
   },
@@ -372,7 +368,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#dc2626', 'danger-muted': 'rgba(220, 38, 38, 0.12)',
       info: '#14B8A6', 'info-muted': 'rgba(20, 184, 166, 0.12)',
       'chart-1': '#14B8A6', 'chart-2': '#805068', 'chart-3': '#16a34a', 'chart-4': '#dc2626', 'chart-5': '#2A1520',
-      ...lightScrollbar('#F8D0E0', '#D8A0B8', '#14B8A6'),
+      ...scrollbarColors('#F8D0E0', '#D8A0B8', '#14B8A6'),
       'vortex-glow': '0 0 20px rgba(20, 184, 166, 0.3)',
     },
   },
@@ -398,7 +394,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#FF0000', 'danger-muted': 'rgba(255, 0, 0, 0.15)',
       info: '#00FF00', 'info-muted': 'rgba(0, 255, 0, 0.15)',
       'chart-1': '#00FF00', 'chart-2': '#008800', 'chart-3': '#00FFFF', 'chart-4': '#FF0000', 'chart-5': '#00FF00',
-      ...darkScrollbar('#0A0A0A', '#003300', '#00FF00'),
+      ...scrollbarColors('#0A0A0A', '#003300', '#00FF00'),
       'vortex-glow': '0 0 30px rgba(0, 255, 0, 0.5)',
     },
   },
@@ -422,7 +418,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#ef4444', 'danger-muted': 'rgba(239, 68, 68, 0.15)',
       info: '#FACC15', 'info-muted': 'rgba(250, 204, 21, 0.15)',
       'chart-1': '#FACC15', 'chart-2': '#999990', 'chart-3': '#22c55e', 'chart-4': '#ef4444', 'chart-5': '#E8E8E0',
-      ...darkScrollbar('#242424', '#444444', '#FACC15'),
+      ...scrollbarColors('#242424', '#444444', '#FACC15'),
       'vortex-glow': '0 0 30px rgba(250, 204, 21, 0.4)',
     },
   },
@@ -446,7 +442,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#ef4444', 'danger-muted': 'rgba(239, 68, 68, 0.15)',
       info: '#3B82F6', 'info-muted': 'rgba(59, 130, 246, 0.15)',
       'chart-1': '#3B82F6', 'chart-2': '#6080B0', 'chart-3': '#22c55e', 'chart-4': '#ef4444', 'chart-5': '#C0D0F0',
-      ...darkScrollbar('#0D0D20', '#2A2A50', '#3B82F6'),
+      ...scrollbarColors('#0D0D20', '#2A2A50', '#3B82F6'),
       'vortex-glow': '0 0 30px rgba(59, 130, 246, 0.5)',
     },
   },
@@ -470,7 +466,7 @@ export const THEMES: ThemeDefinition[] = [
       danger: '#ef4444', 'danger-muted': 'rgba(239, 68, 68, 0.15)',
       info: '#06B6D4', 'info-muted': 'rgba(6, 182, 212, 0.15)',
       'chart-1': '#06B6D4', 'chart-2': '#6890A8', 'chart-3': '#22c55e', 'chart-4': '#ef4444', 'chart-5': '#C8E0F0',
-      ...darkScrollbar('#12121E', '#2A2A44', '#06B6D4'),
+      ...scrollbarColors('#12121E', '#2A2A44', '#06B6D4'),
       'vortex-glow': '0 0 30px rgba(6, 182, 212, 0.5)',
     },
   },
@@ -480,10 +476,6 @@ export const DEFAULT_THEME = 'swiss-nihilism-dark';
 
 export function getTheme(id: string): ThemeDefinition {
   return THEMES.find(t => t.id === id) || THEMES.find(t => t.id === DEFAULT_THEME)!;
-}
-
-export function getThemeBackground(id: string): string {
-  return getTheme(id).colors.background;
 }
 
 export function isDarkTheme(id: string): boolean {
