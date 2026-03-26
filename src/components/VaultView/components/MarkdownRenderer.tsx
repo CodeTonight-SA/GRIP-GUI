@@ -115,17 +115,107 @@ function renderInline(text: string): React.ReactNode {
   return <>{parts}</>;
 }
 
+/** Parse a row of pipe-delimited cells: | a | b | c | → ['a', 'b', 'c'] */
+function parseTableRow(line: string): string[] {
+  return line.split('|').slice(1, -1).map(cell => cell.trim());
+}
+
+/** Check if a line is a markdown table separator: |---|:---:|---:| */
+function isTableSeparator(line: string): boolean {
+  return /^\|[\s:-]+(\|[\s:-]+)*\|$/.test(line.trim());
+}
+
+/** Check if a line looks like a table row: | content | content | */
+function isTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2;
+}
+
+/** Parse column alignments from the separator row */
+function parseAlignments(separator: string): ('left' | 'center' | 'right')[] {
+  return parseTableRow(separator).map(cell => {
+    const trimmed = cell.trim();
+    const left = trimmed.startsWith(':');
+    const right = trimmed.endsWith(':');
+    if (left && right) return 'center';
+    if (right) return 'right';
+    return 'left';
+  });
+}
+
+function TableBlock({ rows, keyPrefix }: { rows: string[]; keyPrefix: string }) {
+  if (rows.length < 2) return null;
+
+  const headers = parseTableRow(rows[0]);
+  const hasSeparator = rows.length >= 2 && isTableSeparator(rows[1]);
+  const alignments = hasSeparator ? parseAlignments(rows[1]) : headers.map(() => 'left' as const);
+  const dataRows = rows.slice(hasSeparator ? 2 : 1).map(parseTableRow);
+
+  return (
+    <div className="my-2 overflow-x-auto border border-border">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-secondary">
+            {headers.map((header, j) => (
+              <th
+                key={`${keyPrefix}-th-${j}`}
+                className="px-3 py-1.5 text-left font-bold text-foreground border-b border-border whitespace-nowrap"
+                style={{ textAlign: alignments[j] }}
+              >
+                {renderInline(header)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {dataRows.map((row, i) => (
+            <tr
+              key={`${keyPrefix}-tr-${i}`}
+              className={`border-b border-border last:border-b-0 transition-colors hover:bg-secondary/50 ${
+                i % 2 === 1 ? 'bg-secondary/20' : ''
+              }`}
+            >
+              {headers.map((_, j) => (
+                <td
+                  key={`${keyPrefix}-td-${i}-${j}`}
+                  className="px-3 py-1.5 text-foreground"
+                  style={{ textAlign: alignments[j] }}
+                >
+                  {renderInline(row[j] || '')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function SimpleMarkdown({ content }: { content: string }) {
   const lines = content.split('\n');
   const elements: React.ReactElement[] = [];
   let inCodeBlock = false;
   let codeBlockContent: string[] = [];
+  let tableBuffer: string[] = [];
+
+  const flushTable = (index: number) => {
+    if (tableBuffer.length >= 2) {
+      elements.push(<TableBlock key={`table-${index}`} rows={tableBuffer} keyPrefix={`t${index}`} />);
+    } else {
+      tableBuffer.forEach((row, j) => {
+        elements.push(<p key={`${index}-${j}`} className="text-sm text-foreground my-0.5">{renderInline(row)}</p>);
+      });
+    }
+    tableBuffer = [];
+  };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
     // Code blocks
     if (line.startsWith('```')) {
+      if (tableBuffer.length > 0) flushTable(i);
       if (inCodeBlock) {
         elements.push(
           <pre key={i} className="bg-secondary/80 border border-border p-3 my-2 overflow-x-auto text-xs">
@@ -144,6 +234,15 @@ export function SimpleMarkdown({ content }: { content: string }) {
       codeBlockContent.push(line);
       continue;
     }
+
+    // Table row detection — buffer consecutive pipe-delimited lines
+    if (isTableRow(line)) {
+      tableBuffer.push(line);
+      continue;
+    }
+
+    // Flush any buffered table rows before processing non-table line
+    if (tableBuffer.length > 0) flushTable(i);
 
     // Empty lines
     if (line.trim() === '') {
@@ -231,6 +330,9 @@ export function SimpleMarkdown({ content }: { content: string }) {
     // Regular paragraph
     elements.push(<p key={i} className="text-sm text-foreground my-0.5">{renderInline(line)}</p>);
   }
+
+  // Flush any remaining table buffer
+  if (tableBuffer.length > 0) flushTable(lines.length);
 
   // Close any open code block
   if (inCodeBlock && codeBlockContent.length > 0) {
