@@ -127,10 +127,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   }, [setDarkMode]);
 
-  // Sync dark class on <html> and persist to localStorage
+  // Sync dark class on <html> with smooth theme transition
   useEffect(() => {
+    // Add transitioning class to enable CSS colour transitions
+    document.documentElement.classList.add('theme-transitioning');
     document.documentElement.classList.toggle('dark', darkMode);
     localStorage.setItem('grip-dark-mode', String(darkMode));
+    // Remove transitioning class after animation completes to avoid
+    // unnecessary transition overhead during normal interactions
+    const timer = setTimeout(() => {
+      document.documentElement.classList.remove('theme-transitioning');
+    }, 350);
+    return () => clearTimeout(timer);
   }, [darkMode]);
 
   // Global vault unread badge: listen for new documents even when VaultView is not mounted
@@ -175,8 +183,51 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
 
-  // Konami code easter egg
+  // Keyboard navigation: number keys 1-9 navigate sidebar items, D toggles dark mode
   const router = useRouter();
+  useEffect(() => {
+    const NAV_ROUTES = [
+      '/',           // 1 = Engine
+      '/agents',     // 2 = Agents
+      '/kanban',     // 3 = Tasks
+      '/vault',      // 4 = Vault
+      '/skills',     // 5 = Skills
+      '/modes',      // 6 = Modes
+      '/automations', // 7 = Automations
+      '/recurring-tasks', // 8 = Scheduled
+      '/usage',      // 9 = Usage
+    ];
+    const handler = (e: KeyboardEvent) => {
+      // Don't trigger in input fields
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Number key navigation
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= 9 && NAV_ROUTES[num - 1]) {
+        e.preventDefault();
+        router.push(NAV_ROUTES[num - 1]);
+        return;
+      }
+
+      // D = toggle dark mode, M = memory
+      if (e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        useStore.getState().toggleDarkMode();
+        return;
+      }
+      if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        router.push('/memory');
+        return;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [router]);
+
+  // Konami code easter egg
   const konamiRef = useRef(0);
   useEffect(() => {
     const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
