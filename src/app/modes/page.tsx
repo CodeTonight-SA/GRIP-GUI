@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { GRIP_MODES, MODE_CATEGORIES, type ModeCategory } from '@/lib/grip-modes';
 import { Check, Loader2 } from 'lucide-react';
 
@@ -9,6 +10,7 @@ export default function ModesPage() {
   const [activeCategory, setActiveCategory] = useState<ModeCategory | 'all'>('all');
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   // Load active modes from real ~/.claude/.active-modes
   useEffect(() => {
@@ -116,13 +118,17 @@ export default function ModesPage() {
 
       {/* Mode Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredModes.map((mode) => {
+        {filteredModes.map((mode, index) => {
           const isActive = activeModes.includes(mode.id);
           return (
-            <button
+            <motion.button
               key={mode.id}
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.25, delay: reduceMotion ? 0 : index * 0.03, ease: 'easeOut' }}
+              whileHover={reduceMotion ? undefined : { y: -2, boxShadow: '0 0 12px rgba(8,145,178,0.3)' }}
               onClick={() => toggleMode(mode.id)}
-              className={`text-left p-5 border transition-all min-h-[44px] ${
+              className={`text-left p-5 border transition-colors min-h-[44px] ${
                 isActive
                   ? 'border-[var(--primary)] bg-[var(--primary)]/5'
                   : 'border-[var(--border)] hover:border-[var(--primary)]/50'
@@ -159,7 +165,7 @@ export default function ModesPage() {
                   ))}
                 </div>
               )}
-            </button>
+            </motion.button>
           );
         })}
       </div>
