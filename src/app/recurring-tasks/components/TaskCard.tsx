@@ -42,7 +42,7 @@ export function TaskCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors"
+      className="bg-card border border-border p-4 hover:border-primary/30 transition-colors"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
@@ -148,7 +148,7 @@ export function TaskCard({
           <button
             onClick={() => onRun(task.id)}
             disabled={runningTaskId === task.id}
-            className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 hover:bg-green-500/10 text-green-500 transition-colors disabled:opacity-50"
             title="Run now"
           >
             {isRunning ? (
@@ -159,21 +159,21 @@ export function TaskCard({
           </button>
           <button
             onClick={() => onViewLogs(task.id)}
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
+            className="p-2 hover:bg-secondary transition-colors"
             title="View logs"
           >
             <FileText className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEdit(task)}
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
+            className="p-2 hover:bg-secondary transition-colors"
             title="Edit task"
           >
             <Pencil className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(task.id)}
-            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+            className="p-2 hover:bg-red-500/10 text-red-500 transition-colors"
             title="Delete"
           >
             <Trash2 className="w-4 h-4" />

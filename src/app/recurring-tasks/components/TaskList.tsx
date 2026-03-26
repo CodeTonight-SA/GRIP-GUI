@@ -29,7 +29,7 @@ export function TaskList({
 }: TaskListProps) {
   if (tasks.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-lg p-8 text-center">
+      <div className="bg-card border border-border p-8 text-center">
         <CalendarClock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="font-semibold mb-2">No scheduled tasks</h3>
         <p className="text-sm text-muted-foreground mb-4">
@@ -37,7 +37,7 @@ export function TaskList({
         </p>
         <button
           onClick={onCreateNew}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Create Task

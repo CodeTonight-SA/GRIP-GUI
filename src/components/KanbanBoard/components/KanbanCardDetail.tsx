@@ -101,14 +101,14 @@ export function KanbanCardDetail({ task, onClose, onUpdate, onDelete }: KanbanCa
             <div className="flex items-center gap-1">
               <button
                 onClick={onDelete}
-                className="p-2 rounded-lg hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-500"
+                className="p-2 hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-500"
                 title="Delete task"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+                className="p-2 hover:bg-secondary transition-colors"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -151,7 +151,7 @@ export function KanbanCardDetail({ task, onClose, onUpdate, onDelete }: KanbanCa
                     type="button"
                     onClick={() => setPriority(p)}
                     className={`
-                      flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all font-medium
+                      flex-1 px-3 py-2 text-sm border-2 transition-all font-medium
                       ${priority === p
                         ? p === 'high'
                           ? 'bg-red-500/10 border-red-500/50 text-red-500'
@@ -185,12 +185,12 @@ export function KanbanCardDetail({ task, onClose, onUpdate, onDelete }: KanbanCa
                     }
                   }}
                   placeholder="Add label..."
-                  className="flex-1 px-3 py-2 bg-secondary/30 border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="flex-1 px-3 py-2 bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={handleAddLabel}
-                  className="px-3 py-2 bg-secondary/50 border border-border/50 rounded-lg hover:bg-secondary transition-colors"
+                  className="px-3 py-2 bg-secondary/50 border border-border/50 hover:bg-secondary transition-colors"
                 >
                   <Plus className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -237,12 +237,12 @@ export function KanbanCardDetail({ task, onClose, onUpdate, onDelete }: KanbanCa
                     }
                   }}
                   placeholder="Add skill..."
-                  className="flex-1 px-3 py-2 bg-secondary/30 border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="flex-1 px-3 py-2 bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={handleAddSkill}
-                  className="px-3 py-2 bg-secondary/50 border border-border/50 rounded-lg hover:bg-secondary transition-colors"
+                  className="px-3 py-2 bg-secondary/50 border border-border/50 hover:bg-secondary transition-colors"
                 >
                   <Plus className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -296,7 +296,7 @@ export function KanbanCardDetail({ task, onClose, onUpdate, onDelete }: KanbanCa
             <button
               onClick={handleSave}
               disabled={!hasChanges || !title.trim() || isSaving}
-              className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               <Save className="w-4 h-4" />
               {isSaving ? 'Saving...' : 'Save'}

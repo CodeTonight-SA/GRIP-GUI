@@ -313,7 +313,7 @@ export default function KanbanBoard() {
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-secondary/50 border border-border/50 rounded-lg text-sm w-52 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
+              className="pl-9 pr-4 py-2 bg-secondary/50 border border-border/50 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
             />
           </div>
 
@@ -322,7 +322,7 @@ export default function KanbanBoard() {
             <select
               value={filterProject || ''}
               onChange={(e) => setFilterProject(e.target.value || null)}
-              className="px-3 py-2 bg-secondary/50 border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="px-3 py-2 bg-secondary/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">All projects</option>
               {projects.map((p) => (
@@ -336,7 +336,7 @@ export default function KanbanBoard() {
           {/* Refresh button */}
           <button
             onClick={refresh}
-            className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+            className="p-2 hover:bg-secondary/50 transition-colors"
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4 text-muted-foreground" />
@@ -345,7 +345,7 @@ export default function KanbanBoard() {
           {/* Add task button */}
           <button
             onClick={() => setShowNewTaskModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium text-sm"
           >
             New Task
             <Plus className="w-4 h-4" />

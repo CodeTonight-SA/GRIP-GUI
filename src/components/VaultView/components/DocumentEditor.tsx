@@ -307,7 +307,7 @@ export default function DocumentEditor({ document, folders, defaultFolderId, onS
           </div>
 
           {/* Markdown editor */}
-          <div className="border border-border rounded-lg overflow-hidden">
+          <div className="border border-border overflow-hidden">
             {/* Tab bar + Toolbar */}
             <div className="border-b border-border bg-secondary/30 !rounded-b-none">
               {/* Tabs */}

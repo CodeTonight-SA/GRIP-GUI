@@ -14,7 +14,7 @@ export function Toast({ toast }: ToastProps) {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+          className={`fixed top-4 right-4 z-50 px-4 py-3 shadow-lg flex items-center gap-2 ${
             toast.type === 'success' ? 'bg-green-500/90 text-white' :
             toast.type === 'error' ? 'bg-red-500/90 text-white' :
             'bg-blue-500/90 text-white'

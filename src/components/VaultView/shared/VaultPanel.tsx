@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-/** Styled panel container — border, rounded-lg, bg-card, overflow-hidden. */
+/** Styled panel container — border,, bg-card, overflow-hidden. */
 export function VaultPanel({
   className = '',
   children,
@@ -9,7 +9,7 @@ export function VaultPanel({
   children: ReactNode;
 }) {
   return (
-    <div className={`border border-border rounded-lg bg-card overflow-hidden ${className}`}>
+    <div className={`border border-border bg-card overflow-hidden ${className}`}>
       {children}
     </div>
   );

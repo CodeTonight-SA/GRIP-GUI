@@ -45,7 +45,7 @@ const AgentPersonaEditor = React.memo(function AgentPersonaEditor({
               onClick={() => handleCharacterChange(char.id)}
               title={char.name}
               className={`
-                w-10 h-10 rounded-lg border transition-all flex items-center justify-center
+                w-10 h-10 border transition-all flex items-center justify-center
                 ${character === char.id
                   ? 'border-accent-purple bg-accent-purple/10 ring-1 ring-accent-purple/30'
                   : 'border-border-primary hover:border-border-accent bg-bg-tertiary/30'
@@ -65,7 +65,7 @@ const AgentPersonaEditor = React.memo(function AgentPersonaEditor({
           value={name}
           onChange={(e) => handleNameChange(e.target.value)}
           placeholder={`${charLabel} on ${projectName}`}
-          className="w-full px-4 py-2 rounded-lg text-sm bg-bg-primary border border-border-primary focus:border-accent-blue focus:outline-none"
+          className="w-full px-4 py-2 text-sm bg-bg-primary border border-border-primary focus:border-accent-blue focus:outline-none"
         />
       </div>
     </div>

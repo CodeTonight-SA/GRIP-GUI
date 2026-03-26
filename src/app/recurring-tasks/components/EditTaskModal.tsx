@@ -55,7 +55,7 @@ export function EditTaskModal({
               <h2 className="text-lg font-semibold">Edit Scheduled Task</h2>
               <button
                 onClick={onClose}
-                className="p-1 hover:bg-secondary rounded-lg transition-colors"
+                className="p-1 hover:bg-secondary transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -70,7 +70,7 @@ export function EditTaskModal({
                   value={editForm.title}
                   onChange={(e) => onFormChange({ ...editForm, title: e.target.value })}
                   placeholder="e.g. Daily code review"
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-sm"
+                  className="w-full px-3 py-2 bg-secondary border border-border text-sm"
                 />
               </div>
 
@@ -81,7 +81,7 @@ export function EditTaskModal({
                   type="text"
                   value={editForm.projectPath}
                   onChange={(e) => onFormChange({ ...editForm, projectPath: e.target.value })}
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg font-mono text-sm"
+                  className="w-full px-3 py-2 bg-secondary border border-border font-mono text-sm"
                 />
               </div>
 
@@ -92,7 +92,7 @@ export function EditTaskModal({
                   value={editForm.prompt}
                   onChange={(e) => onFormChange({ ...editForm, prompt: e.target.value })}
                   rows={6}
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg resize-none text-sm"
+                  className="w-full px-3 py-2 bg-secondary border border-border resize-none text-sm"
                 />
               </div>
 
@@ -126,14 +126,14 @@ export function EditTaskModal({
             <div className="p-6 border-t border-border flex items-center justify-end gap-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm hover:bg-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-sm hover:bg-secondary transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={onSave}
                 disabled={isSaving || !editForm.prompt.trim()}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {isSaving ? (
                   <>

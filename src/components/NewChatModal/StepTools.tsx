@@ -129,7 +129,7 @@ const StepTools = React.memo(function StepTools({
 
         {/* Selected Skills Chips */}
         {selectedSkills.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-accent-purple/10 border border-accent-purple/20">
+          <div className="flex flex-wrap gap-2 p-3 bg-accent-purple/10 border border-accent-purple/20">
             {selectedSkills.map((skill) => (
               <button
                 key={skill}
@@ -152,20 +152,20 @@ const StepTools = React.memo(function StepTools({
               value={skillSearch}
               onChange={(e) => setSkillSearch(e.target.value)}
               placeholder="Search skills..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg text-sm"
+              className="w-full pl-10 pr-4 py-2 text-sm"
             />
           </div>
           <div className="relative">
             <button
               onClick={() => setShowCategoryDropdown(prev => !prev)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-tertiary text-text-secondary hover:text-text-primary transition-colors text-sm"
+              className="flex items-center gap-2 px-3 py-2 bg-bg-tertiary text-text-secondary hover:text-text-primary transition-colors text-sm"
             >
               <Filter className="w-3.5 h-3.5" />
               {selectedCategory || 'All'}
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
             {showCategoryDropdown && (
-              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border shadow-lg rounded-lg min-w-[160px] overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border shadow-lg min-w-[160px] overflow-hidden">
                 <button
                   onClick={() => { setSelectedCategory(null); setShowCategoryDropdown(false); }}
                   className={`w-full text-left px-3 py-2 text-sm hover:bg-secondary transition-colors ${!selectedCategory ? 'text-accent-purple font-medium' : ''}`}
@@ -187,7 +187,7 @@ const StepTools = React.memo(function StepTools({
         </div>
 
         {/* Skills Card List */}
-        <div className="border border-border rounded-lg overflow-hidden max-h-[280px] overflow-y-auto">
+        <div className="border border-border overflow-hidden max-h-[280px] overflow-y-auto">
           {filteredSkills.map((skill) => {
             const isSelected = selectedSkills.includes(skill.name);
             const installedOnProvider = isSkillInstalled(skill.name);
@@ -273,7 +273,7 @@ const StepTools = React.memo(function StepTools({
           <span className="text-xs text-text-muted">Data sources your agent can reference</span>
         </div>
 
-        <div className="rounded-lg border border-border-primary bg-secondary/30 p-3 space-y-2">
+        <div className="border border-border-primary bg-secondary/30 p-3 space-y-2">
           {/* GRIP Vault — always selected */}
           <div className="flex items-center gap-3 p-2">
             <div className="w-5 h-5 rounded border bg-purple-500 border-purple-500 flex items-center justify-center shrink-0">

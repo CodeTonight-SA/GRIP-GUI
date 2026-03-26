@@ -78,7 +78,7 @@ const StepTask = React.memo(function StepTask({
           onChange={(e) => onPromptChange(e.target.value)}
           placeholder="Describe the task, or leave empty to start an interactive session"
           rows={4}
-          className="w-full px-4 py-3 rounded-lg text-sm resize-none"
+          className="w-full px-4 py-3 text-sm resize-none"
         />
         {selectedSkills.length > 0 && !prompt && (
           <p className="text-xs text-accent-purple mt-2">
@@ -88,7 +88,7 @@ const StepTask = React.memo(function StepTask({
       </div>
 
       {/* Advanced Options (collapsible) */}
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="border border-border overflow-hidden">
         <button
           onClick={() => setShowAdvanced(prev => !prev)}
           className="w-full flex items-center justify-between px-4 py-3 bg-secondary/50 hover:bg-secondary/80 transition-colors"
@@ -114,7 +114,7 @@ const StepTask = React.memo(function StepTask({
             >
               <div className="p-4 space-y-4 border-t border-border">
                 {/* Git Worktree Option */}
-                <div className="p-3 rounded-lg border border-border-primary bg-bg-tertiary/30">
+                <div className="p-3 border border-border-primary bg-bg-tertiary/30">
                   <div className="flex items-start gap-3">
                     <button
                       onClick={onToggleWorktree}
@@ -155,7 +155,7 @@ const StepTask = React.memo(function StepTask({
                                 value={branchName}
                                 onChange={(e) => onBranchNameChange(e.target.value.replace(/\s+/g, '-'))}
                                 placeholder="feature/my-task"
-                                className="w-full px-3 py-2 rounded-lg text-sm font-mono bg-bg-primary border border-border-primary focus:border-accent-blue focus:outline-none"
+                                className="w-full px-3 py-2 text-sm font-mono bg-bg-primary border border-border-primary focus:border-accent-blue focus:outline-none"
                               />
                             </div>
                           </motion.div>
@@ -166,7 +166,7 @@ const StepTask = React.memo(function StepTask({
                 </div>
 
                 {/* Skip Permissions */}
-                <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
+                <div className="p-3 border border-amber-500/30 bg-amber-500/5">
                   <div className="flex items-start gap-3">
                     <button
                       onClick={onToggleSkipPermissions}
@@ -204,7 +204,7 @@ const StepTask = React.memo(function StepTask({
       </div>
 
       {/* Summary Card */}
-      <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-2">
+      <div className="border border-border bg-secondary/30 p-4 space-y-2">
         <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Summary</span>
         <div className="space-y-1.5">
           <SummaryRow icon={<FolderOpen className="w-3.5 h-3.5" />} label="Project" value={projectPath.split('/').pop() || projectPath} />

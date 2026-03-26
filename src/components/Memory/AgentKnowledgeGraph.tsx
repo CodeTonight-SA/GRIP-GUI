@@ -937,16 +937,16 @@ export default function AgentKnowledgeGraph() {
 
         {/* Zoom + reset */}
         <div className="flex items-center gap-1 pointer-events-auto">
-          <button onClick={() => zoom(1.25)} className="p-1.5 rounded-lg bg-black/50 border border-white/10 text-white/60 hover:text-white transition-colors">
+          <button onClick={() => zoom(1.25)} className="p-1.5 bg-black/50 border border-white/10 text-white/60 hover:text-white transition-colors">
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => zoom(0.8)} className="p-1.5 rounded-lg bg-black/50 border border-white/10 text-white/60 hover:text-white transition-colors">
+          <button onClick={() => zoom(0.8)} className="p-1.5 bg-black/50 border border-white/10 text-white/60 hover:text-white transition-colors">
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <button onClick={resetView} className="p-1.5 rounded-lg bg-black/50 border border-white/10 text-white/60 hover:text-white transition-colors">
+          <button onClick={resetView} className="p-1.5 bg-black/50 border border-white/10 text-white/60 hover:text-white transition-colors">
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
-          <button onClick={loadData} className="p-1.5 rounded-lg bg-black/50 border border-white/10 text-white/60 hover:text-white transition-colors">
+          <button onClick={loadData} className="p-1.5 bg-black/50 border border-white/10 text-white/60 hover:text-white transition-colors">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -971,7 +971,7 @@ export default function AgentKnowledgeGraph() {
         ) : (
           <button
             onClick={() => setLegendOpen(true)}
-            className="px-2.5 py-1 text-[10px] bg-black/50 border border-white/10 rounded-lg text-white/40 hover:text-white/70 transition-colors"
+            className="px-2.5 py-1 text-[10px] bg-black/50 border border-white/10 text-white/40 hover:text-white/70 transition-colors"
           >
             Legend
           </button>
@@ -1048,7 +1048,7 @@ export default function AgentKnowledgeGraph() {
               <button
                 onClick={savePanel}
                 disabled={panelDraft === panelContent}
-                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <Save className="w-3 h-3" />
                 Save
