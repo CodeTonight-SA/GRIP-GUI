@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
 interface ConvergenceIndicatorProps {
   /** Current convergence depth (0 = surface, higher = deeper) */
   depth?: number;
@@ -25,20 +23,12 @@ export default function ConvergenceIndicator({
   active = false,
   criterion,
 }: ConvergenceIndicatorProps) {
-  const [pulse, setPulse] = useState(false);
-
-  useEffect(() => {
-    if (!active) return;
-    const interval = setInterval(() => setPulse(p => !p), 1500);
-    return () => clearInterval(interval);
-  }, [active]);
-
   const rings = Math.min(5, maxDepth);
   const filledRings = Math.ceil((depth / maxDepth) * rings);
 
   return (
     <div className="flex items-center gap-3">
-      {/* Concentric rings */}
+      {/* Concentric rings — CSS-only pulse when active (no JS timers) */}
       <div className="relative w-8 h-8 flex items-center justify-center">
         {Array.from({ length: rings }).map((_, i) => {
           const size = 8 + i * 5;
@@ -46,22 +36,19 @@ export default function ConvergenceIndicator({
           return (
             <div
               key={i}
-              className="absolute border transition-all"
+              className={`absolute border transition-all ${active && isFilled ? 'grip-pulse-bar' : ''}`}
               style={{
                 width: size,
                 height: size,
                 borderColor: isFilled ? 'var(--primary)' : 'var(--border)',
-                opacity: active && pulse && isFilled ? 0.6 : 1,
+                animationDelay: active ? `${i * 300}ms` : undefined,
                 transitionDuration: '0.6s',
               }}
             />
           );
         })}
         {active && (
-          <div
-            className="absolute w-2 h-2 bg-[var(--primary)]"
-            style={{ opacity: pulse ? 1 : 0.4, transition: 'opacity 0.6s' }}
-          />
+          <div className="absolute w-2 h-2 bg-[var(--primary)] grip-pulse-bar" />
         )}
       </div>
 

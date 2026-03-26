@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, ChevronDown } from 'lucide-react';
 import { GRIP_MODES, getModesByCategory, type ModeCategory } from '@/lib/grip-modes';
 
@@ -14,11 +15,23 @@ import { GRIP_MODES, getModesByCategory, type ModeCategory } from '@/lib/grip-mo
 export default function ModeQuickSwitch() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeMode, setActiveMode] = useState('code');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen]);
 
   const currentMode = GRIP_MODES.find(m => m.id === activeMode);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between gap-2 p-2 border border-[var(--border)] hover:border-[var(--primary)]/50 transition-colors"
@@ -32,8 +45,14 @@ export default function ModeQuickSwitch() {
         <ChevronDown className={`w-3 h-3 text-[var(--muted-foreground)] transition-transform ${isOpen ? 'rotate-180' : ''}`} strokeWidth={1.5} />
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 border border-[var(--border)] bg-[var(--card)] z-50 max-h-[300px] overflow-y-auto animate-fade-in">
+      <AnimatePresence>
+        {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+          className="absolute top-full left-0 right-0 mt-1 border border-[var(--border)] bg-[var(--card)] z-50 max-h-[300px] overflow-y-auto">
           {(['development', 'strategy', 'content', 'research', 'operations', 'meta'] as ModeCategory[]).map(category => {
             const modes = getModesByCategory(category);
             return (
@@ -67,8 +86,9 @@ export default function ModeQuickSwitch() {
               </div>
             );
           })}
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
