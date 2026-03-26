@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
 import { Send, Sparkles, Square, X, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { sendToGrip, filterResponseMetadata, type GripMessage, type GripMetrics } from '@/lib/grip-session';
+import { sendToGrip, filterResponseMetadata, type GripMessage, type GripMetrics, type ToolUseEvent, type ToolResultEvent } from '@/lib/grip-session';
 import TypingIndicator from './TypingIndicator';
+import ToolUseBlock from './ToolUseBlock';
 import {
   getChatMessages,
   saveChatMessages,
@@ -181,6 +182,8 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     let metrics: GripMetrics | undefined;
     let receivedFirstToken = false;
     let lastPersistTime = 0;
+    const toolUses: ToolUseEvent[] = [];
+    const toolResults: ToolResultEvent[] = [];
 
     const promptText = input.trim() + imageContext;
     try {
@@ -210,6 +213,35 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
             lastPersistTime = now;
             persistStreamContent(chatId, pendingContentRef.current, true);
           }
+        } else if (event.type === 'tool_use') {
+          if (!receivedFirstToken) {
+            receivedFirstToken = true;
+            if (spinnerTimerRef.current) {
+              clearTimeout(spinnerTimerRef.current);
+              spinnerTimerRef.current = null;
+            }
+            setShowSpinner(false);
+          }
+          const toolUse = event.data as ToolUseEvent;
+          toolUses.push(toolUse);
+          // Force a re-render to show tool use blocks in real-time
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.role === 'assistant' && last?.streaming) {
+              return [...prev.slice(0, -1), { ...last, toolUses: [...toolUses] }];
+            }
+            return prev;
+          });
+        } else if (event.type === 'tool_result') {
+          const toolResult = event.data as ToolResultEvent;
+          toolResults.push(toolResult);
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.role === 'assistant' && last?.streaming) {
+              return [...prev.slice(0, -1), { ...last, toolResults: [...toolResults] }];
+            }
+            return prev;
+          });
         } else if (event.type === 'metrics') {
           metrics = event.data as GripMetrics;
           if (metrics.sessionId) {
@@ -244,6 +276,8 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
         lastMsg.metrics = metrics;
         lastMsg.detectedMode = detectMode(userMessage.content);
         lastMsg.detectedSkills = detectSkills(userMessage.content);
+        if (toolUses.length) lastMsg.toolUses = toolUses;
+        if (toolResults.length) lastMsg.toolResults = toolResults;
       }
       if (chatId) saveChatMessages(chatId, updated);
       return [...updated];
@@ -467,6 +501,18 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                       </div>
                     )}
                     <MarkdownContent content={msg.content} />
+                    {/* Tool use blocks — show what the agent is doing */}
+                    {msg.toolUses && msg.toolUses.length > 0 && (
+                      <div className="mt-2 space-y-0.5">
+                        {msg.toolUses.map((tu, i) => (
+                          <ToolUseBlock
+                            key={tu.toolId || i}
+                            toolUse={tu}
+                            result={msg.toolResults?.find(r => r.toolId === tu.toolId)}
+                          />
+                        ))}
+                      </div>
+                    )}
                     {msg.streaming && (
                       <span className="inline-block w-2 h-4 bg-[var(--primary)] animate-pulse ml-0.5" />
                     )}

@@ -32,6 +32,27 @@ Claude Code runs one agent at a time, in one terminal. GRIP Commander removes th
 
 ---
 
+## What's Included
+
+### Starter Pack (ships with Commander)
+
+GRIP Commander includes a curated subset of the GRIP ecosystem that works out of the box.
+
+| Component | Count | Includes |
+|-----------|-------|---------|
+| Skills | 15 | code-mode, testing-mode, review-mode, architect-mode, research-mode, design-principles, PR automation, session resume, context refresh, preplan |
+| Agents | 5 | context-refresh, direct-implementation, PR workflow, Explore, efficiency-auditor |
+| Safety hooks | 5 | confidence-gate, context-gate, dependency-guardian, destructive-git, secrets-detection |
+| CLI | 2 | `grip` (session manager), `grip-ut` (extended thinking wrapper) |
+
+### Full GRIP (by invitation)
+
+The complete GRIP operating system — 194 skills, 30 agents, 34 safety hooks, 25 convergence modules, evolutionary genome, KONO semantic memory, Broly meta-agent, and scientific measurement protocol.
+
+**This is a taste. [Request an invitation](https://grip-preview.vercel.app#invite) for a full 90-day evaluation.**
+
+---
+
 ## Architecture
 
 ### System Overview
@@ -157,6 +178,12 @@ GRIP Commander bundles MCP servers for programmatic control:
 
 ## Getting Started
 
+### Prerequisites
+
+- **Node.js** 18+
+- **Claude Code CLI**: `npm install -g @anthropic-ai/claude-code`
+- **Claude login**: `claude login` (each user authenticates with their own Anthropic account)
+
 ### Install from DMG
 
 1. [Download the DMG](https://github.com/CodeTonight-SA/GRIP-GUI/releases/download/v0.1.0-alpha.1/GRIP-Commander-0.1.0-arm64.dmg)
@@ -182,6 +209,60 @@ npm install && npm run dev
 ```
 
 Agent management requires the Electron app. The web UI at [localhost:3000](http://localhost:3000) provides the learning hub and mode switcher.
+
+---
+
+## GRIP CLI — Session Context Inheritance
+
+The Starter Pack installs automatically on first launch. GRIP Commander agents use the GRIP CLI binaries at `~/.claude/bin/` for session memory and context inheritance. Without these, agents start cold every time. With them, agents inherit context from previous sessions.
+
+### Binaries
+
+| Binary | Purpose |
+|--------|---------|
+| `grip` | Session manager — resume, fresh, list, branches, merge, tree |
+| `grip-ut` | Extended thinking wrapper — injects 12k tokens of prior session context |
+
+### Shell Aliases
+
+Install aliases for quick session launches:
+
+```bash
+grip install-aliases
+```
+
+| Alias | Command | Purpose |
+|-------|---------|---------|
+| `gg++` | `grip fresh latest 12000` | Max context session (12k tokens from prior session) |
+| `gg+` | `grip fresh latest 8000` | Deep session (8k context) |
+| `gg` | `grip fresh latest 2000` | Quick session (2k context) |
+| `ggr` | `grip resume latest` | Resume last session directly |
+| `ggl` | `grip list` | List available sessions |
+
+### How Context Inheritance Works
+
+```
+Previous session ends
+  → session state serialised to ~/.claude/projects/*/grip/
+  → next session starts via gg++ (or grip fresh)
+    → session-resolver.py finds latest session
+    → semantic-compressor.py extracts 12k tokens of context
+    → context injected as resurrection prompt
+    → Claude starts with full awareness of prior work
+```
+
+This is what makes GRIP agents different from bare Claude Code — they remember decisions, architectural choices, and debugging history across sessions.
+
+### Shell Functions
+
+For shell-level integration, source the GRIP functions:
+
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+source ~/.claude/lib/shell-functions.sh
+```
+
+This provides `gogrip` (navigate to GRIP home + fresh session) and ensures `~/.claude/bin` is on your PATH.
 
 ---
 
