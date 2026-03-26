@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import { Layers, Sparkles, Activity, Plus } from 'lucide-react';
 import RetrievalTierIndicator from './RetrievalTierIndicator';
 import ConvergenceIndicator from './ConvergenceIndicator';
@@ -18,6 +19,8 @@ export default function ContextPanel({
   contextUsage = 23,
   tokenCount = 45200,
 }: ContextPanelProps) {
+  const reduceMotion = useReducedMotion();
+  const ctxColour = contextUsage > 80 ? 'var(--danger)' : contextUsage > 60 ? 'var(--warning)' : 'var(--primary)';
   return (
     <div className="h-full flex flex-col bg-[var(--card)]">
       {/* Mode — Quick Switch */}
@@ -30,13 +33,19 @@ export default function ContextPanel({
       <div className="p-4 border-b border-[var(--border)]">
         <span className="grip-label block mb-2">SKILLS</span>
         <div className="space-y-1.5">
-          {activeSkills.map((skill) => (
-            <div key={skill} className="flex items-center gap-2">
+          {activeSkills.map((skill, i) => (
+            <motion.div
+              key={skill}
+              className="flex items-center gap-2"
+              initial={reduceMotion ? false : { opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: reduceMotion ? 0 : i * 0.05 }}
+            >
               <Sparkles className="w-3 h-3 text-[var(--primary)]" strokeWidth={1.5} />
               <span className="font-mono text-[11px] tracking-wider text-[var(--foreground)]">
                 {skill}
               </span>
-            </div>
+            </motion.div>
           ))}
           <button className="flex items-center gap-2 mt-2 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
             <Plus className="w-3 h-3" strokeWidth={1.5} />
@@ -54,10 +63,13 @@ export default function ContextPanel({
               <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">CTX</span>
               <span className="font-mono text-[10px] tracking-wider text-[var(--foreground)]">{contextUsage}%</span>
             </div>
-            <div className="w-full h-1 bg-[var(--border)]">
-              <div
-                className="h-full bg-[var(--primary)] transition-all"
-                style={{ width: `${contextUsage}%` }}
+            <div className="w-full h-1.5 bg-[var(--border)] overflow-hidden">
+              <motion.div
+                className="h-full"
+                initial={reduceMotion ? { width: `${contextUsage}%` } : { width: '0%' }}
+                animate={{ width: `${contextUsage}%` }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                style={{ backgroundColor: ctxColour }}
               />
             </div>
           </div>
