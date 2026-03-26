@@ -62,7 +62,7 @@ export function CreateTaskModal({
               <h2 className="text-lg font-semibold">Create Scheduled Task</h2>
               <button
                 onClick={onClose}
-                className="p-1 hover:bg-secondary rounded-lg transition-colors"
+                className="p-1 hover:bg-secondary transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -79,7 +79,7 @@ export function CreateTaskModal({
                   value={formData.title}
                   onChange={(e) => onFormChange({ ...formData, title: e.target.value })}
                   placeholder="e.g. Daily code review"
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-sm"
+                  className="w-full px-3 py-2 bg-secondary border border-border text-sm"
                   autoFocus
                 />
               </div>
@@ -97,7 +97,7 @@ export function CreateTaskModal({
                       projectPath: selectedAgent?.projectPath || formData.projectPath,
                     });
                   }}
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg"
+                  className="w-full px-3 py-2 bg-secondary border border-border"
                 >
                   <option value="">No agent (use project path below)</option>
                   {agents.map(agent => (
@@ -117,7 +117,7 @@ export function CreateTaskModal({
                     value={formData.projectPath}
                     onChange={(e) => onFormChange({ ...formData, projectPath: e.target.value })}
                     placeholder="/path/to/your/project"
-                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg font-mono text-sm"
+                    className="w-full px-3 py-2 bg-secondary border border-border font-mono text-sm"
                   />
                 </div>
               )}
@@ -130,7 +130,7 @@ export function CreateTaskModal({
                   onChange={(e) => onFormChange({ ...formData, prompt: e.target.value })}
                   placeholder="What should Claude do?"
                   rows={4}
-                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg resize-none"
+                  className="w-full px-3 py-2 bg-secondary border border-border resize-none"
                 />
               </div>
 
@@ -163,7 +163,7 @@ export function CreateTaskModal({
               />
 
               {createError && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center gap-2">
+                <div className="bg-red-500/10 border border-red-500/20 p-3 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-red-500" />
                   <span className="text-sm text-red-500">{createError}</span>
                 </div>
@@ -173,14 +173,14 @@ export function CreateTaskModal({
             <div className="p-6 border-t border-border flex items-center justify-end gap-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm hover:bg-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-sm hover:bg-secondary transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={onSubmit}
                 disabled={isCreating || !formData.prompt || (!formData.agentId && !formData.projectPath)}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {isCreating ? (
                   <>

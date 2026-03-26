@@ -101,7 +101,7 @@ export function KanbanCard({ task, onEdit, onDelete, onStart, onOpenTerminal, is
         <div className="absolute top-2 right-2 z-10">
           <button
             onClick={handleStart}
-            className="p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1.5 bg-green-500/10 hover:bg-green-500/20 transition-colors opacity-0 group-hover:opacity-100"
             title="Start task"
           >
             <Play className="w-4 h-4 text-green-500 fill-green-500" />
@@ -119,7 +119,7 @@ export function KanbanCard({ task, onEdit, onDelete, onStart, onOpenTerminal, is
                 e.stopPropagation();
                 onOpenTerminal(task.assignedAgentId!);
               }}
-              className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors"
+              className="p-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors"
               title="View terminal"
             >
               <Terminal className="w-4 h-4 text-cyan-400" />

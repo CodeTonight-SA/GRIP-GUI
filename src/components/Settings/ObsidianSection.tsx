@@ -59,7 +59,7 @@ export const ObsidianSection = ({ appSettings, onSaveAppSettings }: ObsidianSect
         </div>
 
         {vaultPaths.length === 0 ? (
-          <div className="py-8 text-center border rounded-lg border-dashed border-border">
+          <div className="py-8 text-center border border-dashed border-border">
             <ObsidianIcon className="w-8 h-8 text-muted-foreground mx-auto mb-3 opacity-40" />
             <p className="text-sm text-muted-foreground">No vaults registered</p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -71,7 +71,7 @@ export const ObsidianSection = ({ appSettings, onSaveAppSettings }: ObsidianSect
             {vaultPaths.map((vp) => (
               <div
                 key={vp}
-                className="flex items-center gap-3 p-3 border rounded-lg border-border bg-background"
+                className="flex items-center gap-3 p-3 border border-border bg-background"
               >
                 <ObsidianIcon className="w-4 h-4 text-[#A88BFA] shrink-0" />
                 <div className="flex-1 min-w-0">

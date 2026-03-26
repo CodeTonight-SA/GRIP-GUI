@@ -374,7 +374,7 @@ export default function AutomationsPage() {
   if (!isElectron()) {
     return (
       <div className="pt-4 lg:pt-6">
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+        <div className="bg-yellow-500/10 border border-yellow-500/20 p-4">
           <p className="text-yellow-500">This feature is only available in the desktop app.</p>
         </div>
       </div>
@@ -417,7 +417,7 @@ export default function AutomationsPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+            className={`fixed top-4 right-4 z-50 px-4 py-3 shadow-lg flex items-center gap-2 ${
               toast.type === 'success' ? 'bg-green-500/90 text-white' :
               toast.type === 'error' ? 'bg-red-500/90 text-white' :
               'bg-blue-500/90 text-white'
@@ -432,7 +432,7 @@ export default function AutomationsPage() {
 
       {/* Loading state */}
       {isLoading ? (
-        <div className="bg-card border border-border rounded-lg p-6">
+        <div className="bg-card border border-border p-6">
           <div className="flex items-center gap-3">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             <span className="text-muted-foreground">Loading automations...</span>
@@ -443,7 +443,7 @@ export default function AutomationsPage() {
           {/* Automation List */}
           <div className="space-y-3">
             {automations.length === 0 ? (
-              <div className="bg-card border border-border rounded-lg p-8 text-center">
+              <div className="bg-card border border-border p-8 text-center">
                 <Zap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="font-semibold mb-2">No automations yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -451,7 +451,7 @@ export default function AutomationsPage() {
                 </p>
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   Create Automation
@@ -468,7 +468,7 @@ export default function AutomationsPage() {
                     key={automation.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`bg-card border rounded-lg overflow-hidden transition-colors ${
+                    className={`bg-card border overflow-hidden transition-colors ${
                       automation.enabled ? 'border-border' : 'border-border/50 opacity-60'
                     }`}
                   >
@@ -570,7 +570,7 @@ export default function AutomationsPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => toggleExpanded(automation.id)}
-                            className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                            className="p-2 hover:bg-secondary transition-colors"
                             title={isExpanded ? 'Show less' : 'Show more'}
                           >
                             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -578,7 +578,7 @@ export default function AutomationsPage() {
                           <button
                             onClick={() => handleRunAutomation(automation.id)}
                             disabled={runningAutomationId === automation.id}
-                            className="p-2 hover:bg-green-500/10 text-green-500 rounded-lg transition-colors disabled:opacity-50"
+                            className="p-2 hover:bg-green-500/10 text-green-500 transition-colors disabled:opacity-50"
                             title="Run now"
                           >
                             {runningAutomationId === automation.id ? (
@@ -589,7 +589,7 @@ export default function AutomationsPage() {
                           </button>
                           <button
                             onClick={() => handleToggleAutomation(automation)}
-                            className={`p-2 rounded-lg transition-colors ${
+                            className={`p-2 transition-colors ${
                               automation.enabled
                                 ? 'hover:bg-yellow-500/10 text-yellow-500'
                                 : 'hover:bg-green-500/10 text-green-500'
@@ -600,14 +600,14 @@ export default function AutomationsPage() {
                           </button>
                           <button
                             onClick={() => handleViewLogs(automation)}
-                            className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                            className="p-2 hover:bg-secondary transition-colors"
                             title="View logs"
                           >
                             <FileText className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteAutomation(automation.id)}
-                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                            className="p-2 hover:bg-red-500/10 text-red-500 transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -774,7 +774,7 @@ export default function AutomationsPage() {
                 <h2 className="text-lg font-semibold">Create Automation</h2>
                 <button
                   onClick={() => setShowCreateForm(false)}
-                  className="p-1 hover:bg-secondary rounded-lg transition-colors"
+                  className="p-1 hover:bg-secondary transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -789,7 +789,7 @@ export default function AutomationsPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="PR Marketing Tweets"
-                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg"
+                    className="w-full px-3 py-2 bg-secondary border border-border"
                   />
                 </div>
 
@@ -801,7 +801,7 @@ export default function AutomationsPage() {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Generate marketing tweets for new PRs"
-                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg"
+                    className="w-full px-3 py-2 bg-secondary border border-border"
                   />
                 </div>
 
@@ -811,7 +811,7 @@ export default function AutomationsPage() {
                   <select
                     value={formData.sourceType}
                     onChange={(e) => setFormData({ ...formData, sourceType: e.target.value as Automation['source']['type'] })}
-                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg"
+                    className="w-full px-3 py-2 bg-secondary border border-border"
                   >
                     <option value="github">GitHub</option>
                     <option value="jira">JIRA</option>
@@ -823,7 +823,7 @@ export default function AutomationsPage() {
                 {formData.sourceType === 'github' && (
                   <>
                     {/* gh CLI requirement notice */}
-                    <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20">
                       <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                       <div className="text-sm">
                         <span className="text-blue-500 font-medium">Requires GitHub CLI</span>
@@ -841,7 +841,7 @@ export default function AutomationsPage() {
                         value={formData.repos}
                         onChange={(e) => setFormData({ ...formData, repos: e.target.value })}
                         placeholder="owner/repo1, owner/repo2"
-                        className="w-full px-3 py-2 bg-secondary border border-border rounded-lg font-mono text-sm"
+                        className="w-full px-3 py-2 bg-secondary border border-border font-mono text-sm"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Comma-separated list of repositories to poll
@@ -876,7 +876,7 @@ export default function AutomationsPage() {
                 {/* JIRA-specific config */}
                 {formData.sourceType === 'jira' && (
                   <>
-                    <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20">
                       <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                       <div className="text-sm">
                         <span className="text-blue-500 font-medium">Requires JIRA credentials</span>
@@ -894,7 +894,7 @@ export default function AutomationsPage() {
                         value={formData.jiraProjectKeys}
                         onChange={(e) => setFormData({ ...formData, jiraProjectKeys: e.target.value })}
                         placeholder="PROJ, TEAM, DEV"
-                        className="w-full px-3 py-2 bg-secondary border border-border rounded-lg font-mono text-sm"
+                        className="w-full px-3 py-2 bg-secondary border border-border font-mono text-sm"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Comma-separated JIRA project keys to poll
@@ -908,7 +908,7 @@ export default function AutomationsPage() {
                         value={formData.jiraJql}
                         onChange={(e) => setFormData({ ...formData, jiraJql: e.target.value })}
                         placeholder='project = PROJ AND status != Done ORDER BY updated DESC'
-                        className="w-full px-3 py-2 bg-secondary border border-border rounded-lg font-mono text-sm"
+                        className="w-full px-3 py-2 bg-secondary border border-border font-mono text-sm"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Override default JQL query. Leave empty to use project keys above.
@@ -923,7 +923,7 @@ export default function AutomationsPage() {
                   <select
                     value={formData.scheduleMinutes}
                     onChange={(e) => setFormData({ ...formData, scheduleMinutes: e.target.value })}
-                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg"
+                    className="w-full px-3 py-2 bg-secondary border border-border"
                   >
                     {SCHEDULE_PRESETS.map(preset => (
                       <option key={preset.value} value={preset.value}>{preset.label}</option>
@@ -959,7 +959,7 @@ Use: gh pr view {{number}} --repo {{repo}}
 
 Post the tweet as a comment.`}
                           rows={5}
-                          className="w-full px-3 py-2 bg-secondary border border-border rounded-lg resize-none font-mono text-sm"
+                          className="w-full px-3 py-2 bg-secondary border border-border resize-none font-mono text-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           {formData.sourceType === 'jira'
@@ -976,7 +976,7 @@ Post the tweet as a comment.`}
                           value={formData.projectPath}
                           onChange={(e) => setFormData({ ...formData, projectPath: e.target.value })}
                           placeholder="/path/to/project"
-                          className="w-full px-3 py-2 bg-secondary border border-border rounded-lg font-mono text-sm"
+                          className="w-full px-3 py-2 bg-secondary border border-border font-mono text-sm"
                         />
                       </div>
                     </>
@@ -1052,7 +1052,7 @@ Post the tweet as a comment.`}
                         value={formData.jiraTransitionTarget}
                         onChange={(e) => setFormData({ ...formData, jiraTransitionTarget: e.target.value })}
                         placeholder="Done"
-                        className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-sm"
+                        className="w-full px-3 py-2 bg-secondary border border-border text-sm"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         The target JIRA status name (e.g., &quot;Done&quot;, &quot;In Review&quot;, &quot;Closed&quot;)
@@ -1062,7 +1062,7 @@ Post the tweet as a comment.`}
                 </div>
 
                 {createError && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center gap-2">
+                  <div className="bg-red-500/10 border border-red-500/20 p-3 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-red-500" />
                     <span className="text-sm text-red-500">{createError}</span>
                   </div>
@@ -1072,14 +1072,14 @@ Post the tweet as a comment.`}
               <div className="p-6 border-t border-border flex items-center justify-end gap-3">
                 <button
                   onClick={() => setShowCreateForm(false)}
-                  className="px-4 py-2 text-sm hover:bg-secondary rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm hover:bg-secondary transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateAutomation}
                   disabled={isCreating || !formData.name || (formData.sourceType === 'github' && !formData.repos) || (formData.sourceType === 'jira' && !formData.jiraProjectKeys && !formData.jiraJql) || (formData.agentEnabled && !formData.agentPrompt)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {isCreating ? (
                     <>
@@ -1127,7 +1127,7 @@ Post the tweet as a comment.`}
                       ...selectedLogs,
                       selectedRunIndex: parseInt(e.target.value, 10)
                     })}
-                    className="flex-1 max-w-xs px-3 py-1.5 bg-secondary border border-border rounded-lg text-sm"
+                    className="flex-1 max-w-xs px-3 py-1.5 bg-secondary border border-border text-sm"
                   >
                     {selectedLogs.runs.map((run, index) => (
                       <option key={run.id} value={index}>
@@ -1142,7 +1142,7 @@ Post the tweet as a comment.`}
 
                 <button
                   onClick={() => setSelectedLogs(null)}
-                  className="p-1 hover:bg-secondary rounded-lg transition-colors shrink-0"
+                  className="p-1 hover:bg-secondary transition-colors shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>

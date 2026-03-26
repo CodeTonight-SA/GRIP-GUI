@@ -25,7 +25,7 @@ export function FilterBar({
       <select
         value={filterProject}
         onChange={(e) => onFilterProjectChange(e.target.value)}
-        className="px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg"
+        className="px-3 py-1.5 text-sm bg-secondary border border-border"
       >
         <option value="all">All Projects</option>
         {projects.map(p => (
@@ -36,7 +36,7 @@ export function FilterBar({
       <select
         value={filterSchedule}
         onChange={(e) => onFilterScheduleChange(e.target.value)}
-        className="px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg"
+        className="px-3 py-1.5 text-sm bg-secondary border border-border"
       >
         <option value="all">All Schedules</option>
         <option value="hourly">Hourly</option>

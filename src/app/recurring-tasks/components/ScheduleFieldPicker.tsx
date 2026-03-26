@@ -14,7 +14,7 @@ export function ScheduleFieldPicker({ value, onChange }: ScheduleFieldPickerProp
           <select
             value={value.schedulePreset}
             onChange={(e) => onChange({ schedulePreset: e.target.value })}
-            className="w-full px-3 py-2 bg-secondary border border-border rounded-lg"
+            className="w-full px-3 py-2 bg-secondary border border-border"
           >
             {SCHEDULE_PRESETS.map(preset => (
               <option key={preset.value} value={preset.value}>{preset.label}</option>
@@ -28,7 +28,7 @@ export function ScheduleFieldPicker({ value, onChange }: ScheduleFieldPickerProp
               type="time"
               value={value.time}
               onChange={(e) => onChange({ time: e.target.value })}
-              className="w-full px-3 py-2 bg-secondary border border-border rounded-lg"
+              className="w-full px-3 py-2 bg-secondary border border-border"
             />
           </div>
         )}
@@ -80,7 +80,7 @@ export function ScheduleFieldPicker({ value, onChange }: ScheduleFieldPickerProp
                       : [...value.selectedDays, day.value];
                     if (next.length > 0) onChange({ selectedDays: next });
                   }}
-                  className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                     isSelected
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-secondary hover:bg-secondary/80 border border-border'
@@ -101,7 +101,7 @@ export function ScheduleFieldPicker({ value, onChange }: ScheduleFieldPickerProp
             value={value.customCron}
             onChange={(e) => onChange({ customCron: e.target.value })}
             placeholder="0 9 * * 1-5"
-            className="w-full px-3 py-2 bg-secondary border border-border rounded-lg font-mono text-sm"
+            className="w-full px-3 py-2 bg-secondary border border-border font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground mt-1">
             Format: minute hour day month weekday (e.g., &apos;0 9 * * 1-5&apos; for weekdays at 9am)

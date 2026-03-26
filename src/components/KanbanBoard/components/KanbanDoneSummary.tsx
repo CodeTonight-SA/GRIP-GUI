@@ -41,14 +41,14 @@ export function KanbanDoneSummary({ task, onClose, onDelete }: KanbanDoneSummary
             <div className="flex items-center gap-1">
               <button
                 onClick={onDelete}
-                className="p-2 rounded-lg hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-500"
+                className="p-2 hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-500"
                 title="Delete task"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+                className="p-2 hover:bg-secondary transition-colors"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -74,7 +74,7 @@ export function KanbanDoneSummary({ task, onClose, onDelete }: KanbanDoneSummary
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                   Original Request
                 </h3>
-                <p className="text-sm text-muted-foreground bg-secondary/30 rounded-lg px-4 py-3">
+                <p className="text-sm text-muted-foreground bg-secondary/30 px-4 py-3">
                   {task.description}
                 </p>
               </div>
@@ -85,7 +85,7 @@ export function KanbanDoneSummary({ task, onClose, onDelete }: KanbanDoneSummary
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 Agent Output
               </h3>
-              <div className="bg-secondary/30 rounded-lg px-4 py-3 max-h-[300px] overflow-y-auto">
+              <div className="bg-secondary/30 px-4 py-3 max-h-[300px] overflow-y-auto">
                 {task.completionSummary ? (
                   <pre className="text-xs text-foreground whitespace-pre-wrap font-mono">
                     {task.completionSummary}

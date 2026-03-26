@@ -254,7 +254,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
         exit={{ opacity: 0, scale: 0.95 }}
         className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg"
       >
-        <div className="bg-card border border-border rounded-lg shadow-xl">
+        <div className="bg-card border border-border shadow-xl">
           {/* Header with Tabs */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-1">
@@ -370,7 +370,7 @@ export function NewTaskModal({ onClose, onCreate }: NewTaskModalProps) {
 
               {/* Generated Task Preview */}
               {generatedTask && (
-                <div className="space-y-3 p-3 bg-secondary/50 rounded-lg border border-border">
+                <div className="space-y-3 p-3 bg-secondary/50 border border-border">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Generated Task

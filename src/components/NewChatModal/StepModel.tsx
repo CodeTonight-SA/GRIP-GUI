@@ -149,7 +149,7 @@ const StepModel = React.memo(function StepModel({
                   onModelChange(PROVIDER_DEFAULT_MODEL[id]);
                 }}
                 className={`
-                  p-3 rounded-lg border transition-all text-center flex flex-col items-center justify-center gap-1
+                  p-3 border transition-all text-center flex flex-col items-center justify-center gap-1
                   ${!installed
                     ? 'opacity-40 cursor-not-allowed border-border-primary'
                     : provider === id
@@ -178,7 +178,7 @@ const StepModel = React.memo(function StepModel({
             <button
               onClick={() => onProviderChange('local')}
               className={`
-                p-3 rounded-lg border transition-all text-center flex items-center justify-center gap-2
+                p-3 border transition-all text-center flex items-center justify-center gap-2
                 ${provider === 'local'
                   ? 'border-amber-500 bg-amber-500/10'
                   : 'border-border-primary hover:border-border-accent'
@@ -204,7 +204,7 @@ const StepModel = React.memo(function StepModel({
                   key={m.id}
                   onClick={() => onModelChange(m.id)}
                   className={`
-                    p-3 rounded-lg border transition-all text-center
+                    p-3 border transition-all text-center
                     ${model === m.id
                       ? `border-${accentColor} bg-${accentColor}/10`
                       : 'border-border-primary hover:border-border-accent'
@@ -223,12 +223,12 @@ const StepModel = React.memo(function StepModel({
         <div>
           <label className="block text-sm font-medium mb-2">Local Model</label>
           {loadingTasmania ? (
-            <div className="p-4 border border-border-primary rounded-lg flex items-center gap-2 text-text-muted">
+            <div className="p-4 border border-border-primary flex items-center gap-2 text-text-muted">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="text-sm">Connecting to Tasmania...</span>
             </div>
           ) : tasmaniaStatus?.status !== 'running' ? (
-            <div className="p-4 border border-amber-500/30 bg-amber-500/5 rounded-lg">
+            <div className="p-4 border border-amber-500/30 bg-amber-500/5">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                 <div>
@@ -242,7 +242,7 @@ const StepModel = React.memo(function StepModel({
           ) : (
             <div className="space-y-3">
               {tasmaniaStatus.modelName && (
-                <div className="p-3 border border-accent-green/30 bg-accent-green/5 rounded-lg">
+                <div className="p-3 border border-accent-green/30 bg-accent-green/5">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse" />
                     <span className="text-sm font-medium">{tasmaniaStatus.modelName}</span>
@@ -255,7 +255,7 @@ const StepModel = React.memo(function StepModel({
                   <select
                     value={localModel}
                     onChange={(e) => onLocalModelChange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg text-sm bg-bg-primary border border-border-primary focus:border-accent-green focus:outline-none"
+                    className="w-full px-3 py-2 text-sm bg-bg-primary border border-border-primary focus:border-accent-green focus:outline-none"
                   >
                     {tasmaniaModels.map((m) => (
                       <option key={m.path} value={m.name}>

@@ -379,7 +379,7 @@ export default function ObsidianVaultView() {
                       <button
                         key={file.path}
                         onClick={() => handleSelectFile(file.path)}
-                        className="w-full text-left p-3 rounded-lg border transition-all bg-card border-border hover:bg-secondary/50 hover:border-border/80"
+                        className="w-full text-left p-3 border transition-all bg-card border-border hover:bg-secondary/50 hover:border-border/80"
                       >
                         <div className="flex items-start gap-2">
                           <FileText className="w-3.5 h-3.5 mt-0.5 shrink-0 text-purple-500" />
@@ -450,7 +450,7 @@ export default function ObsidianVaultView() {
 
                   {/* Frontmatter */}
                   {selectedFile.frontmatter && Object.keys(selectedFile.frontmatter).length > 0 && (
-                    <div className="mx-4 mt-4 p-3 bg-secondary/50 border border-border rounded-lg text-sm shrink-0">
+                    <div className="mx-4 mt-4 p-3 bg-secondary/50 border border-border text-sm shrink-0">
                       {Object.entries(selectedFile.frontmatter).map(([key, value]) => (
                         <div key={key} className="flex gap-2">
                           <span className="text-muted-foreground font-mono text-xs">{key}:</span>

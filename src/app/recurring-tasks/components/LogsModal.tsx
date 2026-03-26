@@ -67,7 +67,7 @@ export function LogsModal({ selectedLogs, onClose, onRunIndexChange, logsContain
                 <select
                   value={selectedLogs.selectedRunIndex}
                   onChange={(e) => onRunIndexChange(parseInt(e.target.value))}
-                  className="flex-1 min-w-0 px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg truncate"
+                  className="flex-1 min-w-0 px-3 py-1.5 text-sm bg-secondary border border-border truncate"
                 >
                   {selectedLogs.runs.map((run, i) => (
                     <option key={i} value={i}>
@@ -83,7 +83,7 @@ export function LogsModal({ selectedLogs, onClose, onRunIndexChange, logsContain
               )}
               <button
                 onClick={onClose}
-                className="p-1 hover:bg-secondary rounded-lg transition-colors shrink-0"
+                className="p-1 hover:bg-secondary transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>

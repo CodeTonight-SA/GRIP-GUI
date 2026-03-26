@@ -391,7 +391,7 @@ export default function SchedulerCalendar({
         <div className="flex items-center gap-2">
           <button
             onClick={goToToday}
-            className={`px-3 py-1 text-xs rounded-lg border transition-colors font-medium ${
+            className={`px-3 py-1 text-xs border transition-colors font-medium ${
               isCurrentWeek
                 ? 'bg-primary/10 border-primary/30 text-primary'
                 : 'border-border hover:bg-secondary text-foreground'
@@ -402,13 +402,13 @@ export default function SchedulerCalendar({
           <div className="flex items-center">
             <button
               onClick={() => navigate(-1)}
-              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+              className="p-1.5 hover:bg-secondary transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => navigate(1)}
-              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+              className="p-1.5 hover:bg-secondary transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -652,7 +652,7 @@ export default function SchedulerCalendar({
             </div>
             <button
               onClick={() => setTooltip(null)}
-              className="p-1 hover:bg-secondary rounded-lg transition-colors shrink-0 -mr-1 -mt-1"
+              className="p-1 hover:bg-secondary transition-colors shrink-0 -mr-1 -mt-1"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -667,28 +667,28 @@ export default function SchedulerCalendar({
           <div className="grid grid-cols-2 gap-1.5 ml-4">
             <button
               onClick={() => { onRunTask(tooltip.event.task.id); setTooltip(null); }}
-              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors col-span-2"
+              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors col-span-2"
             >
               <Play className="w-3 h-3" />
               Run Now
             </button>
             <button
               onClick={() => { onViewLogs(tooltip.event.task.id); setTooltip(null); }}
-              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
+              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-secondary hover:bg-secondary/80 transition-colors"
             >
               <FileText className="w-3 h-3" />
               Logs
             </button>
             <button
               onClick={() => { onEditTask(tooltip.event.task); setTooltip(null); }}
-              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
+              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-secondary hover:bg-secondary/80 transition-colors"
             >
               <Pencil className="w-3 h-3" />
               Edit
             </button>
             <button
               onClick={() => { onDeleteTask(tooltip.event.task.id); setTooltip(null); }}
-              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg transition-colors col-span-2"
+              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors col-span-2"
             >
               <Trash2 className="w-3 h-3" />
               Delete

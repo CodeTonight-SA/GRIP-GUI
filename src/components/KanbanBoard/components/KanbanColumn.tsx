@@ -67,7 +67,7 @@ export function KanbanColumn({
         ref={setNodeRef}
         className={`
           flex-1 space-y-3 min-h-[200px] max-h-[calc(100vh-280px)] overflow-y-auto
-          rounded-lg transition-all duration-200 px-0.5
+          transition-all duration-200 px-0.5
           ${isOver ? 'bg-primary/5' : ''}
         `}
       >
