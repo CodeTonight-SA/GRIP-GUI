@@ -20,6 +20,7 @@ import {
 import { useClaude } from '@/hooks/useClaude';
 import { useElectronSkills } from '@/hooks/useElectron';
 import { SKILLS_DATABASE, type Skill } from '@/lib/skills-database';
+import { GRIP_SKILLS, SKILL_CATEGORIES, type SkillCategory } from '@/lib/grip-skills';
 import SkillInstallDialog from '@/components/SkillInstallDialog';
 import ProviderBadge from '@/components/ProviderBadge';
 
@@ -199,7 +200,7 @@ export default function SkillsPage() {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold tracking-tight">Skills Marketplace</h1>
+            <h1 className="text-xl lg:text-2xl font-bold tracking-tight">Skills</h1>
             <p className="text-muted-foreground text-xs lg:text-sm mt-1 hidden sm:block">
               {hasElectron
                 ? 'Install skills directly to enhance your AI Agents'
@@ -367,7 +368,53 @@ export default function SkillsPage() {
         </div>
       </div>
 
-      {/* Skills Table */}
+      {/* GRIP Native Skills */}
+      <div className="border border-border bg-card p-4 mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-[var(--primary)]" />
+            <span className="font-mono text-xs tracking-widest text-[var(--foreground)]">GRIP NATIVE SKILLS</span>
+            <span className="font-mono text-[10px] tracking-wider text-[var(--primary)] border border-[var(--primary)] px-1.5 py-0.5">{GRIP_SKILLS.length}</span>
+          </div>
+          <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)]">{Object.keys(SKILL_CATEGORIES).length} CATEGORIES</span>
+        </div>
+        <div className="space-y-3">
+          {(Object.entries(SKILL_CATEGORIES) as [SkillCategory, { label: string; count: number }][]).map(([cat, meta]) => {
+            const skills = GRIP_SKILLS.filter(s => s.category === cat);
+            if (skills.length === 0) return null;
+            const isParamount = cat === 'paramount';
+            return (
+              <div key={cat}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className={`font-mono text-[10px] tracking-widest ${isParamount ? 'text-[var(--warning)]' : 'text-[var(--muted-foreground)]'}`}>
+                    {meta.label}
+                  </span>
+                  {isParamount && (
+                    <span className="font-mono text-[8px] tracking-wider text-[var(--warning)] border border-[var(--warning)]/30 px-1 py-0.5 bg-[var(--warning)]/5">ALWAYS ACTIVE</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {skills.map(skill => (
+                    <span
+                      key={skill.id}
+                      title={skill.description}
+                      className={`inline-flex items-center px-2 py-0.5 font-mono text-[10px] tracking-wider border transition-colors cursor-default ${
+                        isParamount
+                          ? 'border-[var(--warning)]/30 text-[var(--warning)] bg-[var(--warning)]/5'
+                          : 'border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]'
+                      }`}
+                    >
+                      {skill.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Skills Marketplace Table */}
       <div className="flex-1 border border-border bg-card overflow-hidden flex flex-col min-h-0 mt-4">
         <div className="shrink-0">
           <table className="w-full">
