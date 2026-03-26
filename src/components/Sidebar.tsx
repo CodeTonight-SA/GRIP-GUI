@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Terminal,
   FolderKanban,
@@ -45,10 +45,21 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
+const navContainerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.05 } },
+};
+
+const navItemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
+};
+
 export default function Sidebar({ isMobile = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen, darkMode, toggleDarkMode, vaultUnreadCount } = useStore();
+  const reduceMotion = useReducedMotion();
 
   const sidebarWidth = isMobile ? 240 : (sidebarCollapsed ? 64 : 240);
   const showLabels = isMobile || !sidebarCollapsed;
@@ -131,11 +142,23 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 px-1 space-y-0.5 overflow-y-auto">
+      <motion.nav
+        className="flex-1 py-3 px-1 space-y-0.5 overflow-y-auto"
+        variants={reduceMotion ? undefined : navContainerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {navItems.map((item) => (
-          <NavLink key={item.href} item={item} onClick={isMobile ? handleNavClick : undefined} />
+          <motion.div
+            key={item.href}
+            variants={reduceMotion ? undefined : navItemVariants}
+            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+            transition={{ duration: 0.15 }}
+          >
+            <NavLink item={item} onClick={isMobile ? handleNavClick : undefined} />
+          </motion.div>
         ))}
-      </nav>
+      </motion.nav>
 
       {/* Bottom section */}
       <div className="border-t border-[var(--border)]">

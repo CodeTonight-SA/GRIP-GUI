@@ -4,10 +4,10 @@ import { useStore } from '@/store';
 import Sidebar from './Sidebar';
 import CommandPalette from './CommandPalette';
 import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Menu, X, Download, ExternalLink, RotateCw, Loader2 } from 'lucide-react';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -170,6 +170,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const mainMarginLeft = isMobile ? 0 : (sidebarCollapsed ? 72 : 240);
 
+  // Page transitions
+  const pathname = usePathname();
+  const reduceMotion = useReducedMotion();
+
   // Konami code easter egg
   const router = useRouter();
   const konamiRef = useRef(0);
@@ -235,7 +239,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="min-h-screen pt-16 lg:pt-0 p-4 lg:p-6 pb-6"
       >
-        {children}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </motion.main>
 
       {/* Update Available Dialog */}
