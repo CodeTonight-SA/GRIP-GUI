@@ -1,7 +1,5 @@
 # GRIP Commander
 
-![GRIP Commander](screenshots/background-2.png)
-
 Cross-domain knowledge work engine. Deploy, monitor, and orchestrate AI agents from one interface.
 
 **Electron 33 + Next.js 16 + React 19 + 7 MCP Servers**
@@ -9,8 +7,6 @@ Cross-domain knowledge work engine. Deploy, monitor, and orchestrate AI agents f
 [![Release](https://img.shields.io/github/v/release/CodeTonight-SA/GRIP-GUI?include_prereleases&label=release)](https://github.com/CodeTonight-SA/GRIP-GUI/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/CodeTonight-SA/GRIP-GUI/actions/workflows/ci.yml/badge.svg)](https://github.com/CodeTonight-SA/GRIP-GUI/actions)
-
-![GRIP Dashboard](screenshots/0.png)
 
 ---
 
@@ -191,8 +187,6 @@ flowchart LR
 
 Run multiple Claude Code agents simultaneously, each in its own isolated PTY terminal session.
 
-![Agents View](screenshots/agetns.png)
-
 - Spawn unlimited concurrent agents across multiple projects
 - Each agent runs in an isolated terminal with full PTY support
 - Assign skills, model selection (sonnet, opus, haiku), and project context per agent
@@ -206,8 +200,6 @@ Run multiple Claude Code agents simultaneously, each in its own isolated PTY ter
 
 A meta-agent that programmatically controls all other agents. Give it a high-level task and it delegates, monitors, and coordinates the work.
 
-![Super Agent](screenshots/super-agent.png)
-
 - Creates, starts, and stops agents via MCP tools
 - Delegates tasks based on agent capabilities
 - Monitors progress, captures output, handles errors
@@ -216,8 +208,6 @@ A meta-agent that programmatically controls all other agents. Give it a high-lev
 ### Kanban Task Management
 
 Task board integrated with the agent system. Tasks flow through columns and can be automatically assigned to agents based on skill matching.
-
-![Kanban Board](screenshots/kanban.png)
 
 ```
 Backlog → Planned → Ongoing → Done
@@ -239,13 +229,9 @@ Onboarding wizard and concept deep-dives for understanding the GRIP ecosystem.
 
 Monitor Claude Code API usage across all agents — token consumption, cost tracking, activity patterns.
 
-![Usage Stats](screenshots/stats.png)
-
 ### Skills & Plugin System
 
 Extend agent capabilities with skills from [skills.sh](https://skills.sh).
-
-![Skills Management](screenshots/skills.png)
 
 - Code Intelligence: LSP plugins for TypeScript, Python, Rust, Go
 - External Integrations: GitHub, GitLab, Jira, Figma, Slack, Vercel
@@ -254,8 +240,6 @@ Extend agent capabilities with skills from [skills.sh](https://skills.sh).
 ### Vault
 
 Persistent document storage that agents can read, write, and search across sessions.
-
-![Vault](screenshots/vault.png)
 
 - Markdown documents with title, content, tags, file attachments
 - Folder organisation with nested hierarchies
