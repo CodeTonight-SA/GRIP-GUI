@@ -20,6 +20,9 @@ import {
   Clock,
   HardDrive,
   Share2,
+  Dna,
+  Activity,
+  Layers,
 } from 'lucide-react';
 import { useMemory, formatBytes, timeAgo } from '@/hooks/useMemory';
 import type { ProjectMemory, MemoryFile } from '@/types/electron';
@@ -299,7 +302,7 @@ export default function MemoryPage() {
     refresh,
   } = useMemory();
 
-  const [activeTab, setActiveTab] = useState<'projects' | 'agents'>('agents');
+  const [activeTab, setActiveTab] = useState<'projects' | 'agents' | 'grip'>('grip');
   const [editingFile, setEditingFile] = useState<MemoryFile | null>(null);
   const [showNewFileModal, setShowNewFileModal] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
@@ -374,6 +377,7 @@ export default function MemoryPage() {
       {/* ── Tabs ── */}
       <div className="flex items-center gap-0 border-b border-border mb-4 shrink-0">
         {([
+          { id: 'grip', label: 'GRIP Status', icon: Dna },
           { id: 'agents', label: 'Agents', icon: Share2 },
           { id: 'projects', label: 'Projects', icon: FolderOpen },
         ] as const).map(({ id, label, icon: Icon }) => (
@@ -390,6 +394,13 @@ export default function MemoryPage() {
           </button>
         ))}
       </div>
+
+      {/* ── GRIP Status tab ── */}
+      {activeTab === 'grip' && (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <GripStatusPanel />
+        </div>
+      )}
 
       {/* ── Agents graph tab ── */}
       {activeTab === 'agents' && (
@@ -624,6 +635,167 @@ export default function MemoryPage() {
         </AnimatePresence>
 
       </>}
+    </div>
+  );
+}
+
+// ─── GRIP Status Panel ──────────────────────────────────────────────────────
+
+function GripStatusPanel() {
+  const [genome, setGenome] = useState<{ generation: number; geneCount: number; fitness: number } | null>(null);
+  const [activeModes, setActiveModes] = useState<string[]>([]);
+  const [instance, setInstance] = useState<{ sha: string; gen: number; messages: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // Load genome
+        if (window.electronAPI?.grip?.runCommand) {
+          const genomeRaw = await window.electronAPI.grip.runCommand('cat ~/.claude/cache/genome.json 2>/dev/null');
+          if (genomeRaw) {
+            try {
+              const g = JSON.parse(genomeRaw);
+              setGenome({ generation: g.generation || 0, geneCount: g.genes?.length || 0, fitness: g.fitness || 0 });
+            } catch { /* no genome */ }
+          }
+
+          // Load active modes
+          const modesRaw = await window.electronAPI.grip.runCommand('cat ~/.claude/.active-modes 2>/dev/null');
+          if (modesRaw) {
+            setActiveModes(modesRaw.trim().split('\n').filter(Boolean));
+          }
+
+          // Load instance
+          const instanceRaw = await window.electronAPI.grip.runCommand('cat ~/.claude/projects/*/grip/index.json 2>/dev/null | head -1');
+          if (instanceRaw) {
+            try {
+              const inst = JSON.parse(instanceRaw);
+              setInstance({ sha: inst.sha?.slice(0, 8) || '?', gen: inst.generation || 0, messages: inst.messages || 0 });
+            } catch { /* no instance */ }
+          }
+        }
+      } catch { /* fallback */ }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-[var(--muted-foreground)]">
+        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <span className="font-mono text-xs tracking-widest">LOADING GRIP STATE...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 pb-6">
+      {/* Genome DNA */}
+      <div className="border border-[var(--border)] bg-[var(--card)] p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Dna className="w-4 h-4 text-accent-purple" />
+          <span className="font-mono text-xs tracking-widest text-[var(--foreground)]">GENOME DNA</span>
+        </div>
+        {genome ? (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="border border-[var(--border)] p-3 text-center">
+              <div className="font-mono text-2xl font-bold text-accent-purple">{genome.generation}</div>
+              <div className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">GENERATION</div>
+            </div>
+            <div className="border border-[var(--border)] p-3 text-center">
+              <div className="font-mono text-2xl font-bold text-accent-cyan">{genome.geneCount}</div>
+              <div className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">GENES</div>
+            </div>
+            <div className="border border-[var(--border)] p-3 text-center">
+              <div className="font-mono text-2xl font-bold" style={{ color: genome.fitness > 0.5 ? 'var(--success)' : 'var(--warning)' }}>
+                {genome.fitness.toFixed(3)}
+              </div>
+              <div className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">FITNESS</div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted-foreground)]">No genome data. Run <code className="text-[var(--primary)]">/evo</code> to initialise.</p>
+        )}
+      </div>
+
+      {/* Active Modes */}
+      <div className="border border-[var(--border)] bg-[var(--card)] p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Layers className="w-4 h-4 text-accent-cyan" />
+          <span className="font-mono text-xs tracking-widest text-[var(--foreground)]">ACTIVE MODES</span>
+          <span className="font-mono text-[10px] text-[var(--primary)] border border-[var(--primary)] px-1.5 py-0.5">
+            {activeModes.length}/3
+          </span>
+        </div>
+        {activeModes.length > 0 ? (
+          <div className="flex gap-2 flex-wrap">
+            {activeModes.map(mode => (
+              <span
+                key={mode}
+                className="px-3 py-1.5 border border-[var(--primary)] text-[var(--primary)] font-mono text-xs tracking-widest bg-[var(--primary)]/5"
+              >
+                {mode.toUpperCase()}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted-foreground)]">No active modes. Press <kbd className="px-1 bg-[var(--secondary)] border border-[var(--border)]">6</kbd> to select.</p>
+        )}
+      </div>
+
+      {/* Instance State */}
+      <div className="border border-[var(--border)] bg-[var(--card)] p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Activity className="w-4 h-4 text-accent-green" />
+          <span className="font-mono text-xs tracking-widest text-[var(--foreground)]">INSTANCE STATE</span>
+        </div>
+        {instance ? (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="border border-[var(--border)] p-3 text-center">
+              <div className="font-mono text-lg font-bold text-[var(--foreground)]">{instance.sha}</div>
+              <div className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">SHA</div>
+            </div>
+            <div className="border border-[var(--border)] p-3 text-center">
+              <div className="font-mono text-2xl font-bold text-accent-green">{instance.gen}</div>
+              <div className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">GEN</div>
+            </div>
+            <div className="border border-[var(--border)] p-3 text-center">
+              <div className="font-mono text-2xl font-bold text-[var(--foreground)]">{instance.messages}</div>
+              <div className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">MESSAGES</div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted-foreground)]">No instance state. Run <code className="text-[var(--primary)]">/recall</code> to load.</p>
+        )}
+      </div>
+
+      {/* GRIP-First Thinking Tiers */}
+      <div className="border border-[var(--border)] bg-[var(--card)] p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="w-4 h-4 text-[var(--primary)]" />
+          <span className="font-mono text-xs tracking-widest text-[var(--foreground)]">RETRIEVAL TIERS</span>
+        </div>
+        <div className="space-y-2">
+          {[
+            { tier: 0, label: 'SESSION CONTEXT', cost: '~0 tokens', desc: 'Mental model + conversation state' },
+            { tier: 1, label: 'KONO SEARCH', cost: '~200 tokens', desc: 'Semantic vector search' },
+            { tier: 2, label: 'STRUCTURED LOOKUP', cost: '~500 tokens', desc: 'Known file paths' },
+            { tier: 3, label: 'FILESYSTEM SEARCH', cost: '~1K tokens', desc: 'Grep/Glob patterns' },
+            { tier: 4, label: 'EXPLORE AGENT', cost: '~88K tokens', desc: 'Last resort — full exploration' },
+          ].map(({ tier, label, cost, desc }) => (
+            <div key={tier} className="flex items-center gap-3 py-1">
+              <span className="font-mono text-xs text-[var(--primary)] w-6 shrink-0">T{tier}</span>
+              <div className="flex-1">
+                <span className="font-mono text-[10px] tracking-widest text-[var(--foreground)]">{label}</span>
+                <span className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] ml-2">{desc}</span>
+              </div>
+              <span className="font-mono text-[10px] text-accent-green shrink-0">{cost}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
