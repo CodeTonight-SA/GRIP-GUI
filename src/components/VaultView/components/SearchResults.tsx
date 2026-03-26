@@ -71,7 +71,7 @@ export default function SearchResults({ results, query, onSelectDocument }: Sear
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.03 }}
             onClick={() => onSelectDocument(doc.id)}
-            className="w-full text-left p-3 rounded-lg border border-border bg-card hover:bg-secondary/50 hover:border-border/80 transition-all"
+            className="w-full text-left p-3 border border-border bg-card hover:bg-secondary/50 hover:border-border/80 transition-all"
           >
             <h3 className="font-medium text-sm text-foreground">{doc.title}</h3>
 
