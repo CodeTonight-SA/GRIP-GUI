@@ -98,7 +98,7 @@ export function AgentCard({ agent, isSelected, onSelect, onEdit, index = 0 }: Ag
               >
                 <Pencil className="w-3.5 h-3.5 text-text-muted hover:text-accent-blue" />
               </button>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
+              <span className={`text-xs px-2 py-0.5 font-mono tracking-wider ${
                 isSuper && agent.status === 'running'
                   ? 'bg-amber-500/20 text-amber-400'
                   : `${statusConfig.bg} ${statusConfig.text}`

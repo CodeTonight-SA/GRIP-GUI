@@ -45,10 +45,10 @@ function persistStreamContent(
 }
 
 const SUGGESTED_PROMPTS = [
-  { text: 'What can GRIP help me with?', icon: '?' },
-  { text: 'Review this code for security issues', icon: 'S' },
-  { text: 'Help me write a project proposal', icon: 'W' },
-  { text: 'Analyse this business decision', icon: 'D' },
+  { text: 'Explore this codebase and suggest architecture improvements', icon: 'A' },
+  { text: 'Review my last 5 commits for security issues', icon: 'S' },
+  { text: 'Draft a technical proposal with GRIP design principles', icon: 'W' },
+  { text: 'Red-team this decision using the Devil\'s Advocate framework', icon: 'R' },
 ];
 
 interface ChatInterfaceProps {
