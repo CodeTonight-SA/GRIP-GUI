@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Activity, Layers, Sparkles, Shield, Clock, Cpu, Zap } from 'lucide-react';
 import GripPulse from './GripPulse';
 import SessionSparkline from './SessionSparkline';
@@ -29,6 +30,20 @@ export default function GripStatusBar({
   isStreaming = false,
   messageTimestamps = [],
 }: GripStatusBarProps) {
+  // Session elapsed time — updates every 30s (not every second, to avoid re-renders)
+  const [elapsed, setElapsed] = useState('');
+  useEffect(() => {
+    const startTime = Date.now();
+    const update = () => {
+      const mins = Math.floor((Date.now() - startTime) / 60000);
+      if (mins < 1) setElapsed('');
+      else if (mins < 60) setElapsed(`${mins}m`);
+      else setElapsed(`${Math.floor(mins / 60)}h${mins % 60}m`);
+    };
+    update();
+    const timer = setInterval(update, 30000);
+    return () => clearInterval(timer);
+  }, []);
   return (
     <div className="fixed bottom-0 left-0 right-0 z-20 h-6 border-t border-[var(--border)] bg-[var(--card)] flex items-center px-4 gap-6 shrink-0 overflow-hidden">
       {/* Ambient sweep — subtle horizontal light that crosses the status bar */}
@@ -119,7 +134,12 @@ export default function GripStatusBar({
         </span>
       </div>
 
-      {/* GRIP version */}
+      {/* Session elapsed + GRIP version */}
+      {elapsed && (
+        <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] opacity-40">
+          {elapsed}
+        </span>
+      )}
       <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] opacity-40">
         GRIP 0.1.0
       </span>
