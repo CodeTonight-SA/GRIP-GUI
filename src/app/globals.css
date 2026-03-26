@@ -189,7 +189,7 @@ html {
   /* Typography */
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono', 'GeistMono', ui-monospace, monospace;
-  --font-display: 'Syne', ui-sans-serif, sans-serif;
+  --font-display: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ============================================
@@ -222,7 +222,7 @@ html {
   td, th, code, pre {
     font-variant-numeric: tabular-nums;
   }
-  /* Headings — Syne for display. Swiss Nihilism Law 5. */
+  /* Headings — same typeface as body, differentiated by weight + tracking. Swiss Nihilism Law 5. */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     font-weight: 700;
