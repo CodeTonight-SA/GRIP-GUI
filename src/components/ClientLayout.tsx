@@ -10,6 +10,7 @@ import { Menu, X, Download, ExternalLink, RotateCw, Loader2 } from 'lucide-react
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { applyTheme, getTheme, DEFAULT_THEME } from '@/lib/themes';
+import KeyboardToast, { showKeyboardToast } from './KeyboardToast';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -216,16 +217,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault();
         router.push('/settings');
+        showKeyboardToast('\u2318,', 'SETTINGS');
         return;
       }
 
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       // Number key navigation
+      const NAV_LABELS = ['ENGINE', 'AGENTS', 'TASKS', 'VAULT', 'SKILLS', 'MODES', 'AUTOMATIONS', 'SCHEDULED', 'USAGE'];
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= 9 && NAV_ROUTES[num - 1]) {
         e.preventDefault();
         router.push(NAV_ROUTES[num - 1]);
+        showKeyboardToast(e.key, NAV_LABELS[num - 1]);
         return;
       }
 
@@ -233,16 +237,20 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       if (e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         useStore.getState().toggleDarkMode();
+        const isDark = useStore.getState().darkMode;
+        showKeyboardToast('D', isDark ? 'DARK MODE' : 'LIGHT MODE');
         return;
       }
       if (e.key === 't' || e.key === 'T') {
         e.preventDefault();
         useStore.getState().cycleTheme();
+        showKeyboardToast('T', getTheme(useStore.getState().theme).name.toUpperCase());
         return;
       }
       if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
         router.push('/memory');
+        showKeyboardToast('M', 'MEMORY');
         return;
       }
     };
@@ -306,6 +314,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       {/* Command Palette */}
       <CommandPalette />
       <KeyboardShortcutsHelp />
+      <KeyboardToast />
 
       {/* Main Content */}
       <motion.main
