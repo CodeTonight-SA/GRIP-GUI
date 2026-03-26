@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import { GRIP_CONCEPTS } from '@/lib/grip-concepts';
 import Link from 'next/link';
 import { ArrowRight, BookOpen } from 'lucide-react';
@@ -7,6 +8,8 @@ import SystemOverview from '@/components/Engine/SystemOverview';
 import VortexScene from '@/components/Vortex';
 
 export default function LearnPage() {
+  const reduceMotion = useReducedMotion();
+
   return (
     <div className="max-w-5xl mx-auto py-8 px-4">
       {/* Header */}
@@ -57,8 +60,14 @@ export default function LearnPage() {
 
       {/* Concepts — numbered panels */}
       <div className="space-y-6">
-        {GRIP_CONCEPTS.map((concept) => (
-          <div key={concept.id} className="border border-[var(--border)] hover:border-[var(--primary)]/50 transition-colors">
+        {GRIP_CONCEPTS.map((concept, index) => (
+          <motion.div
+            key={concept.id}
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: reduceMotion ? 0 : index * 0.1, ease: 'easeOut' }}
+            className="border border-[var(--border)] hover:border-[var(--primary)]/50 transition-colors"
+          >
             <div className="grid grid-cols-12 gap-0">
               {/* Number column — 2 cols */}
               <div className="col-span-2 lg:col-span-1 bg-black flex items-center justify-center p-4">
@@ -109,7 +118,7 @@ export default function LearnPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
