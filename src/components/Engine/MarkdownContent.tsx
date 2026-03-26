@@ -80,6 +80,84 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   );
 }
 
+/** Parse a row of pipe-delimited cells: | a | b | c | → ['a', 'b', 'c'] */
+function parseTableRow(line: string): string[] {
+  return line.split('|').slice(1, -1).map(cell => cell.trim());
+}
+
+/** Check if a line is a markdown table separator: |---|:---:|---:| */
+function isTableSeparator(line: string): boolean {
+  return /^\|[\s:-]+(\|[\s:-]+)*\|$/.test(line.trim());
+}
+
+/** Check if a line looks like a table row: | content | content | */
+function isTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2;
+}
+
+/** Parse column alignments from the separator row */
+function parseAlignments(separator: string): ('left' | 'center' | 'right')[] {
+  return parseTableRow(separator).map(cell => {
+    const trimmed = cell.trim();
+    const left = trimmed.startsWith(':');
+    const right = trimmed.endsWith(':');
+    if (left && right) return 'center';
+    if (right) return 'right';
+    return 'left';
+  });
+}
+
+/** Render a markdown table with Swiss Nihilism styling */
+function TableBlock({ rows, keyPrefix }: { rows: string[]; keyPrefix: string }) {
+  if (rows.length < 2) return null;
+
+  const headers = parseTableRow(rows[0]);
+  const hasSeparator = rows.length >= 2 && isTableSeparator(rows[1]);
+  const alignments = hasSeparator ? parseAlignments(rows[1]) : headers.map(() => 'left' as const);
+  const dataRows = rows.slice(hasSeparator ? 2 : 1).map(parseTableRow);
+
+  return (
+    <div className="my-2 overflow-x-auto border border-[var(--border)]">
+      <table className="w-full border-collapse font-mono text-xs">
+        <thead>
+          <tr className="bg-[var(--secondary)]">
+            {headers.map((header, j) => (
+              <th
+                key={`${keyPrefix}-th-${j}`}
+                className="px-3 py-1.5 text-left font-bold text-[var(--foreground)] border-b border-[var(--border)] whitespace-nowrap"
+                style={{ textAlign: alignments[j] }}
+              >
+                {renderInline(header)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {dataRows.map((row, i) => (
+            <tr
+              key={`${keyPrefix}-tr-${i}`}
+              className={`border-b border-[var(--border)] last:border-b-0 transition-colors hover:bg-[var(--secondary)]/50 ${
+                i % 2 === 1 ? 'bg-[var(--secondary)]/20' : ''
+              }`}
+            >
+              {headers.map((_, j) => (
+                <td
+                  key={`${keyPrefix}-td-${i}-${j}`}
+                  className="px-3 py-1.5 text-[var(--foreground)]"
+                  style={{ textAlign: alignments[j] }}
+                >
+                  {renderInline(row[j] || '')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 interface MarkdownContentProps {
   content: string;
 }
@@ -91,12 +169,30 @@ function MarkdownContent({ content }: MarkdownContentProps) {
     let inCodeBlock = false;
     let codeBuffer: string[] = [];
     let codeLanguage = '';
+    let tableBuffer: string[] = [];
+
+    const flushTable = (index: number) => {
+      if (tableBuffer.length >= 2) {
+        result.push(<TableBlock key={`table-${index}`} rows={tableBuffer} keyPrefix={`t${index}`} />);
+      } else {
+        // Not a real table — render as regular paragraphs
+        tableBuffer.forEach((row, j) => {
+          result.push(
+            <p key={`p-${index}-${j}`} className="text-sm leading-relaxed">
+              {renderInline(row)}
+            </p>
+          );
+        });
+      }
+      tableBuffer = [];
+    };
 
     for (let i = 0; i < blocks.length; i++) {
       const line = blocks[i];
 
       // Code block toggle
       if (line.startsWith('```')) {
+        if (tableBuffer.length > 0) flushTable(i);
         if (inCodeBlock) {
           result.push(
             <CodeBlock key={`code-${i}`} code={codeBuffer.join('\n')} language={codeLanguage} />
@@ -115,6 +211,15 @@ function MarkdownContent({ content }: MarkdownContentProps) {
         codeBuffer.push(line);
         continue;
       }
+
+      // Table row detection — buffer consecutive pipe-delimited lines
+      if (isTableRow(line)) {
+        tableBuffer.push(line);
+        continue;
+      }
+
+      // Flush any buffered table rows before processing non-table line
+      if (tableBuffer.length > 0) flushTable(i);
 
       // Empty line
       if (!line.trim()) {
@@ -176,6 +281,9 @@ function MarkdownContent({ content }: MarkdownContentProps) {
         </p>
       );
     }
+
+    // Flush any remaining table buffer
+    if (tableBuffer.length > 0) flushTable(blocks.length);
 
     // Handle unclosed code block (streaming — code still arriving)
     if (inCodeBlock && codeBuffer.length > 0) {
