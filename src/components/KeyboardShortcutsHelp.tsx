@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 const SHORTCUTS = [
   { category: 'NAVIGATION', items: [
@@ -13,6 +14,7 @@ const SHORTCUTS = [
   ]},
   { category: 'COMMANDS', items: [
     { keys: ['Cmd', 'K'], description: 'Command Palette' },
+    { keys: ['Cmd', 'Shift', 'F'], description: 'Focus Mode' },
     { keys: ['D'], description: 'Toggle Dark Mode' },
     { keys: ['?'], description: 'This Help' },
   ]},
@@ -30,6 +32,7 @@ const SHORTCUTS = [
  */
 export default function KeyboardShortcutsHelp() {
   const [isOpen, setIsOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -49,15 +52,27 @@ export default function KeyboardShortcutsHelp() {
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[300]">
+    <AnimatePresence>
+      {isOpen && (
+    <motion.div
+      className="fixed inset-0 z-[300]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+    >
       <div
         className="absolute inset-0 bg-black/80"
         onClick={() => setIsOpen(false)}
       />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg animate-fade-in">
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg"
+        initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={reduceMotion ? undefined : { opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+      >
         <div className="border border-[var(--border)] bg-[var(--card)]">
           {/* Header */}
           <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
@@ -74,8 +89,13 @@ export default function KeyboardShortcutsHelp() {
 
           {/* Shortcuts */}
           <div className="p-6 space-y-6">
-            {SHORTCUTS.map((group) => (
-              <div key={group.category}>
+            {SHORTCUTS.map((group, groupIndex) => (
+              <motion.div
+                key={group.category}
+                initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: reduceMotion ? 0 : groupIndex * 0.1 }}
+              >
                 <span className="font-mono text-[10px] tracking-widest text-[var(--primary)] block mb-2">
                   {group.category}
                 </span>
@@ -100,7 +120,7 @@ export default function KeyboardShortcutsHelp() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
 
@@ -111,7 +131,9 @@ export default function KeyboardShortcutsHelp() {
             </span>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
