@@ -2,6 +2,7 @@
 
 import { Activity, Layers, Sparkles, Shield, Clock, Cpu, Zap } from 'lucide-react';
 import GripPulse from './GripPulse';
+import SessionSparkline from './SessionSparkline';
 import type { GripMetrics } from '@/lib/grip-session';
 
 interface GripStatusBarProps {
@@ -11,6 +12,7 @@ interface GripStatusBarProps {
   safetyActive?: boolean;
   metrics?: GripMetrics | null;
   isStreaming?: boolean;
+  messageTimestamps?: number[];
 }
 
 /**
@@ -25,6 +27,7 @@ export default function GripStatusBar({
   safetyActive = true,
   metrics,
   isStreaming = false,
+  messageTimestamps = [],
 }: GripStatusBarProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-20 h-6 border-t border-[var(--border)] bg-[var(--card)] flex items-center px-4 gap-6 shrink-0 overflow-hidden">
@@ -93,6 +96,13 @@ export default function GripStatusBar({
         <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
           {metrics.numTurns} TURNS
         </span>
+      )}
+
+      {/* Session activity sparkline — novel visualisation */}
+      {messageTimestamps.length >= 2 && (
+        <div className="flex items-center gap-1.5" title="Session activity">
+          <SessionSparkline timestamps={messageTimestamps} />
+        </div>
       )}
 
       {/* Spacer */}
