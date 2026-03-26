@@ -15,6 +15,18 @@
  * - Parse stream events to extract text deltas in real-time
  */
 
+export interface ToolUseEvent {
+  toolName: string;
+  toolId: string;
+  input: Record<string, unknown>;
+}
+
+export interface ToolResultEvent {
+  toolId: string;
+  output: string;
+  isError?: boolean;
+}
+
 export interface GripMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -25,6 +37,9 @@ export interface GripMessage {
   metrics?: GripMetrics;
   streaming?: boolean;
   imageDataUrl?: string;
+  toolUses?: ToolUseEvent[];
+  toolResults?: ToolResultEvent[];
+  isThinking?: boolean;
 }
 
 export interface GripMetrics {
@@ -38,14 +53,23 @@ export interface GripMetrics {
 
 export interface StreamEvent {
   type: string;
+  subtype?: string;
   message?: {
-    content: Array<{ type: string; text?: string }>;
+    content: Array<{ type: string; text?: string; name?: string; id?: string; input?: Record<string, unknown> }>;
   };
   delta?: {
     type: string;
     text?: string;
   };
   text?: string;
+  // tool_use fields
+  name?: string;
+  id?: string;
+  input?: Record<string, unknown>;
+  tool_use_id?: string;
+  content?: string | Array<{ type: string; text?: string }>;
+  is_error?: boolean;
+  // result fields
   cost_usd?: number;
   num_turns?: number;
   session_id?: string;
@@ -155,6 +179,38 @@ export function extractTextFromEvent(event: StreamEvent): string | null {
 }
 
 /**
+ * Extract tool_use event data.
+ */
+export function extractToolUse(event: StreamEvent): ToolUseEvent | null {
+  if (event.type === 'tool_use' && event.name && event.id) {
+    return { toolName: event.name, toolId: event.id, input: event.input || {} };
+  }
+  // Also check content blocks for tool_use
+  if (event.message?.content) {
+    const toolBlock = event.message.content.find(b => b.type === 'tool_use');
+    if (toolBlock?.name && toolBlock?.id) {
+      return { toolName: toolBlock.name, toolId: toolBlock.id, input: toolBlock.input || {} };
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract tool_result event data.
+ */
+export function extractToolResult(event: StreamEvent): ToolResultEvent | null {
+  if (event.type === 'tool_result' && event.tool_use_id) {
+    const output = typeof event.content === 'string'
+      ? event.content
+      : Array.isArray(event.content)
+        ? event.content.filter(b => b.type === 'text').map(b => b.text || '').join('')
+        : '';
+    return { toolId: event.tool_use_id, output, isError: event.is_error };
+  }
+  return null;
+}
+
+/**
  * Extract metrics from a result event.
  */
 export function extractMetrics(event: StreamEvent): GripMetrics | null {
@@ -190,12 +246,17 @@ export function isElectronEnv(): boolean {
  *
  * @param onPromptSessionId - Called with the prompt session ID once available (for stop button)
  */
+export type GripStreamEvent = {
+  type: string;
+  data: string | GripMetrics | ToolUseEvent | ToolResultEvent;
+};
+
 export async function* sendToGrip(
   prompt: string,
   sessionId?: string,
   model: string = 'sonnet',
   onPromptSessionId?: (id: string) => void,
-): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
+): AsyncGenerator<GripStreamEvent> {
   // Electron path: use IPC for real PTY streaming
   if (isElectronEnv()) {
     yield* sendToGripElectron(prompt, sessionId, model, onPromptSessionId);
@@ -247,6 +308,14 @@ export async function* sendToGrip(
           if (text) {
             yield { type: 'text', data: text };
           }
+          const toolUse = extractToolUse(event);
+          if (toolUse) {
+            yield { type: 'tool_use', data: toolUse };
+          }
+          const toolResult = extractToolResult(event);
+          if (toolResult) {
+            yield { type: 'tool_result', data: toolResult };
+          }
           const metrics = extractMetrics(event);
           if (metrics) {
             yield { type: 'metrics', data: metrics };
@@ -291,7 +360,7 @@ async function* sendToGripElectron(
   sessionId?: string,
   model: string = 'sonnet',
   onPromptSessionId?: (id: string) => void,
-): AsyncGenerator<{ type: 'text' | 'metrics' | 'error' | 'done'; data: string | GripMetrics }> {
+): AsyncGenerator<{ type: string; data: string | GripMetrics | ToolUseEvent | ToolResultEvent }> {
   // Wait up to 2s for preload bridge to initialise (app:// protocol timing)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let api = (window as any).electronAPI?.grip;
@@ -324,14 +393,14 @@ async function* sendToGripElectron(
     onPromptSessionId?.(promptSessionId);
 
     // Collect output via events using a promise-based queue
-    type ChunkType = 'text' | 'metrics' | 'done';
-    const chunks: Array<{ type: ChunkType; data: string | GripMetrics }> = [];
+    type ChunkType = 'text' | 'metrics' | 'tool_use' | 'tool_result' | 'done';
+    const chunks: Array<{ type: ChunkType; data: string | GripMetrics | ToolUseEvent | ToolResultEvent }> = [];
     let resolve: (() => void) | null = null;
     let done = false;
     // Line buffer: accumulate partial IPC chunks until we get complete lines
     let lineBuffer = '';
 
-    const pushChunk = (type: ChunkType, data: string | GripMetrics) => {
+    const pushChunk = (type: ChunkType, data: string | GripMetrics | ToolUseEvent | ToolResultEvent) => {
       chunks.push({ type, data });
       if (resolve) { resolve(); resolve = null; }
     };
@@ -342,6 +411,10 @@ async function* sendToGripElectron(
         const parsed: StreamEvent = JSON.parse(line);
         const text = extractTextFromEvent(parsed);
         if (text) pushChunk('text', text);
+        const toolUse = extractToolUse(parsed);
+        if (toolUse) pushChunk('tool_use', toolUse);
+        const toolResult = extractToolResult(parsed);
+        if (toolResult) pushChunk('tool_result', toolResult);
         const metrics = extractMetrics(parsed);
         if (metrics) pushChunk('metrics', metrics);
       } catch {
@@ -383,7 +456,7 @@ async function* sendToGripElectron(
         if (chunks.length > 0) {
           const chunk = chunks.shift()!;
           if (chunk.type === 'done') break;
-          yield { type: chunk.type as 'text' | 'metrics', data: chunk.data };
+          yield { type: chunk.type, data: chunk.data };
         } else {
           // Wait for next chunk
           await new Promise<void>(r => { resolve = r; });
