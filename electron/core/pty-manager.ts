@@ -46,7 +46,9 @@ export function killAllPty(): void {
  */
 export function writeProgrammaticInput(ptyProcess: pty.IPty, data: string): void {
   ptyProcess.write(data);
-  ptyProcess.write('\r');
+  // Delay CR so Claude Code finishes processing the paste event before receiving submit.
+  // Without this, CC v2.1.81+ absorbs the \r into the paste buffer (see #38).
+  setTimeout(() => ptyProcess.write('\r'), 50);
 }
 
 export function writeToPty(ptyId: string, data: string, isQuick = false): boolean {
