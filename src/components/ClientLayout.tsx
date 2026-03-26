@@ -133,6 +133,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     document.documentElement.classList.add('theme-transitioning');
     document.documentElement.classList.toggle('dark', darkMode);
     localStorage.setItem('grip-dark-mode', String(darkMode));
+    // Sync Electron window background to prevent native bg flash
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).electronAPI?.grip?.notifyThemeChanged?.(darkMode);
     // Remove transitioning class after animation completes to avoid
     // unnecessary transition overhead during normal interactions
     const timer = setTimeout(() => {

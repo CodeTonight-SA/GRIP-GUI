@@ -1,4 +1,4 @@
-import { BrowserWindow, protocol, app, shell } from 'electron';
+import { BrowserWindow, protocol, app, shell, nativeTheme } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { getAppBasePath } from '../utils';
@@ -28,6 +28,8 @@ export function setMainWindow(window: BrowserWindow | null) {
  * Create the main application window
  */
 export function createWindow() {
+  const isDarkMode = nativeTheme.shouldUseDarkColors;
+
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 1000,
@@ -35,12 +37,23 @@ export function createWindow() {
     minHeight: 800,
     title: 'GRIP',
     titleBarStyle: 'hiddenInset',
-    backgroundColor: '#EAEAEA',
+    // Match Swiss Nihilism background to prevent white flash on load
+    backgroundColor: isDarkMode ? '#0a0a0a' : '#EAEAEA',
+    // macOS vibrancy — sidebar area gets native translucency
+    vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
+    visualEffectState: 'active',
+    // Smooth window animation on macOS
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+
+  // Show window with fade-in once content is ready (prevents white flash)
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
   });
 
   // Load the Next.js app
@@ -85,6 +98,15 @@ export function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('Page loaded successfully');
   });
+}
+
+/**
+ * Update window background colour when theme changes.
+ * Called from renderer via IPC to keep Electron window bg in sync with CSS theme.
+ */
+export function updateWindowBackground(isDark: boolean): void {
+  if (!mainWindow) return;
+  mainWindow.setBackgroundColor(isDark ? '#0a0a0a' : '#EAEAEA');
 }
 
 /**

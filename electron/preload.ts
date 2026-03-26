@@ -625,6 +625,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('grip:killPrompt', sessionId),
     getHealth: () =>
       ipcRenderer.invoke('grip:getHealth'),
+    notifyThemeChanged: (isDark: boolean) =>
+      ipcRenderer.send('grip:themeChanged', isDark),
 
     // Persistent stream-json session (ultra-fast follow-up messages)
     startStreamSession: (options?: { model?: string }) =>
