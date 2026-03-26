@@ -33,6 +33,27 @@ Claude Code runs one agent at a time, in one terminal. GRIP Commander removes th
 
 ---
 
+## What's Included
+
+### Starter Pack (ships with Commander)
+
+GRIP Commander includes a curated subset of the GRIP ecosystem that works out of the box.
+
+| Component | Count | Includes |
+|-----------|-------|---------|
+| Skills | 15 | code-mode, testing-mode, review-mode, architect-mode, research-mode, design-principles, PR automation, session resume, context refresh, preplan |
+| Agents | 5 | context-refresh, direct-implementation, PR workflow, Explore, efficiency-auditor |
+| Safety hooks | 5 | confidence-gate, context-gate, dependency-guardian, destructive-git, secrets-detection |
+| CLI | 2 | `grip` (session manager), `grip-ut` (extended thinking wrapper) |
+
+### Full GRIP (by invitation)
+
+The complete GRIP operating system — 194 skills, 30 agents, 34 safety hooks, 25 convergence modules, evolutionary genome, KONO semantic memory, Broly meta-agent, and scientific measurement protocol.
+
+**This is a taste. [Request an invitation](https://grip-preview.vercel.app#invite) for a full 90-day evaluation.**
+
+---
+
 ## Architecture
 
 ### System Overview
@@ -196,7 +217,7 @@ Agent management requires the Electron app. The web UI at [localhost:3000](http:
 
 ## GRIP CLI — Session Context Inheritance
 
-GRIP Commander agents use the GRIP CLI binaries at `~/.claude/bin/` for session memory and context inheritance. Without these, agents start cold every time. With them, agents inherit context from previous sessions.
+The Starter Pack installs automatically on first launch. GRIP Commander agents use the GRIP CLI binaries at `~/.claude/bin/` for session memory and context inheritance. Without these, agents start cold every time. With them, agents inherit context from previous sessions.
 
 ### Binaries
 
