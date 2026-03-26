@@ -14,6 +14,21 @@ interface CommandItem {
   action: () => void;
 }
 
+const RECENT_KEY = 'grip-command-palette-recent';
+const MAX_RECENT = 5;
+
+function getRecentCommands(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+  } catch { return []; }
+}
+
+function saveRecentCommand(id: string): void {
+  const recent = getRecentCommands().filter(r => r !== id);
+  recent.unshift(id);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
+}
+
 export default function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -61,14 +76,24 @@ export default function CommandPalette() {
     { id: 'easter-vortex', label: 'Vortex', description: 'Enter the knowledge double helix', category: 'HIDDEN', action: () => router.push('/vortex') },
   ];
 
+  // Recently used commands (shown when no query)
+  const recentIds = getRecentCommands();
+  const recentCommands = recentIds
+    .map(id => commands.find(c => c.id === id))
+    .filter((c): c is CommandItem => c != null)
+    .map(c => ({ ...c, category: 'RECENT' }));
+
   // Filter commands
   const filtered = query
     ? commands.filter(cmd =>
         cmd.label.toLowerCase().includes(query.toLowerCase()) ||
         cmd.description.toLowerCase().includes(query.toLowerCase())
       )
-    : commands.filter(cmd => cmd.category === 'NAVIGATE' || cmd.category === 'ACTIONS')
-        .filter(cmd => cmd.category !== 'HIDDEN');
+    : [
+        ...recentCommands,
+        ...commands.filter(cmd => cmd.category === 'NAVIGATE' || cmd.category === 'ACTIONS')
+          .filter(cmd => cmd.category !== 'HIDDEN'),
+      ];
 
   // Group by category
   const grouped = filtered.reduce<Record<string, CommandItem[]>>((acc, cmd) => {
@@ -112,6 +137,7 @@ export default function CommandPalette() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (filtered[selectedIndex]) {
+        saveRecentCommand(filtered[selectedIndex].id);
         filtered[selectedIndex].action();
         setIsOpen(false);
       }
@@ -148,6 +174,9 @@ export default function CommandPalette() {
           <span className="font-mono text-[10px] text-[var(--muted-foreground)] border border-[var(--border)] px-1.5 py-0.5">
             ESC
           </span>
+          <span className="font-mono text-[10px] text-[var(--muted-foreground)] opacity-50">
+            ⌘K
+          </span>
         </div>
 
         {/* Results */}
@@ -164,7 +193,7 @@ export default function CommandPalette() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => { item.action(); setIsOpen(false); }}
+                    onClick={() => { saveRecentCommand(item.id); item.action(); setIsOpen(false); }}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
                       currentIndex === selectedIndex
                         ? 'bg-[var(--primary)]/10 text-[var(--foreground)]'

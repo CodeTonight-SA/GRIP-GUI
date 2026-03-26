@@ -1,18 +1,21 @@
 'use client';
 
-import { Activity, Layers, Sparkles, Shield } from 'lucide-react';
+import { Activity, Layers, Sparkles, Shield, Clock, Cpu, Zap } from 'lucide-react';
 import GripPulse from './GripPulse';
+import type { GripMetrics } from '@/lib/grip-session';
 
 interface GripStatusBarProps {
   activeMode?: string;
   skillCount?: number;
   contextPercent?: number;
   safetyActive?: boolean;
+  metrics?: GripMetrics | null;
+  isStreaming?: boolean;
 }
 
 /**
  * A minimal status bar at the bottom of the Engine page.
- * Shows active mode, skill count, context usage, and safety gate status.
+ * Shows active mode, skill count, context usage, safety gate status, and live session metrics.
  * Swiss Nihilism: monospace, tracking-widest, paper-thin, no height waste.
  */
 export default function GripStatusBar({
@@ -20,6 +23,8 @@ export default function GripStatusBar({
   skillCount = 5,
   contextPercent = 23,
   safetyActive = true,
+  metrics,
+  isStreaming = false,
 }: GripStatusBarProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-20 h-6 border-t border-[var(--border)] bg-[var(--card)] flex items-center px-4 gap-6 shrink-0">
@@ -52,6 +57,40 @@ export default function GripStatusBar({
           />
         </div>
       </div>
+
+      {/* Live session metrics */}
+      {isStreaming && (
+        <div className="flex items-center gap-1.5">
+          <Zap className="w-3 h-3 text-[var(--primary)] animate-pulse" strokeWidth={1.5} />
+          <span className="font-mono text-[9px] tracking-widest text-[var(--primary)]">
+            STREAMING
+          </span>
+        </div>
+      )}
+
+      {metrics?.model && (
+        <div className="flex items-center gap-1.5">
+          <Cpu className="w-3 h-3 text-[var(--muted-foreground)]" strokeWidth={1.5} />
+          <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+            {metrics.model.toUpperCase()}
+          </span>
+        </div>
+      )}
+
+      {metrics?.totalDurationMs && !isStreaming && (
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3 h-3 text-[var(--muted-foreground)]" strokeWidth={1.5} />
+          <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+            {(metrics.totalDurationMs / 1000).toFixed(1)}s
+          </span>
+        </div>
+      )}
+
+      {metrics?.numTurns && (
+        <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+          {metrics.numTurns} TURNS
+        </span>
+      )}
 
       {/* Spacer */}
       <div className="flex-1" />
