@@ -670,7 +670,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                 placeholder="Type your message..."
                 rows={1}
                 disabled={isStreaming}
-                className="w-full resize-none bg-[var(--background)] border border-[var(--border)] px-4 py-3 text-sm text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none placeholder:text-[var(--muted-foreground)] min-h-[48px] max-h-[200px] disabled:opacity-50"
+                className="w-full resize-none bg-[var(--background)] border border-[var(--border)] px-4 py-3 text-sm text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none placeholder:text-[var(--muted-foreground)] min-h-[48px] max-h-[200px] disabled:opacity-50 chat-input-glow"
                 style={{ height: 'auto' }}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
