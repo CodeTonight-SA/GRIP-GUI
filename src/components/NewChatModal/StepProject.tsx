@@ -88,7 +88,7 @@ const StepProject = React.memo(function StepProject({
             value={search}
             onChange={(e) => { setSearch(e.target.value); setShowAll(false); }}
             placeholder="Search projects..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg text-sm"
+            className="w-full pl-10 pr-4 py-2 text-sm"
           />
         </div>
       )}
@@ -100,7 +100,7 @@ const StepProject = React.memo(function StepProject({
             key={project.path}
             onClick={() => onSelectProject(project.path)}
             className={`
-              text-left p-3 rounded-lg border transition-all
+              text-left p-3 border transition-all
               ${selectedProject === project.path
                 ? 'border-accent-blue bg-accent-blue/10'
                 : 'border-border-primary hover:border-border-accent bg-bg-tertiary/30'
@@ -155,7 +155,7 @@ const StepProject = React.memo(function StepProject({
             value={customPath}
             onChange={(e) => onCustomPathChange(e.target.value)}
             placeholder="/path/to/your/project"
-            className="flex-1 px-4 py-3 rounded-lg font-mono text-sm"
+            className="flex-1 px-4 py-3 font-mono text-sm"
           />
           {onBrowseFolder && (
             <button
@@ -164,7 +164,7 @@ const StepProject = React.memo(function StepProject({
                 const path = await onBrowseFolder();
                 if (path) onCustomPathChange(path);
               }}
-              className="px-4 py-3 rounded-lg bg-bg-tertiary border border-border-primary hover:border-accent-blue transition-colors flex items-center gap-2"
+              className="px-4 py-3 bg-bg-tertiary border border-border-primary hover:border-accent-blue transition-colors flex items-center gap-2"
             >
               <FolderOpen className="w-4 h-4 text-accent-blue" />
               <span className="text-sm">Browse</span>
@@ -174,7 +174,7 @@ const StepProject = React.memo(function StepProject({
       </div>
 
       {/* Secondary Project (Collapsible) */}
-      <div className="border border-border-primary rounded-lg overflow-hidden">
+      <div className="border border-border-primary overflow-hidden">
         <button
           onClick={onToggleSecondary}
           className="w-full flex items-center justify-between px-4 py-3 bg-bg-tertiary/30 hover:bg-bg-tertiary/50 transition-colors"
@@ -215,7 +215,7 @@ const StepProject = React.memo(function StepProject({
                         key={project.path}
                         onClick={() => onSelectSecondaryProject(project.path)}
                         className={`
-                          text-left p-3 rounded-lg border transition-all text-sm
+                          text-left p-3 border transition-all text-sm
                           ${selectedSecondaryProject === project.path
                             ? 'border-accent-purple bg-accent-purple/10'
                             : 'border-border-primary hover:border-border-accent bg-bg-tertiary/30'
@@ -248,7 +248,7 @@ const StepProject = React.memo(function StepProject({
                     value={customSecondaryPath}
                     onChange={(e) => onCustomSecondaryPathChange(e.target.value)}
                     placeholder="/path/to/secondary/project"
-                    className="flex-1 px-3 py-2 rounded-lg font-mono text-sm"
+                    className="flex-1 px-3 py-2 font-mono text-sm"
                   />
                   {onBrowseFolder && (
                     <button
@@ -257,7 +257,7 @@ const StepProject = React.memo(function StepProject({
                         const path = await onBrowseFolder();
                         if (path) onCustomSecondaryPathChange(path);
                       }}
-                      className="px-3 py-2 rounded-lg bg-bg-tertiary border border-border-primary hover:border-accent-purple transition-colors flex items-center gap-2"
+                      className="px-3 py-2 bg-bg-tertiary border border-border-primary hover:border-accent-purple transition-colors flex items-center gap-2"
                     >
                       <FolderOpen className="w-4 h-4 text-accent-purple" />
                       <span className="text-sm">Browse</span>

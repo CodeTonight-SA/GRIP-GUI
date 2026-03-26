@@ -328,7 +328,7 @@ export default function NewChatModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-bg-tertiary transition-colors ml-2"
+              className="p-2 hover:bg-bg-tertiary transition-colors ml-2"
             >
               <X className="w-5 h-5" />
             </button>
@@ -412,7 +412,7 @@ export default function NewChatModal({
             <button
               onClick={() => step > 1 && setStep(step - 1)}
               disabled={step === 1}
-              className="px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Back
             </button>
@@ -420,7 +420,7 @@ export default function NewChatModal({
             <div className="flex items-center gap-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
@@ -429,7 +429,7 @@ export default function NewChatModal({
                 <button
                   onClick={() => setStep(step + 1)}
                   disabled={!canContinue}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue
                   <ChevronRight className="w-4 h-4" />
@@ -438,7 +438,7 @@ export default function NewChatModal({
                 <button
                   onClick={handleSubmit}
                   disabled={!canStart}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent-green text-white font-medium hover:bg-accent-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 bg-accent-green text-white font-medium hover:bg-accent-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="w-4 h-4" />
                   Start Agent
