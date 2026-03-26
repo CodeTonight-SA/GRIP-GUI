@@ -126,7 +126,7 @@ export default function OrchestratorModeToggle({
   }
 
   return (
-    <div className="p-4 rounded-lg border border-accent-purple/30 bg-accent-purple/5">
+    <div className="p-4 border border-accent-purple/30 bg-accent-purple/5">
       <div className="flex items-start gap-3">
         <button
           onClick={() => {
@@ -171,7 +171,7 @@ export default function OrchestratorModeToggle({
               <button
                 onClick={handleSetup}
                 disabled={isSettingUp}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent-purple/20 text-accent-purple text-sm font-medium hover:bg-accent-purple/30 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-purple/20 text-accent-purple text-sm font-medium hover:bg-accent-purple/30 transition-colors disabled:opacity-50"
               >
                 {isSettingUp ? (
                   <>
