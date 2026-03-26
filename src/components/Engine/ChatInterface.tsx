@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
-import { Send, Sparkles, Square, X, Image as ImageIcon } from 'lucide-react';
+import { Send, Sparkles, Square, X, Image as ImageIcon, ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { sendToGrip, filterResponseMetadata, detectGateInText, type GripMessage, type GripMetrics, type ToolUseEvent, type ToolResultEvent, type GateEvent } from '@/lib/grip-session';
 import TypingIndicator from './TypingIndicator';
@@ -102,7 +102,9 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   const [isDragOver, setIsDragOver] = useState(false);
   const reduceMotion = useReducedMotion();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   // Tracks the Electron IPC prompt session ID so the stop button can kill it
   const activePromptSessionRef = useRef<string | null>(null);
   const rafIdRef = useRef<number | null>(null);
@@ -118,6 +120,22 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
     };
   }, [messages]);
+
+  // Scroll-to-bottom button: show when user scrolls up more than 200px from bottom
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowScrollButton(distanceFromBottom > 200);
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const flushStreamUpdate = useCallback(() => {
     rafIdRef.current = null;
@@ -405,7 +423,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-6 relative">
         {messages.length === 0 ? (
           <div
             className="flex flex-col items-center justify-center h-full max-w-xl mx-auto relative"
@@ -584,6 +602,23 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
         )}
       </div>
 
+      {/* Scroll-to-bottom floating button */}
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.button
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.15 }}
+            onClick={scrollToBottom}
+            className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] hover:border-[var(--primary)] transition-colors font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+          >
+            <ArrowDown className="w-3 h-3" strokeWidth={1.5} />
+            LATEST
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* Input area */}
       <div
         className="border-t border-[var(--border)] bg-[var(--card)] p-4 pb-10 relative"
@@ -669,11 +704,20 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                 ENTER TO SEND | CMD+K
               </span>
             </div>
-            {sessionId && (
-              <span className="font-mono text-[8px] tracking-wider text-[var(--primary)] opacity-60">
-                SESSION: {sessionId.slice(0, 8)}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {input.length > 0 && (
+                <span className={`font-mono text-[8px] tracking-wider transition-colors ${
+                  input.length > 4000 ? 'text-[var(--warning)]' : 'text-[var(--muted-foreground)] opacity-40'
+                }`}>
+                  {input.length.toLocaleString()}
+                </span>
+              )}
+              {sessionId && (
+                <span className="font-mono text-[8px] tracking-wider text-[var(--primary)] opacity-60">
+                  SESSION: {sessionId.slice(0, 8)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
