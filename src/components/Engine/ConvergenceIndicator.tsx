@@ -59,13 +59,13 @@ export default function ConvergenceIndicator({
             {active ? 'CONVERGING' : depth > 0 ? 'CONVERGED' : 'IDLE'}
           </span>
           {depth > 0 && (
-            <span className="font-mono text-[9px] tracking-wider text-[var(--muted-foreground)]">
+            <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)]">
               D{depth}/{maxDepth}
             </span>
           )}
         </div>
         {criterion && (
-          <span className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] block mt-0.5 max-w-[200px] truncate">
+          <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] block mt-0.5 max-w-[200px] truncate">
             {criterion}
           </span>
         )}

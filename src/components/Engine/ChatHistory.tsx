@@ -86,7 +86,7 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
         {sessions.length === 0 ? (
           <div className="text-center py-8">
             <MessageSquare className="w-5 h-5 text-[var(--muted-foreground)] mx-auto mb-2 opacity-30" />
-            <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)] opacity-50">
+            <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-50">
               NO CHATS YET
             </span>
           </div>
@@ -121,13 +121,13 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
                 </button>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] opacity-60">
+                <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] opacity-60">
                   {formatTime(session.updatedAt)}
                 </span>
-                <span className="font-mono text-[8px] tracking-wider text-[var(--muted-foreground)] opacity-40">
+                <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)] opacity-40">
                   {session.messageCount} MSG
                 </span>
-                <span className="font-mono text-[7px] tracking-wider text-[var(--muted-foreground)] opacity-30">
+                <span className="font-mono text-[9px] tracking-wider text-[var(--muted-foreground)] opacity-30">
                   {session.model.toUpperCase()}
                 </span>
               </div>

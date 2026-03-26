@@ -86,7 +86,7 @@ export default function FocusMode({ children, onToggle }: FocusModeProps) {
               animate={{ opacity: 0.4, x: 0 }}
               transition={{ delay: 0.2, duration: 0.3 }}
             >
-              <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+              <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
                 FOCUS MODE
               </span>
             </motion.div>

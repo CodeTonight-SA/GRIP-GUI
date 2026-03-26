@@ -35,7 +35,7 @@ export default function RetrievalTierIndicator({
   if (compact) {
     return (
       <div className="flex items-center gap-1">
-        <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">T</span>
+        <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">T</span>
         {TIERS.map((tier) => (
           <div
             key={tier.id}
@@ -71,12 +71,12 @@ export default function RetrievalTierIndicator({
                 opacity: isActive ? 1 : isPast ? 0.3 : 0.15,
               }}
             />
-            <span className={`font-mono text-[9px] tracking-widest ${
+            <span className={`font-mono text-[10px] tracking-widest ${
               isActive ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'
             }`}>
               {tier.label}
             </span>
-            <span className="font-mono text-[8px] text-[var(--muted-foreground)] opacity-50">
+            <span className="font-mono text-[10px] text-[var(--muted-foreground)] opacity-50">
               {tier.tokens}
             </span>
           </div>

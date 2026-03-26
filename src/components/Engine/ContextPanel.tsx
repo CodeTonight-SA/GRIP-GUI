@@ -108,7 +108,7 @@ export default function ContextPanel({
               className="w-full flex items-center justify-between py-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
             >
               <span className="font-mono text-[10px] tracking-widest">{action.label}</span>
-              <span className="font-mono text-[9px] text-[var(--muted-foreground)] opacity-50">
+              <span className="font-mono text-[10px] text-[var(--muted-foreground)] opacity-50">
                 {action.shortcut}
               </span>
             </button>

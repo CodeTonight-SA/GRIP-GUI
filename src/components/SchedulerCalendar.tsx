@@ -451,7 +451,7 @@ export default function SchedulerCalendar({
       {hasAllDay && (
         <div className="grid border-b border-border" style={{ gridTemplateColumns: '44px repeat(7, 1fr)' }}>
           <div className="border-r border-border flex items-center justify-end pr-1.5">
-            <span className="text-[9px] text-muted-foreground/60 rotate-0 leading-tight">all‑day</span>
+            <span className="text-[10px] text-muted-foreground/60 rotate-0 leading-tight">all‑day</span>
           </div>
           {Array.from({ length: 7 }, (_, dayOffset) => {
             const dayAllDay = allDayEvents.filter(e => e.dayOffset === dayOffset);
@@ -479,7 +479,7 @@ export default function SchedulerCalendar({
                         ) : (
                           <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${color.dot}`} />
                         )}
-                        <span className="text-[9px] font-medium truncate">{event.label}</span>
+                        <span className="text-[10px] font-medium truncate">{event.label}</span>
                       </div>
                     </button>
                   );
@@ -501,7 +501,7 @@ export default function SchedulerCalendar({
                 className="border-b border-border/40 flex items-start justify-end pr-1.5 pt-0.5"
                 style={{ height: `${HOUR_HEIGHT}px` }}
               >
-                <span className="text-[9px] text-muted-foreground/50 tabular-nums">{formatHour(hour)}</span>
+                <span className="text-[10px] text-muted-foreground/50 tabular-nums">{formatHour(hour)}</span>
               </div>
             ))}
           </div>

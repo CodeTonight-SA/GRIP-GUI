@@ -47,7 +47,7 @@ export default function GripPulse() {
                 }}
               />
             </div>
-            <span className="font-mono text-[6px] tracking-widest text-[var(--muted-foreground)]">
+            <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)]">
               {metric.label}
             </span>
           </div>

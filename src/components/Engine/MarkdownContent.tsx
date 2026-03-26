@@ -36,14 +36,14 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
       {/* Header bar */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--border)] bg-zinc-950">
         {language && (
-          <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)]">
+          <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
             {language.toUpperCase()}
           </span>
         )}
         {!language && <span />}
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors opacity-0 group-hover:opacity-100"
+          className="flex items-center gap-1 font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors opacity-0 group-hover:opacity-100"
           title="Copy to clipboard"
         >
           {copied ? (

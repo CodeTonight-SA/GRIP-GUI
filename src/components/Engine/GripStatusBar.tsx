@@ -52,7 +52,7 @@ export default function GripStatusBar({
       {/* Mode */}
       <div className="flex items-center gap-1.5">
         <Layers className="w-3 h-3 text-[var(--primary)]" strokeWidth={1.5} />
-        <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+        <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
           {activeMode.toUpperCase()}
         </span>
       </div>
@@ -60,7 +60,7 @@ export default function GripStatusBar({
       {/* Skills */}
       <div className="flex items-center gap-1.5">
         <Sparkles className="w-3 h-3 text-[var(--muted-foreground)]" strokeWidth={1.5} />
-        <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+        <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
           {skillCount} SKILLS
         </span>
       </div>
@@ -68,7 +68,7 @@ export default function GripStatusBar({
       {/* Context */}
       <div className="flex items-center gap-1.5">
         <Activity className="w-3 h-3 text-[var(--muted-foreground)]" strokeWidth={1.5} />
-        <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+        <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
           CTX {contextPercent}%
         </span>
         <div className="w-16 h-1 bg-[var(--border)]">
@@ -83,7 +83,7 @@ export default function GripStatusBar({
       {isStreaming && (
         <div className="flex items-center gap-1.5">
           <Zap className="w-3 h-3 text-[var(--primary)] animate-pulse" strokeWidth={1.5} />
-          <span className="font-mono text-[9px] tracking-widest text-[var(--primary)]">
+          <span className="font-mono text-[10px] tracking-widest text-[var(--primary)]">
             STREAMING
           </span>
         </div>
@@ -92,7 +92,7 @@ export default function GripStatusBar({
       {metrics?.model && (
         <div className="flex items-center gap-1.5">
           <Cpu className="w-3 h-3 text-[var(--muted-foreground)]" strokeWidth={1.5} />
-          <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+          <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
             {metrics.model.toUpperCase()}
           </span>
         </div>
@@ -101,14 +101,14 @@ export default function GripStatusBar({
       {metrics?.totalDurationMs && !isStreaming && (
         <div className="flex items-center gap-1.5">
           <Clock className="w-3 h-3 text-[var(--muted-foreground)]" strokeWidth={1.5} />
-          <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+          <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
             {(metrics.totalDurationMs / 1000).toFixed(1)}s
           </span>
         </div>
       )}
 
       {metrics?.numTurns && (
-        <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+        <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
           {metrics.numTurns} TURNS
         </span>
       )}
@@ -129,18 +129,18 @@ export default function GripStatusBar({
       {/* Safety */}
       <div className="flex items-center gap-1.5">
         <Shield className={`w-3 h-3 ${safetyActive ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`} strokeWidth={1.5} />
-        <span className="font-mono text-[9px] tracking-widest text-[var(--muted-foreground)]">
+        <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
           {safetyActive ? 'GATES ACTIVE' : 'GATES OFF'}
         </span>
       </div>
 
       {/* Session elapsed + GRIP version */}
       {elapsed && (
-        <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] opacity-40">
+        <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-40">
           {elapsed}
         </span>
       )}
-      <span className="font-mono text-[8px] tracking-widest text-[var(--muted-foreground)] opacity-40">
+      <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-40">
         GRIP 0.1.0
       </span>
     </div>

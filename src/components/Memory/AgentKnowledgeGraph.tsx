@@ -957,7 +957,7 @@ export default function AgentKnowledgeGraph() {
         {legendOpen ? (
           <div className="bg-black/70 border border-white/10 p-3 text-[10px] text-white/70 space-y-1.5 backdrop-blur-sm min-w-[140px]">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-white/40 uppercase tracking-wider text-[9px]">Legend</span>
+              <span className="text-white/40 uppercase tracking-wider text-[10px]">Legend</span>
               <button onClick={() => setLegendOpen(false)} className="text-white/30 hover:text-white/70">✕</button>
             </div>
             {(Object.entries(KIND_COLOR) as [NodeKind, typeof KIND_COLOR[NodeKind]][]).map(([kind, c]) => (
@@ -966,7 +966,7 @@ export default function AgentKnowledgeGraph() {
                 <span className="capitalize">{kind === 'mcp' ? 'MCP server' : kind === 'instructions' ? 'CLAUDE.md' : kind}</span>
               </div>
             ))}
-            <p className="text-white/30 text-[9px] mt-2 border-t border-white/10 pt-2">Scroll to zoom · drag to pan<br/>Click agent to isolate</p>
+            <p className="text-white/30 text-[10px] mt-2 border-t border-white/10 pt-2">Scroll to zoom · drag to pan<br/>Click agent to isolate</p>
           </div>
         ) : (
           <button
