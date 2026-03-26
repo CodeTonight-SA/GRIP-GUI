@@ -4,10 +4,6 @@ graph TB
             Dashboard[Agent Dashboard]
             Kanban[Kanban Board]
             Automations[Automations]
-            Scheduler[Scheduled Tasks]
-            Usage[Usage Stats]
-            Skills[Skills & Plugins]
-            Settings[Settings]
             Learn[Learning Hub]
             Modes[Mode Switcher]
         end
@@ -20,7 +16,6 @@ graph TB
                 Slack[Slack Bot]
                 KanbanAuto[Kanban Automation]
                 MCPLauncher[MCP Server Launcher]
-                API[API Server]
             end
         end
 
@@ -29,12 +24,9 @@ graph TB
 
     subgraph MCP["MCP Servers (stdio)"]
         Orchestrator[mcp-orchestrator<br/>26+ tools]
-        MCPTelegram[mcp-telegram<br/>4 tools]
-        MCPKanban[mcp-kanban<br/>8 tools]
-        MCPVault[mcp-vault<br/>10 tools]
-        MCPSocial[mcp-socialdata<br/>5 tools]
-        MCPX[mcp-x<br/>3 tools]
-        MCPWorld[mcp-world<br/>5 tools]
+        MCPTelegram[mcp-telegram]
+        MCPKanban[mcp-kanban]
+        MCPVault[mcp-vault]
     end
 
     Main <-->|stdio| MCP
