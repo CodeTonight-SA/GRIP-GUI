@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "defaultMode": "default"
+  },
+  "env": {
+    "CLAUDE_CODE_EFFORT_LEVEL": "high"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Glob|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/dependency-guardian-hook.py",
+            "timeout": 3000,
+            "statusMessage": "Checking dependency folders"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/quality-hook.py",
+            "timeout": 5000,
+            "statusMessage": "Checking code quality"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/secrets-hook.py",
+            "timeout": 3000,
+            "statusMessage": "Scanning for secrets"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/anti-drift-hook.py",
+            "timeout": 3000,
+            "statusMessage": "Checking remaining work"
+          }
+        ]
+      }
+    ]
+  }
+}

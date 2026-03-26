@@ -1,0 +1,54 @@
+{
+  "name": "grip-starter-pack",
+  "version": "1.0.0",
+  "description": "GRIP Knowledge Work Engine — Starter Pack for Claude Code",
+  "marker": ".grip-starter-installed",
+  "targets": {
+    "claudeDir": "~/.claude",
+    "markerFile": "~/.claude/.grip-starter-installed"
+  },
+  "install": [
+    {
+      "type": "file",
+      "src": "CLAUDE.md",
+      "dest": "CLAUDE.md",
+      "strategy": "skip-if-exists"
+    },
+    {
+      "type": "file",
+      "src": "settings.json",
+      "dest": "settings.json",
+      "strategy": "merge-hooks"
+    },
+    {
+      "type": "directory",
+      "src": "rules",
+      "dest": "rules",
+      "strategy": "skip-if-exists"
+    },
+    {
+      "type": "directory",
+      "src": "hooks",
+      "dest": "hooks",
+      "strategy": "skip-if-exists"
+    },
+    {
+      "type": "directory",
+      "src": "lib",
+      "dest": "lib",
+      "strategy": "skip-if-exists"
+    },
+    {
+      "type": "directory",
+      "src": "skills",
+      "dest": "skills",
+      "strategy": "skip-if-exists"
+    },
+    {
+      "type": "directory",
+      "src": "agents",
+      "dest": "agents",
+      "strategy": "skip-if-exists"
+    }
+  ]
+}

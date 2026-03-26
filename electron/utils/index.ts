@@ -1,6 +1,7 @@
 import { app, Notification, BrowserWindow } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { AgentStatus } from '../types';
 import { TG_CHARACTER_FACES, SLACK_CHARACTER_FACES, DATA_DIR, OLD_DATA_DIR, LEGACY_DATA_DIR } from '../constants';
 
@@ -82,6 +83,137 @@ Use auto memory (\`~/.claude/projects/.../memory/\`) actively on every project:
     fs.writeFileSync(dest, content, 'utf-8');
   } catch (err) {
     console.warn('Failed to write GRIP CLAUDE.md:', err);
+  }
+}
+
+/**
+ * Install the GRIP Starter Pack to ~/.claude/ on first launch.
+ *
+ * Reads the manifest from grip-starter/manifest.json and copies skills, agents,
+ * hooks, rules, and lib files to the user's Claude Code config directory.
+ * Only copies files that don't already exist (skip-if-exists strategy).
+ *
+ * The marker file ~/.claude/.grip-starter-installed prevents re-installation
+ * on subsequent launches. Users who already have full GRIP won't be affected.
+ */
+export function installGripStarterPack(): void {
+  const claudeDir = path.join(os.homedir(), '.claude');
+  const markerFile = path.join(claudeDir, '.grip-starter-installed');
+
+  // Skip if already installed
+  if (fs.existsSync(markerFile)) return;
+
+  // Find the grip-starter directory (works in both dev and packaged builds)
+  const appPath = app.getAppPath();
+  const candidates = [
+    path.join(appPath, 'grip-starter'),
+    path.join(appPath.replace('app.asar', 'app.asar.unpacked'), 'grip-starter'),
+    path.join(appPath, '..', 'grip-starter'),
+  ];
+
+  let starterDir: string | null = null;
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      starterDir = candidate;
+      break;
+    }
+  }
+
+  if (!starterDir) {
+    console.warn('GRIP Starter Pack not found — skipping installation');
+    return;
+  }
+
+  console.log('Installing GRIP Starter Pack to ~/.claude/ ...');
+
+  // Ensure ~/.claude exists
+  fs.mkdirSync(claudeDir, { recursive: true });
+
+  // Read manifest
+  let manifest: { install: Array<{ type: string; src: string; dest: string; strategy: string }> };
+  try {
+    manifest = JSON.parse(fs.readFileSync(path.join(starterDir, 'manifest.json'), 'utf-8'));
+  } catch (err) {
+    console.error('Failed to read starter pack manifest:', err);
+    return;
+  }
+
+  let installedCount = 0;
+
+  for (const entry of manifest.install) {
+    const src = path.join(starterDir, entry.src);
+    const dest = path.join(claudeDir, entry.dest);
+
+    if (!fs.existsSync(src)) {
+      console.warn(`  Starter pack source not found: ${entry.src}`);
+      continue;
+    }
+
+    if (entry.type === 'file') {
+      if (entry.strategy === 'skip-if-exists' && fs.existsSync(dest)) {
+        console.log(`  Skipping ${entry.dest} (already exists)`);
+        continue;
+      }
+
+      if (entry.strategy === 'merge-hooks' && fs.existsSync(dest)) {
+        // For settings.json: merge hooks from starter into existing config
+        try {
+          const existing = JSON.parse(fs.readFileSync(dest, 'utf-8'));
+          const starter = JSON.parse(fs.readFileSync(src, 'utf-8'));
+
+          // Only add hooks that don't already exist
+          if (starter.hooks && !existing.hooks) {
+            existing.hooks = starter.hooks;
+            fs.writeFileSync(dest, JSON.stringify(existing, null, 2));
+            console.log(`  Merged hooks into ${entry.dest}`);
+            installedCount++;
+          } else {
+            console.log(`  Skipping ${entry.dest} (hooks already configured)`);
+          }
+        } catch (err) {
+          console.warn(`  Failed to merge ${entry.dest}:`, err);
+        }
+        continue;
+      }
+
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(src, dest);
+      console.log(`  Installed ${entry.dest}`);
+      installedCount++;
+    } else if (entry.type === 'directory') {
+      copyDirectoryRecursive(src, dest, entry.strategy === 'skip-if-exists');
+      installedCount++;
+    }
+  }
+
+  // Write marker file
+  fs.writeFileSync(markerFile, JSON.stringify({
+    installedAt: new Date().toISOString(),
+    version: '1.0.0',
+    filesInstalled: installedCount,
+  }, null, 2));
+
+  console.log(`GRIP Starter Pack installed (${installedCount} items)`);
+}
+
+/**
+ * Recursively copy a directory, optionally skipping existing files.
+ */
+function copyDirectoryRecursive(src: string, dest: string, skipExisting: boolean): void {
+  fs.mkdirSync(dest, { recursive: true });
+
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirectoryRecursive(srcPath, destPath, skipExisting);
+    } else {
+      if (skipExisting && fs.existsSync(destPath)) continue;
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+      fs.copyFileSync(srcPath, destPath);
+    }
   }
 }
 

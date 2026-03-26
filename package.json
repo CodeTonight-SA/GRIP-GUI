@@ -40,11 +40,13 @@
       "!node_modules/@next/env",
       "!node_modules/@next/eslint-plugin-next",
       "skills/**/*",
-      "hooks/**/*"
+      "hooks/**/*",
+      "grip-starter/**/*"
     ],
     "asarUnpack": [
       "out/**/*",
       "hooks/**/*",
+      "grip-starter/**/*",
       "electron/resources/**/*",
       "node_modules/better-sqlite3/**/*",
       "node_modules/node-pty/**/*"
