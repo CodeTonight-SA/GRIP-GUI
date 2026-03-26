@@ -324,7 +324,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="bg-card border border-border rounded-lg shadow-xl max-w-md w-full p-6"
+              className="bg-card border border-border max-w-md w-full p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -360,9 +360,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     <span>Downloading... {downloadPercent.toFixed(0)}%</span>
                     <span>{downloadSpeed > 0 ? `${(downloadSpeed / 1024 / 1024).toFixed(1)} MB/s` : ''}</span>
                   </div>
-                  <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-secondary overflow-hidden">
                     <div
-                      className="h-full bg-foreground rounded-full transition-all duration-300"
+                      className="h-full bg-foreground transition-all duration-300"
                       style={{ width: `${downloadPercent}%` }}
                     />
                   </div>
@@ -373,7 +373,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 {updateFlowState === 'available' && (
                   <button
                     onClick={handleDownloadUpdate}
-                    className="flex-1 px-4 py-2 text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2 rounded"
+                    className="flex-1 px-4 py-2 text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
                   >
                     {isFallbackUpdate ? <ExternalLink className="w-4 h-4" /> : <Download className="w-4 h-4" />}
                     Download Update
@@ -383,7 +383,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 {updateFlowState === 'downloading' && (
                   <button
                     disabled
-                    className="flex-1 px-4 py-2 text-sm bg-foreground/50 text-background cursor-not-allowed flex items-center justify-center gap-2 rounded"
+                    className="flex-1 px-4 py-2 text-sm bg-foreground/50 text-background cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Downloading...
@@ -393,7 +393,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 {updateFlowState === 'ready' && (
                   <button
                     onClick={handleQuitAndInstall}
-                    className="flex-1 px-4 py-2 text-sm bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-2 rounded"
+                    className="flex-1 px-4 py-2 text-sm bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <RotateCw className="w-4 h-4" />
                     Restart to Apply
@@ -403,7 +403,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 {updateFlowState === 'restarting' && (
                   <button
                     disabled
-                    className="flex-1 px-4 py-2 text-sm bg-foreground/50 text-background cursor-not-allowed flex items-center justify-center gap-2 rounded"
+                    className="flex-1 px-4 py-2 text-sm bg-foreground/50 text-background cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Restarting...
@@ -413,7 +413,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 {updateFlowState !== 'restarting' && (
                   <button
                     onClick={() => setUpdateDismissed(true)}
-                    className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded"
+                    className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Later
                   </button>

@@ -75,9 +75,9 @@ export default function DocumentList({ documents, selectedDocId, onSelectDocumen
             transition={{ delay: index * 0.03 }}
             onClick={() => onSelectDocument(doc.id)}
             className={`
-              w-full text-left p-3 rounded-lg border transition-all
+              w-full text-left p-3 border transition-all
               ${isSelected
-                ? 'bg-primary/10 border-primary/30 shadow-sm'
+                ? 'bg-primary/10 border-primary/30'
                 : 'bg-card border-border hover:bg-secondary/50 hover:border-border/80'
               }
             `}

@@ -128,7 +128,7 @@ export function SimpleMarkdown({ content }: { content: string }) {
     if (line.startsWith('```')) {
       if (inCodeBlock) {
         elements.push(
-          <pre key={i} className="bg-secondary/80 border border-border rounded-lg p-3 my-2 overflow-x-auto text-xs">
+          <pre key={i} className="bg-secondary/80 border border-border p-3 my-2 overflow-x-auto text-xs">
             <code>{codeBlockContent.join('\n')}</code>
           </pre>
         );
@@ -235,7 +235,7 @@ export function SimpleMarkdown({ content }: { content: string }) {
   // Close any open code block
   if (inCodeBlock && codeBlockContent.length > 0) {
     elements.push(
-      <pre key="final-code" className="bg-secondary/80 border border-border rounded-lg p-3 my-2 overflow-x-auto text-xs">
+      <pre key="final-code" className="bg-secondary/80 border border-border p-3 my-2 overflow-x-auto text-xs">
         <code>{codeBlockContent.join('\n')}</code>
       </pre>
     );
