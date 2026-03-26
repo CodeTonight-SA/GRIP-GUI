@@ -345,6 +345,70 @@ html {
   50% { opacity: 0.6; }
 }
 
+/* GPU-accelerated pulse for GripPulse bars */
+@keyframes grip-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.grip-pulse-bar {
+  animation: grip-pulse 2.5s ease-in-out infinite;
+}
+
+/* Tool progress scanner — a thin line that sweeps left-to-right */
+@keyframes tool-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.tool-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 25%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.3;
+  animation: tool-scan 1.5s ease-in-out infinite;
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* Tool entrance — slide in from left */
+@keyframes tool-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tool-enter {
+  animation: tool-enter 0.2s ease-out;
+}
+
+/* Ambient scanline for status bar — very subtle horizontal sweep */
+@keyframes status-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100vw); }
+}
+
+.status-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.04;
+  animation: status-sweep 8s linear infinite;
+  will-change: transform;
+  pointer-events: none;
+}
+
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
@@ -353,12 +417,22 @@ html {
   animation: slide-up 0.2s ease-out;
 }
 
+/* GPU compositing hints for animated elements */
+.grip-gpu-layer {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .tool-scan-line,
+  .status-sweep {
+    display: none;
   }
 }
 

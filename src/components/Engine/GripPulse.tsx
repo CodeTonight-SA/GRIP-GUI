@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
 interface PulseMetric {
   label: string;
   value: number;
@@ -11,23 +9,15 @@ interface PulseMetric {
 }
 
 /**
- * GRIP Pulse — a novel ambient health visualisation.
+ * GRIP Pulse — ambient health visualisation, 100% CSS-driven.
  *
- * Shows system health as a row of vertical bar meters,
- * each pulsing at a rate proportional to their value.
- * Healthy = slow, calm pulse. Critical = fast, urgent pulse.
+ * Vertical bar meters with CSS keyframe pulse at staggered delays.
+ * GPU-accelerated: uses opacity + transform only (no layout triggers).
+ * No JS timers, no setState re-renders — pure 60fps.
  *
- * Swiss Nihilism: sharp bars, no colour except cyan/warning/danger.
- * Inspired by hospital heart monitors — minimal, functional, informative.
+ * Swiss Nihilism: sharp bars, single accent colour, hospital monitor aesthetic.
  */
 export default function GripPulse() {
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 2000);
-    return () => clearInterval(interval);
-  }, []);
-
   const metrics: PulseMetric[] = [
     { label: 'CTX', value: 23, max: 100, unit: '%', status: 'healthy' },
     { label: 'TOK', value: 45, max: 1000, unit: 'K', status: 'healthy' },
@@ -44,19 +34,16 @@ export default function GripPulse() {
           : metric.status === 'warning' ? 'var(--warning)'
           : 'var(--primary)';
 
-        // Subtle pulse animation offset per bar
-        const pulsePhase = (tick + i) % 3;
-        const opacity = pulsePhase === 0 ? 0.7 : 1;
-
         return (
           <div key={metric.label} className="flex flex-col items-center gap-0.5" title={`${metric.label}: ${metric.value}${metric.unit || ''}`}>
-            <div className="w-2 h-6 bg-[var(--border)] relative">
+            <div className="w-2 h-6 bg-[var(--border)] relative overflow-hidden">
               <div
-                className="absolute bottom-0 w-full transition-all duration-500"
+                className="absolute bottom-0 w-full grip-pulse-bar"
                 style={{
                   height: `${height}%`,
                   backgroundColor: colour,
-                  opacity,
+                  animationDelay: `${i * 400}ms`,
+                  willChange: 'opacity',
                 }}
               />
             </div>
