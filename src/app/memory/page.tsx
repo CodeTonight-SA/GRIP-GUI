@@ -236,7 +236,7 @@ function NewFileModal({
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-card border border-border p-6 w-80 shadow-xl"
+        className="bg-card border border-border p-6 w-80"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">

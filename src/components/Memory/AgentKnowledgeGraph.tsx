@@ -890,7 +890,7 @@ export default function AgentKnowledgeGraph() {
   };
 
   return (
-    <div className="relative w-full h-full bg-[#0d0d14] rounded-xl overflow-hidden border border-border">
+    <div className="relative w-full h-full bg-[#0d0d14] overflow-hidden border border-border">
       {/* Canvas */}
       <canvas
         ref={canvasRef}
@@ -955,7 +955,7 @@ export default function AgentKnowledgeGraph() {
       {/* Legend */}
       <div className="absolute bottom-3 right-3">
         {legendOpen ? (
-          <div className="bg-black/70 border border-white/10 rounded-xl p-3 text-[10px] text-white/70 space-y-1.5 backdrop-blur-sm min-w-[140px]">
+          <div className="bg-black/70 border border-white/10 p-3 text-[10px] text-white/70 space-y-1.5 backdrop-blur-sm min-w-[140px]">
             <div className="flex items-center justify-between mb-2">
               <span className="text-white/40 uppercase tracking-wider text-[9px]">Legend</span>
               <button onClick={() => setLegendOpen(false)} className="text-white/30 hover:text-white/70">✕</button>

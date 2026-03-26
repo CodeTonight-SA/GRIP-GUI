@@ -53,7 +53,7 @@ export default function ContextMenu({
 
   return (
     <div
-      className="fixed z-[100] bg-card border border-border shadow-xl min-w-[180px] py-1"
+      className="fixed z-[100] bg-card border border-border min-w-[180px] py-1"
       style={{ left: x, top: y }}
       onClick={e => e.stopPropagation()}
     >

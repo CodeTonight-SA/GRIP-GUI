@@ -194,7 +194,7 @@ export default function CustomTabBar({
           {showCreateDialog && (
             <div
               ref={createDialogRef}
-              className="absolute top-full left-0 mt-1 bg-card border border-border shadow-xl z-50 p-3 min-w-[220px]"
+              className="absolute top-full left-0 mt-1 bg-card border border-border z-50 p-3 min-w-[220px]"
             >
               <p className="text-xs text-muted-foreground mb-2">Board name</p>
               <input

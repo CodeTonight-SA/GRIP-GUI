@@ -502,7 +502,7 @@ export default function ProjectsPage() {
                 className={`
                   relative bg-card border p-4 transition-all h-full
                   ${isSelected
-                    ? 'border-white shadow-lg shadow-white/10'
+                    ? 'border-white shadow-white/10'
                     : 'border-border hover:border-white/30'
                   }
                 `}

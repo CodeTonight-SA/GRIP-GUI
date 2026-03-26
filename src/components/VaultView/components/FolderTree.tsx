@@ -28,7 +28,7 @@ function DocTags({ tags }: { tags: string[] }) {
         <span className="text-[9px] text-muted-foreground">+{tags.length - 1}</span>
       )}
       {tags.length > 1 && (
-        <span className="absolute right-0 top-full mt-1 z-50 hidden group-hover/tags:flex flex-col gap-0.5 p-1.5 bg-popover border border-border rounded shadow-lg min-w-max">
+        <span className="absolute right-0 top-full mt-1 z-50 hidden group-hover/tags:flex flex-col gap-0.5 p-1.5 bg-popover border border-border rounded min-w-max">
           {tags.map(tag => (
             <span key={tag} className="px-1.5 py-0.5 text-[9px] rounded bg-secondary text-muted-foreground whitespace-nowrap">
               {tag}

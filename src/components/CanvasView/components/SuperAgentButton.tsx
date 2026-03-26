@@ -24,7 +24,7 @@ export function SuperAgentButton({ superAgent, isCreating, onClick }: SuperAgent
         transition-all duration-200
         ${superAgent
           ? superAgent.status === 'running' || superAgent.status === 'waiting'
-            ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 hover:bg-purple-500/30 shadow-lg shadow-purple-500/20'
+            ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 hover:bg-purple-500/30 shadow-purple-500/20'
             : 'bg-zinc-900/90 border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50'
           : 'bg-zinc-900/90 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-purple-500/50'
         }

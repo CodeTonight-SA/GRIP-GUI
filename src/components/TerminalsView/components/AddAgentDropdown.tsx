@@ -68,7 +68,7 @@ export default function AddAgentDropdown({
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-1 bg-card border border-border shadow-xl z-50 min-w-[220px] max-h-[320px] overflow-y-auto">
+        <div className="absolute top-full right-0 mt-1 bg-card border border-border z-50 min-w-[220px] max-h-[320px] overflow-y-auto">
           {totalAvailable === 0 ? (
             <div className="px-3 py-4 text-xs text-muted-foreground text-center">
               All agents are on this board
