@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GRIP_MODES, getModeById, getModesByCategory } from '@/src/lib/grip-modes';
+import { GRIP_MODES, getModeById, getModesByCategory } from '../../src/lib/grip-modes';
 
 describe('GRIP Modes', () => {
   describe('TRIAD-TEACHING mode', () => {

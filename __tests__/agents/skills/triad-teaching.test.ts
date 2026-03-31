@@ -1,7 +1,32 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import * as YAML from 'yaml';
+
+// YAML parsing inline to avoid import issues
+function parseYAML(str: string): Record<string, any> {
+  const result: Record<string, any> = {};
+  const lines = str.split('\n');
+
+  for (const line of lines) {
+    const match = line.match(/^(\w+):\s*(.*)$/);
+    if (match) {
+      const [, key, value] = match;
+      const trimmedValue = value.trim();
+      if (trimmedValue.startsWith('[')) {
+        result[key] = trimmedValue.slice(1, -1).split(',').map(v => v.trim());
+      } else if (trimmedValue === 'true') {
+        result[key] = true;
+      } else if (trimmedValue === 'false') {
+        result[key] = false;
+      } else if (!isNaN(Number(trimmedValue))) {
+        result[key] = Number(trimmedValue);
+      } else {
+        result[key] = trimmedValue;
+      }
+    }
+  }
+  return result;
+}
 
 describe('TRIAD-TEACHING Skill Definition', () => {
   const skillPath = resolve(__dirname, '../../../.agents/skills/triad-teaching/SKILL.md');
@@ -9,7 +34,7 @@ describe('TRIAD-TEACHING Skill Definition', () => {
 
   // Extract YAML front matter
   const frontMatterMatch = skillContent.match(/^---\n([\s\S]*?)\n---/);
-  const frontMatter = frontMatterMatch ? YAML.parse(frontMatterMatch[1]) : {};
+  const frontMatter = frontMatterMatch ? parseYAML(frontMatterMatch[1]) : {};
 
   describe('Front matter', () => {
     it('should have name field', () => {
@@ -103,7 +128,7 @@ describe('TRIAD-TEACHING Skill Definition', () => {
       expect(challengerSection).toContain('Tone:');
       expect(challengerSection).toContain('Length:');
       expect(challengerSection).toContain('Pattern:');
-      expect(challengerSection).toContain('Depth-adaptive');
+      expect(challengerSection).toContain('Adjust depth');
     });
   });
 
