@@ -8,9 +8,7 @@ import {
   Heart,
   Monitor,
   GitBranch,
-  Layers,
   Shield,
-  Sparkles,
   Users,
   Globe,
   Cpu,
@@ -45,6 +43,14 @@ const CATEGORIES: { id: RoadmapCategory; label: string; icon: typeof Map }[] = [
   { id: 'ecosystem', label: 'ECOSYSTEM', icon: Users },
   { id: 'infrastructure', label: 'INFRA', icon: Shield },
 ];
+
+const CATEGORY_CONFIG: Record<RoadmapCategory, { label: string; icon: typeof Map }> = {
+  platform: { label: 'PLATFORM', icon: Monitor },
+  agents: { label: 'AGENTS', icon: Cpu },
+  integrations: { label: 'INTEGRATIONS', icon: Workflow },
+  ecosystem: { label: 'ECOSYSTEM', icon: Users },
+  infrastructure: { label: 'INFRA', icon: Shield },
+};
 
 const STATUS_CONFIG: Record<RoadmapStatus, { label: string; colour: string; bg: string }> = {
   'open': { label: 'OPEN', colour: 'text-[var(--muted-foreground)]', bg: 'bg-[var(--muted)]/20' },
@@ -216,16 +222,16 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     category: 'ecosystem',
     status: 'open',
     sponsorPrice: 1000,
-    issueNumber: 31,
-    issueUrl: 'https://github.com/CodeTonight-SA/GRIP-GUI/issues/31',
+    issueNumber: null,
+    issueUrl: null,
     sponsor: null,
   },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function formatPrice(cents: number): string {
-  return `$${(cents).toLocaleString()}`;
+function formatPrice(dollars: number): string {
+  return `$${dollars.toLocaleString()}`;
 }
 
 const GITHUB_SPONSORS_URL = 'https://github.com/sponsors/CodeTonight-SA';
@@ -338,8 +344,8 @@ export default function RoadmapPage() {
         <AnimatePresence mode="popLayout">
           {filtered.map((item, i) => {
             const status = STATUS_CONFIG[item.status];
-            const cat = CATEGORIES.find(c => c.id === item.category);
-            const CatIcon = cat?.icon || Layers;
+            const cat = CATEGORY_CONFIG[item.category];
+            const CatIcon = cat.icon;
 
             return (
               <motion.div
@@ -348,7 +354,7 @@ export default function RoadmapPage() {
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 8 }}
-                transition={{ duration: 0.2, delay: i * 0.02 }}
+                transition={{ duration: 0.2 }}
                 className="border border-[var(--border)] bg-[var(--card)] p-4 hover:border-[var(--primary)] transition-colors group"
               >
                 <div className="flex items-start gap-3">
