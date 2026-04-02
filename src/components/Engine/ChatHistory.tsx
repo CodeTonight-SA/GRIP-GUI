@@ -37,7 +37,7 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
     const session = createChatSession(currentModel);
     setSessions(getChatSessions());
     setActiveId(session.id);
-    onNewChat();
+    setActiveChatId(session.id);
     onSessionChange(session.id);
   };
 

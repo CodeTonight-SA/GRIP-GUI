@@ -19,6 +19,7 @@ import {
   BookOpen,
   Layers,
   Lightbulb,
+  Map,
 } from 'lucide-react';
 import { useStore } from '@/store';
 import { getTheme } from '@/lib/themes';
@@ -37,6 +38,7 @@ const navItems = [
   { href: '/usage', icon: BarChart2, label: 'USAGE', shortcut: '9' },
   { href: '/memory', icon: Brain, label: 'MEMORY', shortcut: 'M' },
   { href: '/insights', icon: Lightbulb, label: 'INSIGHTS', shortcut: 'I' },
+  { href: '/roadmap', icon: Map, label: 'ROADMAP', shortcut: 'R' },
 ];
 
 const bottomItems = [
