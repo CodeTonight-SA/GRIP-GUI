@@ -42,6 +42,7 @@ export const GRIP_MODES: GripMode[] = [
   { id: 'marketing', name: 'MARKETING', description: 'Content across formats with anti-fluff enforcement', category: 'content', skills: ['authentic-writing', 'medium-article-writer'], tokenBudget: 2500 },
   { id: 'teaching', name: 'TEACHING', description: 'Educational content through pedagogical frameworks', category: 'content', skills: ['pedagogical-patterns', 'curriculum-design'], tokenBudget: 2500 },
   { id: 'learning', name: 'LEARNING', description: 'Personal learning pathway design with spaced repetition', category: 'content', skills: ['pedagogical-patterns'], tokenBudget: 3500 },
+  { id: 'triad-teaching', name: 'TRIAD TEACHING', description: 'Multi-voice teaching through Explainer, Contextualizer, and Challenger synthesis', category: 'content', skills: ['pedagogical-patterns', 'curriculum-design', 'research-synthesis'], tokenBudget: 4000 },
 
   // Research
   { id: 'research', name: 'RESEARCH', description: 'Systematic research through PICO and CRAAP evidence frameworks', category: 'research', skills: ['research-synthesis', 'evidence-evaluation', 'hypothesis-validation'], tokenBudget: 3000 },
