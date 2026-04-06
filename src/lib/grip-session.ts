@@ -340,12 +340,32 @@ export type GripStreamEvent = {
   data: string | GripMetrics | ToolUseEvent | ToolResultEvent;
 };
 
+/**
+ * HAL backend URL. When set, sendToGrip routes to HAL's streaming API
+ * instead of spawning claude CLI. Set via NEXT_PUBLIC_HAL_URL env var
+ * or localStorage 'grip-hal-url'.
+ */
+function getHalUrl(): string | null {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('grip-hal-url');
+    if (stored) return stored;
+  }
+  return process.env.NEXT_PUBLIC_HAL_URL || null;
+}
+
 export async function* sendToGrip(
   prompt: string,
   sessionId?: string,
   model: string = 'sonnet',
   onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<GripStreamEvent> {
+  // HAL backend path: connect to HAL HTTP streaming API
+  const halUrl = getHalUrl();
+  if (halUrl) {
+    yield* sendToGripHAL(halUrl, prompt, sessionId, model, onPromptSessionId);
+    return;
+  }
+
   // Electron path: use IPC for real PTY streaming
   if (isElectronEnv()) {
     yield* sendToGripElectron(prompt, sessionId, model, onPromptSessionId);
@@ -565,5 +585,116 @@ async function* sendToGripElectron(
     yield { type: 'done', data: '' };
   } catch (err) {
     yield { type: 'error', data: `Electron IPC error: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+/**
+ * HAL backend path — connects to HAL's /api/conversation streaming endpoint.
+ * Consumes JSONL events and translates them to GripStreamEvent format.
+ *
+ * HAL emits:
+ *   { type: "system", subtype: "init", session_id: "..." }
+ *   { type: "content_block_delta", delta: { type: "text_delta", text: "..." } }
+ *   { type: "result", cost_usd, num_turns, session_id, model }
+ *   { type: "error", error: { message: "..." } }
+ */
+async function* sendToGripHAL(
+  halUrl: string,
+  prompt: string,
+  sessionId?: string,
+  model: string = 'sonnet',
+  onPromptSessionId?: (id: string) => void,
+): AsyncGenerator<GripStreamEvent> {
+  try {
+    const response = await fetch(`${halUrl}/api/conversation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: prompt, session_id: sessionId, model }),
+    });
+
+    if (!response.ok) {
+      yield { type: 'error', data: `HAL error: ${response.status}` };
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      yield { type: 'error', data: 'No response body from HAL' };
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const event = parseHalEvent(line.trim());
+        if (!event) continue;
+        if (event.type === 'init' && onPromptSessionId) {
+          onPromptSessionId(event.data as string);
+        }
+        if (event.type !== 'init') yield event;
+      }
+    }
+
+    // Process remaining buffer
+    if (buffer.trim()) {
+      const event = parseHalEvent(buffer.trim());
+      if (event && event.type !== 'init') yield event;
+    }
+
+    yield { type: 'done', data: '' };
+  } catch (err) {
+    yield { type: 'error', data: `HAL connection error: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+/**
+ * Parse a single HAL JSONL event into a GripStreamEvent.
+ * Translates HAL's event protocol to the normalised format ChatInterface expects.
+ */
+function parseHalEvent(line: string): GripStreamEvent | null {
+  if (!line) return null;
+  try {
+    const raw = JSON.parse(line);
+
+    // Session init — extract session_id for resume support
+    if (raw.type === 'system' && raw.subtype === 'init') {
+      return { type: 'init', data: raw.session_id };
+    }
+
+    // Text delta — the main content stream
+    if (raw.type === 'content_block_delta' && raw.delta?.type === 'text_delta') {
+      return { type: 'text', data: raw.delta.text };
+    }
+
+    // Result event with metrics
+    if (raw.type === 'result') {
+      return {
+        type: 'metrics',
+        data: {
+          costUsd: raw.cost_usd,
+          numTurns: raw.num_turns,
+          sessionId: raw.session_id,
+          model: raw.model,
+        } as GripMetrics,
+      };
+    }
+
+    // Error event
+    if (raw.type === 'error') {
+      return { type: 'error', data: raw.error?.message || 'Unknown HAL error' };
+    }
+
+    return null;
+  } catch {
+    return null;
   }
 }
