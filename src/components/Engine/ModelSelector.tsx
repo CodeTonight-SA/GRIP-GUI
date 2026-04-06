@@ -3,6 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
+import { isHalBackend } from '@/lib/hal-client';
+
+interface ModelOption {
+  id: string;
+  label: string;
+  description: string;
+  badge: string;
+}
 
 interface ModelSelectorProps {
   value: string;
@@ -10,11 +18,39 @@ interface ModelSelectorProps {
   compact?: boolean;
 }
 
-const MODELS = [
+const CC_MODELS: ModelOption[] = [
   { id: 'sonnet', label: 'SONNET', description: 'Fast, capable', badge: 'DEFAULT' },
   { id: 'opus', label: 'OPUS', description: 'Most capable, slower', badge: 'DEEP' },
   { id: 'haiku', label: 'HAIKU', description: 'Fastest, lightweight', badge: 'QUICK' },
 ];
+
+/** Fetch provider models from HAL backend. Falls back to CC models on error. */
+function useModels(): ModelOption[] {
+  const [models, setModels] = useState<ModelOption[]>(CC_MODELS);
+
+  useEffect(() => {
+    const halUrl = isHalBackend()
+      ? (localStorage.getItem('grip-hal-url') || process.env.NEXT_PUBLIC_HAL_URL)
+      : null;
+    if (!halUrl) return;
+
+    fetch(`${halUrl}/api/providers`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.providers) return;
+        const halModels: ModelOption[] = data.providers.map((p: { name: string; type: string; models: string[] }) => ({
+          id: p.models?.[0] ? `${p.name}/${p.models[0]}` : p.name,
+          label: p.name.toUpperCase(),
+          description: p.models?.slice(0, 2).join(', ') || 'auto',
+          badge: p.type === 'local' ? 'PRIVATE' : 'CLOUD',
+        }));
+        if (halModels.length > 0) setModels(halModels);
+      })
+      .catch(() => {}); // Fall back to CC_MODELS silently
+  }, []);
+
+  return models;
+}
 
 /**
  * Model selector for the chat input area.
@@ -22,6 +58,7 @@ const MODELS = [
  */
 export default function ModelSelector({ value, onChange, compact = false }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const MODELS = useModels();
   const current = MODELS.find(m => m.id === value) || MODELS[0];
   const containerRef = useRef<HTMLDivElement>(null);
 
