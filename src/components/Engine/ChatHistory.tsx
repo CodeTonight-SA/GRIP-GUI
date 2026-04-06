@@ -11,6 +11,26 @@ import {
   deleteChatSession,
   type ChatSession,
 } from '@/lib/chat-storage';
+import {
+  isHalBackend,
+  listSessions as halListSessions,
+  createSession as halCreateSession,
+  deleteSession as halDeleteSession,
+  type HalSession,
+} from '@/lib/hal-client';
+
+/** Convert HAL session to ChatSession shape for unified rendering. */
+function halToChatSession(h: HalSession): ChatSession {
+  return {
+    id: h.id,
+    title: h.title,
+    createdAt: new Date(h.created_at * 1000).toISOString(),
+    updatedAt: new Date(h.updated_at * 1000).toISOString(),
+    messageCount: h.message_count,
+    model: h.model,
+    sessionId: h.id,
+  };
+}
 
 interface ChatHistoryProps {
   onSessionChange: (chatId: string) => void;
@@ -27,18 +47,37 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
+  const halActive = isHalBackend();
 
+  // Load sessions from HAL or localStorage
   useEffect(() => {
-    setSessions(getChatSessions());
+    if (halActive) {
+      halListSessions().then(halSessions => {
+        setSessions(halSessions.map(halToChatSession));
+      });
+    } else {
+      setSessions(getChatSessions());
+    }
     setActiveId(getActiveChatId());
-  }, []);
+  }, [halActive]);
 
-  const handleNewChat = () => {
-    const session = createChatSession(currentModel);
-    setSessions(getChatSessions());
-    setActiveId(session.id);
-    setActiveChatId(session.id);
-    onSessionChange(session.id);
+  const handleNewChat = async () => {
+    if (halActive) {
+      const id = await halCreateSession(currentModel);
+      if (id) {
+        setActiveChatId(id);
+        setActiveId(id);
+        onSessionChange(id);
+        const updated = await halListSessions();
+        setSessions(updated.map(halToChatSession));
+      }
+    } else {
+      const session = createChatSession(currentModel);
+      setSessions(getChatSessions());
+      setActiveId(session.id);
+      setActiveChatId(session.id);
+      onSessionChange(session.id);
+    }
   };
 
   const handleSelectChat = (chatId: string) => {
@@ -47,16 +86,29 @@ export default function ChatHistory({ onSessionChange, onNewChat, currentModel }
     onSessionChange(chatId);
   };
 
-  const handleDeleteChat = (e: React.MouseEvent, chatId: string) => {
+  const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
-    deleteChatSession(chatId);
-    const updated = getChatSessions();
-    setSessions(updated);
-    if (activeId === chatId) {
-      const newActive = updated[0]?.id || null;
-      setActiveId(newActive);
-      if (newActive) onSessionChange(newActive);
-      else onNewChat();
+    if (halActive) {
+      await halDeleteSession(chatId);
+      const updated = await halListSessions();
+      const mapped = updated.map(halToChatSession);
+      setSessions(mapped);
+      if (activeId === chatId) {
+        const newActive = mapped[0]?.id || null;
+        setActiveId(newActive);
+        if (newActive) onSessionChange(newActive);
+        else onNewChat();
+      }
+    } else {
+      deleteChatSession(chatId);
+      const updated = getChatSessions();
+      setSessions(updated);
+      if (activeId === chatId) {
+        const newActive = updated[0]?.id || null;
+        setActiveId(newActive);
+        if (newActive) onSessionChange(newActive);
+        else onNewChat();
+      }
     }
   };
 
