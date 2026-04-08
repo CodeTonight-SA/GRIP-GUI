@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import TelegramBot from 'node-telegram-bot-api';
 import { App as SlackApp } from '@slack/bolt';
 import { AgentStatus, AppSettings, AgentCharacter } from '../types';
+import { posixQuote } from '../utils/shell';
 import { API_PORT, VAULT_DIR, API_TOKEN_FILE, DATA_DIR } from '../constants';
 import { isSuperAgent } from '../utils';
 import { agents, saveAgents, initAgentPty } from '../core/agent-manager';
@@ -238,8 +239,8 @@ export function startApiServer(
           return;
         }
 
-        const workingDir = (agent.worktreePath || agent.projectPath).replace(/'/g, "'\\''");
-        let command = `cd '${workingDir}' && claude`;
+        const workingDir = posixQuote(agent.worktreePath || agent.projectPath);
+        let command = `cd ${workingDir} && claude`;
 
         // Detect if this is an automation agent (use print mode for one-shot execution)
         const isAutomationAgent = agent.name?.toLowerCase().includes('automation:');
@@ -262,7 +263,7 @@ export function startApiServer(
         }
 
         if (agent.secondaryProjectPath) {
-          command += ` --add-dir '${agent.secondaryProjectPath.replace(/'/g, "'\\''")}'`;
+          command += ` --add-dir ${posixQuote(agent.secondaryProjectPath)}`;
         }
         if (skipPermissions !== undefined ? skipPermissions : agent.skipPermissions) {
           command += ' --dangerously-skip-permissions';
@@ -281,7 +282,7 @@ export function startApiServer(
           const skillsList = agent.skills.join(', ');
           finalPrompt = `[IMPORTANT: Use these skills for this session: ${skillsList}. Invoke them with /<skill-name> when relevant to the task.] ${prompt}`;
         }
-        command += ` '${finalPrompt.replace(/'/g, "'\\''")}'`;
+        command += ` ${posixQuote(finalPrompt)}`;
 
         // Use bash for more reliable PATH handling with nvm
         const shell = '/bin/bash';

@@ -13,6 +13,7 @@
 import { app, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { posixQuote } from './utils/shell';
 
 // V8 stability: ad-hoc code signing on macOS can cause V8's memory protection
 // (ThreadIsolation::WriteProtectMemory) to crash with EXC_BREAKPOINT.
@@ -539,16 +540,15 @@ app.whenReady().then(async () => {
         finalPrompt = `[IMPORTANT: Use these skills for this session: ${skillsList}. Invoke them with /<skill-name> when relevant to the task.] ${prompt}`;
       }
 
-      const escapedPrompt = finalPrompt.replace(/'/g, "'\\''");
-      command += ` '${escapedPrompt}'`;
+      command += ` ${posixQuote(finalPrompt)}`;
 
       // Update status
       agent.status = 'running';
       agent.currentTask = prompt.slice(0, 100);
       agent.lastActivity = new Date().toISOString();
 
-      const workingPath = (agent.worktreePath || agent.projectPath).replace(/'/g, "'\\''");
-      const fullCommand = `cd '${workingPath}' && ${command}`;
+      const workingPath = posixQuote(agent.worktreePath || agent.projectPath);
+      const fullCommand = `cd ${workingPath} && ${command}`;
 
       // For long commands, write to a temp script to avoid PTY line-wrapping mangling
       if (fullCommand.length > 100) {
