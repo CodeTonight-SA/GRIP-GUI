@@ -5,6 +5,7 @@ import * as os from 'os';
 import { spawn } from 'child_process';
 import { getProvider } from '../providers';
 import type { AgentProvider } from '../types';
+import { posixQuote } from '../utils/shell';
 import { DATA_DIR, APP_SETTINGS_FILE } from '../constants';
 
 // ============================================
@@ -254,7 +255,7 @@ async function createAutomationLaunchdJob(automation: Automation): Promise<void>
 
   // The script will call Claude with MCP to run the automation
   const prompt = `Use the run_automation MCP tool to run automation with id "${automation.id}". Report the results briefly.`;
-  const escapedPrompt = prompt.replace(/'/g, "'\\''");
+  const escapedPrompt = prompt;
   const mcpConfigPath = path.join(os.homedir(), '.claude', 'mcp.json');
   const projectPath = automation.agent.projectPath || os.homedir();
   const homeDir = os.homedir();

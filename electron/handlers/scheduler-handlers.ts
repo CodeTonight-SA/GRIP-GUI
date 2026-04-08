@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getMainWindow } from '../core/window-manager';
 import { getProvider } from '../providers';
 import type { AgentProvider, AgentStatus, AppSettings } from '../types';
+import { posixQuote } from '../utils/shell';
 import { DATA_DIR, APP_SETTINGS_FILE } from '../constants';
 
 // ============================================
@@ -340,7 +341,7 @@ async function createLaunchdJob(
 
   const statusInstruction = `\n\n[IMPORTANT] Use the update_scheduled_task_status MCP tool to report your progress:\n1. At the START of your work, call it with task_id="${taskId}" and status="running"\n2. When FINISHED successfully, call it with status="success" and a brief summary\n3. If ERRORS occurred, use status="error" (total failure) or "partial" (some parts succeeded)`;
   const promptWithStatus = prompt + statusInstruction;
-  const escapedPrompt = promptWithStatus.replace(/'/g, "'\\''");
+  const escapedPrompt = promptWithStatus;
   const mcpConfigPath = path.join(os.homedir(), '.claude', 'mcp.json');
   const homeDir = os.homedir();
 
@@ -462,7 +463,7 @@ async function createCronJob(
 
   const statusInstruction = `\n\n[IMPORTANT] Use the update_scheduled_task_status MCP tool to report your progress:\n1. At the START of your work, call it with task_id="${taskId}" and status="running"\n2. When FINISHED successfully, call it with status="success" and a brief summary\n3. If ERRORS occurred, use status="error" (total failure) or "partial" (some parts succeeded)`;
   const promptWithStatus = prompt + statusInstruction;
-  const escapedPrompt = promptWithStatus.replace(/'/g, "'\\''");
+  const escapedPrompt = promptWithStatus;
   const mcpConfigPath = path.join(os.homedir(), '.claude', 'mcp.json');
   const homeDir = os.homedir();
 
@@ -1043,7 +1044,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
       const homeDir = os.homedir();
       const statusInstruction = `\n\n[IMPORTANT] Use the update_scheduled_task_status MCP tool to report your progress:\n1. At the START of your work, call it with task_id="${taskId}" and status="running"\n2. When FINISHED successfully, call it with status="success" and a brief summary\n3. If ERRORS occurred, use status="error" (total failure) or "partial" (some parts succeeded)`;
       const promptWithStatus = prompt + statusInstruction;
-      const escapedPrompt = promptWithStatus.replace(/'/g, "'\\''");
+      const escapedPrompt = promptWithStatus;
 
       const scriptPath = path.join(DATA_DIR, 'scripts', `${taskId}.sh`);
       const scriptsDir = path.dirname(scriptPath);
@@ -1160,7 +1161,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
       }
 
       const flags = task.autonomous ? '--dangerously-skip-permissions' : '';
-      const proc = spawn('bash', ['-c', `cd "${task.projectPath}" && "${binaryPath}" ${flags} -p '${task.prompt?.replace(/'/g, "'\\''")}' >> "${logPath}" 2>&1`], {
+      const proc = spawn('bash', ['-c', `cd "${task.projectPath}" && "${binaryPath}" ${flags} -p ${posixQuote(task.prompt || '')} >> "${logPath}" 2>&1`], {
         detached: true,
         stdio: 'ignore',
       });

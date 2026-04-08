@@ -7,6 +7,7 @@ import * as pty from 'node-pty';
 import { AgentStatus, AppSettings } from '../types';
 import { TG_CHARACTER_FACES, TELEGRAM_DOWNLOADS_DIR } from '../constants';
 import { isSuperAgent, formatAgentStatus, getSuperAgentInstructions, getTelegramInstructions } from '../utils';
+import { posixQuote } from '../utils/shell';
 import { getProvider } from '../providers';
 import { writeProgrammaticInput } from '../core/pty-manager';
 
@@ -686,7 +687,7 @@ export function initTelegramBot() {
 
       try {
         // Start the agent using the existing IPC mechanism
-        const workingPath = (agent.worktreePath || agent.projectPath).replace(/'/g, "'\\''");
+        const workingPath = posixQuote(agent.worktreePath || agent.projectPath);
 
         // Initialize PTY if needed
         if (!agent.ptyId || !ptyProcesses.has(agent.ptyId)) {
@@ -707,10 +708,10 @@ export function initTelegramBot() {
         if (agent.skipPermissions) command += ' --dangerously-skip-permissions';
         if (agent.secondaryProjectPath) {
           const addDirFlag = cliProvider.getAddDirFlag();
-          command += ` ${addDirFlag} '${agent.secondaryProjectPath.replace(/'/g, "'\\''")}'`;
+          command += ` ${addDirFlag} ${posixQuote(agent.secondaryProjectPath)}`;
         }
         command += ` ${cliProvider.getAddDirFlag()} '${require('os').homedir()}/.grip'`;
-        command += ` '${task.replace(/'/g, "'\\''")}'`;
+        command += ` ${posixQuote(task)}`;
 
         agent.status = 'running';
         agent.currentTask = task.slice(0, 100);
@@ -1189,7 +1190,7 @@ export async function sendToSuperAgent(chatId: string, message: string, attached
       telegramBot?.sendMessage(chatId, `👑 Super Agent is processing...`);
     } else if (superAgent.status === 'idle' || superAgent.status === 'completed' || superAgent.status === 'error') {
       // No active session, start a new one
-      const workingPath = (superAgent.worktreePath || superAgent.projectPath).replace(/'/g, "'\\''");
+      const workingPath = posixQuote(superAgent.worktreePath || superAgent.projectPath);
 
       // Build command with instructions file
       let command = 'claude';
@@ -1219,7 +1220,7 @@ export async function sendToSuperAgent(chatId: string, message: string, attached
 
       // Simple prompt with Telegram context including chat ID for proper routing
       const userPrompt = `[FROM TELEGRAM chat_id=${chatId} - Use send_telegram MCP tool with chat_id="${chatId}" to respond!] ${sanitizedMessage}`;
-      command += ` '${userPrompt.replace(/'/g, "'\\''")}'`;
+      command += ` ${posixQuote(userPrompt)}`;
 
       superAgent.status = 'running';
       superAgent.currentTask = sanitizedMessage.slice(0, 100);

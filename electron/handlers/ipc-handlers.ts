@@ -1,4 +1,5 @@
 import { ipcMain, dialog, shell } from 'electron';
+import { posixQuote } from '../utils/shell';
 import { checkForUpdates, downloadUpdate, quitAndInstall } from '../services/update-checker';
 import { registerMemoryHandlers } from './memory-handlers';
 import { registerObsidianHandlers } from './obsidian-handlers';
@@ -562,8 +563,7 @@ function registerAgentHandlers(deps: IpcHandlerDependencies): void {
     agent.lastActivity = new Date().toISOString();
 
     // First cd to the appropriate directory (worktree if exists, otherwise project), then run claude
-    const workingPath = (agent.worktreePath || agent.projectPath).replace(/'/g, "'\\''");
-    const fullCommand = `cd '${workingPath}' && ${command}`;
+    const fullCommand = `cd ${posixQuote(agent.worktreePath || agent.projectPath)} && ${command}`;
 
     // Wait for the shell to initialize before writing the command.
     // A freshly-spawned PTY needs time for bash to start up (~200ms).

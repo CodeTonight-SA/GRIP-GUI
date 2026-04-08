@@ -4,6 +4,7 @@ import { App as SlackApp, LogLevel } from '@slack/bolt';
 import { AgentStatus, AppSettings } from '../types';
 import { SLACK_CHARACTER_FACES } from '../constants';
 import { formatSlackAgentStatus, isSuperAgent, getSuperAgent, getSuperAgentInstructions } from '../utils';
+import { posixQuote } from '../utils/shell';
 import { agents, saveAgents, initAgentPty } from '../core/agent-manager';
 import { ptyProcesses, writeProgrammaticInput } from '../core/pty-manager';
 import { getMainWindow } from '../core/window-manager';
@@ -439,7 +440,7 @@ export async function handleSlackCommand(
     }
 
     try {
-      const workingPath = (agent.worktreePath || agent.projectPath).replace(/'/g, "'\\''");
+      const workingPath = posixQuote(agent.worktreePath || agent.projectPath);
 
       if (!agent.ptyId || !ptyProcesses.has(agent.ptyId)) {
         const ptyId = await initAgentPtyWithCallbacks(agent);
@@ -455,10 +456,10 @@ export async function handleSlackCommand(
       let command = 'claude';
       if (agent.skipPermissions) command += ' --dangerously-skip-permissions';
       if (agent.secondaryProjectPath) {
-        command += ` --add-dir '${agent.secondaryProjectPath.replace(/'/g, "'\\''")}'`;
+        command += ` --add-dir ${posixQuote(agent.secondaryProjectPath)}`;
       }
       command += ` --add-dir '${require('os').homedir()}/.grip'`;
-      command += ` '${task.replace(/'/g, "'\\''")}'`;
+      command += ` ${posixQuote(task)}`;
 
       agent.status = 'running';
       agent.currentTask = task.slice(0, 100);
@@ -587,7 +588,7 @@ export async function sendToSuperAgentFromSlack(
 
       // Simple prompt with Slack context - the detailed instructions come from the file
       const userPrompt = `[FROM SLACK - Use send_slack MCP tool to respond!] ${sanitizedMessage}`;
-      command += ` '${userPrompt.replace(/'/g, "'\\''")}'`;
+      command += ` ${posixQuote(userPrompt)}`;
 
       superAgent.status = 'running';
       superAgent.currentTask = sanitizedMessage.slice(0, 100);
