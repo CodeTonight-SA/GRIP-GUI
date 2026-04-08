@@ -11,6 +11,7 @@ import type {
   ProviderModel,
   HookConfig,
 } from './cli-provider';
+import { posixQuote } from '../utils/shell';
 
 export class CodexProvider implements CLIProvider {
   readonly id = 'codex' as const;
@@ -32,7 +33,7 @@ export class CodexProvider implements CLIProvider {
   }
 
   buildInteractiveCommand(params: InteractiveCommandParams): string {
-    let command = `'${params.binaryPath.replace(/'/g, "'\\''")}'`;
+    let command = posixQuote(params.binaryPath);
 
     // Model
     if (params.model) {
@@ -49,16 +50,14 @@ export class CodexProvider implements CLIProvider {
 
     // Secondary project
     if (params.secondaryProjectPath) {
-      const escaped = params.secondaryProjectPath.replace(/'/g, "'\\''");
-      command += ` --add-dir '${escaped}'`;
+      command += ` --add-dir ${posixQuote(params.secondaryProjectPath)}`;
     }
 
     // Obsidian vaults (read-only access)
     if (params.obsidianVaultPaths) {
       for (const vp of params.obsidianVaultPaths) {
         if (fs.existsSync(vp)) {
-          const escaped = vp.replace(/'/g, "'\\''");
-          command += ` --add-dir '${escaped}'`;
+          command += ` --add-dir ${posixQuote(vp)}`;
         }
       }
     }
@@ -71,8 +70,7 @@ export class CodexProvider implements CLIProvider {
     }
 
     if (finalPrompt) {
-      const escaped = finalPrompt.replace(/'/g, "'\\''");
-      command += ` '${escaped}'`;
+      command += ` ${posixQuote(finalPrompt)}`;
     }
 
     return command;
@@ -89,21 +87,19 @@ export class CodexProvider implements CLIProvider {
       command += ' --json';
     }
 
-    const escaped = params.prompt.replace(/'/g, "'\\''");
-    command += ` exec '${escaped}'`;
+    command += ` exec ${posixQuote(params.prompt)}`;
 
     return command;
   }
 
   buildOneShotCommand(params: OneShotCommandParams): string {
-    let command = `'${params.binaryPath.replace(/'/g, "'\\''")}'`;
+    let command = posixQuote(params.binaryPath);
 
     if (params.model) {
       command += ` --model ${params.model}`;
     }
 
-    const escaped = params.prompt.replace(/'/g, "'\\''");
-    command += ` exec '${escaped}'`;
+    command += ` exec ${posixQuote(params.prompt)}`;
 
     return command;
   }
