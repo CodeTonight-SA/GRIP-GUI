@@ -154,6 +154,115 @@ describe('GeminiProvider', () => {
     });
   });
 
+  describe('configureHooks', () => {
+    it('writes single-quoted command paths to settings.json', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'GRIP Commander.app', 'hooks');
+      const geminiHooksDir = path.join(hooksDir, 'gemini');
+      fs.mkdirSync(geminiHooksDir, { recursive: true });
+      fs.writeFileSync(path.join(geminiHooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const geminiDir = path.join(tmpDir, '.gemini');
+      fs.mkdirSync(geminiDir, { recursive: true });
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(geminiDir, 'settings.json'), 'utf-8'));
+      const hook = settings.hooks.AfterAgent[0].hooks[0].command;
+      expect(hook).toMatch(/^'/);
+      expect(hook).toMatch(/'$/);
+      expect(hook).toContain('GRIP Commander.app');
+      expect(hook).toContain('gemini/on-stop.sh');
+    });
+
+    it('updates existing unquoted paths to quoted', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'GRIP Commander.app', 'hooks');
+      const geminiHooksDir = path.join(hooksDir, 'gemini');
+      fs.mkdirSync(geminiHooksDir, { recursive: true });
+      fs.writeFileSync(path.join(geminiHooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const geminiDir = path.join(tmpDir, '.gemini');
+      fs.mkdirSync(geminiDir, { recursive: true });
+      const unquotedPath = path.join(geminiHooksDir, 'on-stop.sh');
+      fs.writeFileSync(path.join(geminiDir, 'settings.json'), JSON.stringify({
+        hooks: {
+          AfterAgent: [{ hooks: [{ type: 'command', command: unquotedPath, timeout: 10000 }] }],
+        },
+      }));
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(geminiDir, 'settings.json'), 'utf-8'));
+      const hook = settings.hooks.AfterAgent[0].hooks[0].command;
+      expect(hook).toBe(`'${unquotedPath}'`);
+    });
+
+    it('does not rewrite when paths are already correctly quoted', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'app', 'hooks');
+      const geminiHooksDir = path.join(hooksDir, 'gemini');
+      fs.mkdirSync(geminiHooksDir, { recursive: true });
+      fs.writeFileSync(path.join(geminiHooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const geminiDir = path.join(tmpDir, '.gemini');
+      fs.mkdirSync(geminiDir, { recursive: true });
+      const quotedPath = `'${path.join(geminiHooksDir, 'on-stop.sh')}'`;
+      const settingsPath = path.join(geminiDir, 'settings.json');
+      fs.writeFileSync(settingsPath, JSON.stringify({
+        hooks: {
+          AfterAgent: [{ hooks: [{ type: 'command', command: quotedPath, timeout: 10000 }] }],
+        },
+      }));
+      const mtimeBefore = fs.statSync(settingsPath).mtimeMs;
+
+      // Small delay so mtime would differ if file is rewritten
+      await new Promise(r => setTimeout(r, 50));
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      expect(settings.hooks.AfterAgent[0].hooks[0].command).toBe(quotedPath);
+      expect(fs.statSync(settingsPath).mtimeMs).toBe(mtimeBefore);
+    });
+
+    it('escapes single quotes within paths', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, "it's an app", 'hooks');
+      const geminiHooksDir = path.join(hooksDir, 'gemini');
+      fs.mkdirSync(geminiHooksDir, { recursive: true });
+      fs.writeFileSync(path.join(geminiHooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const geminiDir = path.join(tmpDir, '.gemini');
+      fs.mkdirSync(geminiDir, { recursive: true });
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(geminiDir, 'settings.json'), 'utf-8'));
+      const hook = settings.hooks.AfterAgent[0].hooks[0].command;
+      expect(hook).toMatch(/^'/);
+      expect(hook).toMatch(/'$/);
+      expect(hook).toContain("'\\''");
+    });
+
+    it('skips hook types whose files do not exist', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'hooks');
+      const geminiHooksDir = path.join(hooksDir, 'gemini');
+      fs.mkdirSync(geminiHooksDir, { recursive: true });
+      fs.writeFileSync(path.join(geminiHooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const geminiDir = path.join(tmpDir, '.gemini');
+      fs.mkdirSync(geminiDir, { recursive: true });
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(geminiDir, 'settings.json'), 'utf-8'));
+      expect(settings.hooks.AfterAgent).toHaveLength(1);
+      expect(settings.hooks.AfterTool).toBeUndefined();
+      expect(settings.hooks.SessionStart).toBeUndefined();
+    });
+  });
+
   describe('isMcpServerRegistered', () => {
     it('returns true when server exists in settings.json with matching path', async () => {
       const provider = await getProvider();

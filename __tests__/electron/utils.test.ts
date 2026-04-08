@@ -150,3 +150,34 @@ describe('formatSlackAgentStatus', () => {
   });
 });
 
+describe('posixQuote', () => {
+  // Import directly — no Electron dependency
+  let posixQuote: (raw: string) => string;
+  beforeEach(async () => {
+    const mod = await import('../../electron/utils/shell');
+    posixQuote = mod.posixQuote;
+  });
+
+  it('wraps simple paths in single quotes', () => {
+    expect(posixQuote('/usr/local/bin/hook.sh')).toBe("'/usr/local/bin/hook.sh'");
+  });
+
+  it('preserves spaces within quotes', () => {
+    expect(posixQuote('/Applications/GRIP Commander.app/hooks/on-stop.sh'))
+      .toBe("'/Applications/GRIP Commander.app/hooks/on-stop.sh'");
+  });
+
+  it('escapes embedded single quotes', () => {
+    expect(posixQuote("/tmp/it's a path/hook.sh"))
+      .toBe("'/tmp/it'\\''s a path/hook.sh'");
+  });
+
+  it('handles multiple single quotes', () => {
+    expect(posixQuote("a'b'c")).toBe("'a'\\''b'\\''c'");
+  });
+
+  it('handles empty string', () => {
+    expect(posixQuote('')).toBe("''");
+  });
+});
+

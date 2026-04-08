@@ -11,6 +11,7 @@ import type {
   ProviderModel,
   HookConfig,
 } from './cli-provider';
+import { posixQuote } from '../utils/shell';
 
 export class GeminiProvider implements CLIProvider {
   readonly id = 'gemini' as const;
@@ -185,6 +186,7 @@ export class GeminiProvider implements CLIProvider {
     for (const { type, file, matcher } of hookFiles) {
       const commandPath = path.join(geminiHooksDir, file);
       if (!fs.existsSync(commandPath)) continue;
+      const quotedPath = posixQuote(commandPath);
 
       const existing: HookEntry[] = settings.hooks![type] || [];
       const entryIndex = existing.findIndex((h: HookEntry) =>
@@ -194,13 +196,13 @@ export class GeminiProvider implements CLIProvider {
       if (entryIndex >= 0) {
         const entry: HookEntry = existing[entryIndex];
         const hookIndex = entry.hooks.findIndex((hh: { command?: string }) => hh.command?.includes(`gemini/${file}`));
-        if (hookIndex >= 0 && entry.hooks[hookIndex].command !== commandPath) {
-          entry.hooks[hookIndex].command = commandPath;
+        if (hookIndex >= 0 && entry.hooks[hookIndex].command !== quotedPath) {
+          entry.hooks[hookIndex].command = quotedPath;
           updated = true;
         }
       } else {
         const hookConfig: { matcher?: string; hooks: Array<{ type: string; command: string; timeout: number }> } = {
-          hooks: [{ type: 'command', command: commandPath, timeout: 10000 }]
+          hooks: [{ type: 'command', command: quotedPath, timeout: 10000 }]
         };
         if (matcher) hookConfig.matcher = matcher;
         settings.hooks![type] = [...existing, hookConfig];
