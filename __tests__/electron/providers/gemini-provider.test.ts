@@ -214,12 +214,15 @@ describe('GeminiProvider', () => {
           AfterAgent: [{ hooks: [{ type: 'command', command: quotedPath, timeout: 10000 }] }],
         },
       }));
+      const mtimeBefore = fs.statSync(settingsPath).mtimeMs;
 
+      // Small delay so mtime would differ if file is rewritten
       await new Promise(r => setTimeout(r, 50));
       await provider.configureHooks(hooksDir);
 
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
       expect(settings.hooks.AfterAgent[0].hooks[0].command).toBe(quotedPath);
+      expect(fs.statSync(settingsPath).mtimeMs).toBe(mtimeBefore);
     });
 
     it('escapes single quotes within paths', async () => {
@@ -236,6 +239,8 @@ describe('GeminiProvider', () => {
 
       const settings = JSON.parse(fs.readFileSync(path.join(geminiDir, 'settings.json'), 'utf-8'));
       const hook = settings.hooks.AfterAgent[0].hooks[0].command;
+      expect(hook).toMatch(/^'/);
+      expect(hook).toMatch(/'$/);
       expect(hook).toContain("'\\''");
     });
 

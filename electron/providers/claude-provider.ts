@@ -11,6 +11,7 @@ import type {
   ProviderModel,
   HookConfig,
 } from './cli-provider';
+import { posixQuote } from '../utils/shell';
 
 export class ClaudeProvider implements CLIProvider {
   readonly id = 'claude' as const;
@@ -199,7 +200,7 @@ export class ClaudeProvider implements CLIProvider {
     for (const { type, file, matcher } of hookFiles) {
       const commandPath = path.join(hooksDir, file);
       if (!fs.existsSync(commandPath)) continue;
-      const quotedPath = `'${commandPath.replace(/'/g, "'\\''")}'`;
+      const quotedPath = posixQuote(commandPath);
 
       const existing: HookEntry[] = settings.hooks![type] || [];
       const entryIndex = existing.findIndex((h: HookEntry) =>

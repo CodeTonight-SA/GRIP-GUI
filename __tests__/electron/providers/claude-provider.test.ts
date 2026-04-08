@@ -236,6 +236,7 @@ describe('ClaudeProvider', () => {
 
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
       expect(settings.hooks.Stop[0].hooks[0].command).toBe(quotedPath);
+      expect(fs.statSync(settingsPath).mtimeMs).toBe(mtimeBefore);
     });
 
     it('escapes single quotes within paths', async () => {
@@ -251,6 +252,8 @@ describe('ClaudeProvider', () => {
 
       const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
       const stopHook = settings.hooks.Stop[0].hooks[0].command;
+      expect(stopHook).toMatch(/^'/);
+      expect(stopHook).toMatch(/'$/);
       expect(stopHook).toContain("'\\''");
     });
 
