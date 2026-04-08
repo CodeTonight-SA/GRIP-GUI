@@ -172,6 +172,107 @@ describe('ClaudeProvider', () => {
     });
   });
 
+  describe('configureHooks', () => {
+    it('writes single-quoted command paths to settings.json', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'GRIP Commander.app', 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(path.join(hooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
+      const stopHook = settings.hooks.Stop[0].hooks[0].command;
+      expect(stopHook).toMatch(/^'/);
+      expect(stopHook).toMatch(/'$/);
+      expect(stopHook).toContain('GRIP Commander.app');
+    });
+
+    it('updates existing unquoted paths to quoted', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'GRIP Commander.app', 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(path.join(hooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+      const unquotedPath = path.join(hooksDir, 'on-stop.sh');
+      fs.writeFileSync(path.join(claudeDir, 'settings.json'), JSON.stringify({
+        hooks: {
+          Stop: [{ hooks: [{ type: 'command', command: unquotedPath, timeout: 30 }] }],
+        },
+      }));
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
+      const stopHook = settings.hooks.Stop[0].hooks[0].command;
+      expect(stopHook).toBe(`'${unquotedPath}'`);
+    });
+
+    it('does not rewrite when paths are already correctly quoted', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'app', 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(path.join(hooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+      const quotedPath = `'${path.join(hooksDir, 'on-stop.sh')}'`;
+      const settingsPath = path.join(claudeDir, 'settings.json');
+      fs.writeFileSync(settingsPath, JSON.stringify({
+        hooks: {
+          Stop: [{ hooks: [{ type: 'command', command: quotedPath, timeout: 30 }] }],
+        },
+      }));
+      const mtimeBefore = fs.statSync(settingsPath).mtimeMs;
+
+      // Small delay so mtime would differ if file is rewritten
+      await new Promise(r => setTimeout(r, 50));
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      expect(settings.hooks.Stop[0].hooks[0].command).toBe(quotedPath);
+    });
+
+    it('escapes single quotes within paths', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, "it's an app", 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(path.join(hooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
+      const stopHook = settings.hooks.Stop[0].hooks[0].command;
+      expect(stopHook).toContain("'\\''");
+    });
+
+    it('skips hook types whose files do not exist', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      // Only create on-stop.sh, not the others
+      fs.writeFileSync(path.join(hooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
+      expect(settings.hooks.Stop).toHaveLength(1);
+      expect(settings.hooks.PostToolUse).toBeUndefined();
+      expect(settings.hooks.SessionStart).toBeUndefined();
+    });
+  });
+
   describe('isMcpServerRegistered', () => {
     it('returns true when server exists in mcp.json with matching path', async () => {
       const provider = await getProvider();
