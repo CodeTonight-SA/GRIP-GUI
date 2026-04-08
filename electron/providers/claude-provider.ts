@@ -35,16 +35,16 @@ export class ClaudeProvider implements CLIProvider {
   }
 
   buildInteractiveCommand(params: InteractiveCommandParams): string {
-    let command = `'${params.binaryPath.replace(/'/g, "'\\''")}'`;
+    let command = posixQuote(params.binaryPath);
 
     // MCP config
     if (params.mcpConfigPath && fs.existsSync(params.mcpConfigPath)) {
-      command += ` --mcp-config '${params.mcpConfigPath.replace(/'/g, "'\\''")}'`;
+      command += ` --mcp-config ${posixQuote(params.mcpConfigPath)}`;
     }
 
     // System prompt file (Super Agent instructions)
     if (params.systemPromptFile && fs.existsSync(params.systemPromptFile)) {
-      command += ` --append-system-prompt-file '${params.systemPromptFile.replace(/'/g, "'\\''")}'`;
+      command += ` --append-system-prompt-file ${posixQuote(params.systemPromptFile)}`;
     }
 
     // Model
@@ -67,22 +67,20 @@ export class ClaudeProvider implements CLIProvider {
 
     // Secondary project
     if (params.secondaryProjectPath) {
-      const escaped = params.secondaryProjectPath.replace(/'/g, "'\\''");
-      command += ` --add-dir '${escaped}'`;
+      command += ` --add-dir ${posixQuote(params.secondaryProjectPath)}`;
     }
 
     // Obsidian vaults (read-only access)
     if (params.obsidianVaultPaths) {
       for (const vp of params.obsidianVaultPaths) {
         if (fs.existsSync(vp)) {
-          const escaped = vp.replace(/'/g, "'\\''");
-          command += ` --add-dir '${escaped}'`;
+          command += ` --add-dir ${posixQuote(vp)}`;
         }
       }
     }
 
     // GRIP's CLAUDE.md via ~/.grip
-    command += ` --add-dir '${os.homedir()}/.grip'`;
+    command += ` --add-dir ${posixQuote(`${os.homedir()}/.grip`)}`;
 
     // Prompt with skills directive
     let finalPrompt = params.prompt;
@@ -92,8 +90,7 @@ export class ClaudeProvider implements CLIProvider {
     }
 
     if (finalPrompt) {
-      const escaped = finalPrompt.replace(/'/g, "'\\''");
-      command += ` '${escaped}'`;
+      command += ` ${posixQuote(finalPrompt)}`;
     }
 
     return command;
@@ -120,14 +117,13 @@ export class ClaudeProvider implements CLIProvider {
 
     command += ` --add-dir "${os.homedir()}/.grip"`;
 
-    const escaped = params.prompt.replace(/'/g, "'\\''");
-    command += ` -p '${escaped}'`;
+    command += ` -p ${posixQuote(params.prompt)}`;
 
     return command;
   }
 
   buildOneShotCommand(params: OneShotCommandParams): string {
-    let command = `'${params.binaryPath.replace(/'/g, "'\\''")}'`;
+    let command = posixQuote(params.binaryPath);
 
     command += ' -p';
 
@@ -135,8 +131,7 @@ export class ClaudeProvider implements CLIProvider {
       command += ` --model ${params.model}`;
     }
 
-    const escaped = params.prompt.replace(/'/g, "'\\''");
-    command += ` '${escaped}'`;
+    command += ` ${posixQuote(params.prompt)}`;
 
     return command;
   }

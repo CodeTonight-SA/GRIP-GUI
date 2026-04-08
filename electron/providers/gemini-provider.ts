@@ -33,7 +33,7 @@ export class GeminiProvider implements CLIProvider {
   }
 
   buildInteractiveCommand(params: InteractiveCommandParams): string {
-    let command = `'${params.binaryPath.replace(/'/g, "'\\''")}'`;
+    let command = posixQuote(params.binaryPath);
 
     // Model (Gemini uses -m flag)
     if (params.model) {
@@ -52,22 +52,20 @@ export class GeminiProvider implements CLIProvider {
 
     // Secondary project (Gemini uses --include-directories)
     if (params.secondaryProjectPath) {
-      const escaped = params.secondaryProjectPath.replace(/'/g, "'\\''");
-      command += ` --include-directories '${escaped}'`;
+      command += ` --include-directories ${posixQuote(params.secondaryProjectPath)}`;
     }
 
     // Obsidian vaults (read-only access)
     if (params.obsidianVaultPaths) {
       for (const vp of params.obsidianVaultPaths) {
         if (fs.existsSync(vp)) {
-          const escaped = vp.replace(/'/g, "'\\''");
-          command += ` --include-directories '${escaped}'`;
+          command += ` --include-directories ${posixQuote(vp)}`;
         }
       }
     }
 
     // Include GRIP directory
-    command += ` --include-directories '${os.homedir()}/.grip'`;
+    command += ` --include-directories ${posixQuote(`${os.homedir()}/.grip`)}`;
 
     // Prompt with skills directive
     let finalPrompt = params.prompt;
@@ -77,8 +75,7 @@ export class GeminiProvider implements CLIProvider {
     }
 
     if (finalPrompt) {
-      const escaped = finalPrompt.replace(/'/g, "'\\''");
-      command += ` '${escaped}'`;
+      command += ` ${posixQuote(finalPrompt)}`;
     }
 
     return command;
@@ -99,14 +96,13 @@ export class GeminiProvider implements CLIProvider {
 
     command += ` --include-directories "${os.homedir()}/.grip"`;
 
-    const escaped = params.prompt.replace(/'/g, "'\\''");
-    command += ` -p '${escaped}'`;
+    command += ` -p ${posixQuote(params.prompt)}`;
 
     return command;
   }
 
   buildOneShotCommand(params: OneShotCommandParams): string {
-    let command = `'${params.binaryPath.replace(/'/g, "'\\''")}'`;
+    let command = posixQuote(params.binaryPath);
 
     command += ' -p';
 
@@ -114,8 +110,7 @@ export class GeminiProvider implements CLIProvider {
       command += ` -m ${params.model}`;
     }
 
-    const escaped = params.prompt.replace(/'/g, "'\\''");
-    command += ` '${escaped}'`;
+    command += ` ${posixQuote(params.prompt)}`;
 
     return command;
   }
