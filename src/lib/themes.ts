@@ -1,7 +1,12 @@
 /**
- * GRIP Theme Engine — 17 themes across 4 categories.
+ * GRIP Theme Engine — 21 themes across 4 categories.
  * Single source of truth for all theme data.
  * Applied at runtime via CSS custom properties on <html>.
+ *
+ * Swiss (6): Light, Dark, Neutrality, Optimism, Utopia, Brutalism
+ * Nature (7): Autumn, Summer, Winter, Storm, Forest, Ocean
+ * Retro (4): Retrowave, Synthwave, Vapor, Amber Terminal
+ * Futuristic (4): Matrix, Cyberpunk, Techno, Hologram, Neon
  */
 
 export interface ThemeColors {
@@ -468,6 +473,106 @@ export const THEMES: ThemeDefinition[] = [
       'chart-1': '#06B6D4', 'chart-2': '#6890A8', 'chart-3': '#22c55e', 'chart-4': '#ef4444', 'chart-5': '#C8E0F0',
       ...scrollbarColors('#12121E', '#2A2A44', '#06B6D4'),
       'vortex-glow': '0 0 30px rgba(6, 182, 212, 0.5)',
+    },
+  },
+  // ─── NEW: BRUTALISM (Swiss) ───────────────────
+  {
+    id: 'brutalism',
+    name: 'Brutalism',
+    category: 'swiss',
+    isDark: false,
+    colors: {
+      background: '#9E9E9E', foreground: '#1A1A1A',
+      card: '#B0B0B0', 'card-foreground': '#1A1A1A',
+      popover: '#B0B0B0', 'popover-foreground': '#1A1A1A',
+      primary: '#D32F2F', 'primary-foreground': '#FFFFFF',
+      secondary: '#8A8A8A', 'secondary-foreground': '#1A1A1A',
+      muted: '#7A7A7A', 'muted-foreground': '#3A3A3A',
+      accent: '#D32F2F', 'accent-foreground': '#FFFFFF',
+      destructive: '#B71C1C',
+      border: '#6A6A6A', input: '#A0A0A0', ring: '#D32F2F',
+      success: '#2E7D32', 'success-muted': 'rgba(46, 125, 50, 0.15)',
+      warning: '#F57F17', 'warning-muted': 'rgba(245, 127, 23, 0.15)',
+      danger: '#D32F2F', 'danger-muted': 'rgba(211, 47, 47, 0.15)',
+      info: '#1565C0', 'info-muted': 'rgba(21, 101, 192, 0.15)',
+      'chart-1': '#D32F2F', 'chart-2': '#3A3A3A', 'chart-3': '#2E7D32', 'chart-4': '#F57F17', 'chart-5': '#1A1A1A',
+      ...scrollbarColors('#8A8A8A', '#6A6A6A', '#D32F2F'),
+      'vortex-glow': '0 0 20px rgba(211, 47, 47, 0.3)',
+    },
+  },
+  // ─── NEW: OCEAN (Nature) ─────────────────────
+  {
+    id: 'ocean',
+    name: 'Ocean',
+    category: 'nature',
+    isDark: true,
+    colors: {
+      background: '#0D1B2A', foreground: '#C8E6F0',
+      card: '#1B2838', 'card-foreground': '#C8E6F0',
+      popover: '#1B2838', 'popover-foreground': '#C8E6F0',
+      primary: '#1B998B', 'primary-foreground': '#0D1B2A',
+      secondary: '#15253A', 'secondary-foreground': '#C8E6F0',
+      muted: '#1E3048', 'muted-foreground': '#6A9AB0',
+      accent: '#1B998B', 'accent-foreground': '#0D1B2A',
+      destructive: '#EF5350',
+      border: '#1E3048', input: '#1B2838', ring: '#1B998B',
+      success: '#26A69A', 'success-muted': 'rgba(38, 166, 154, 0.15)',
+      warning: '#FFB74D', 'warning-muted': 'rgba(255, 183, 77, 0.15)',
+      danger: '#EF5350', 'danger-muted': 'rgba(239, 83, 80, 0.15)',
+      info: '#29B6F6', 'info-muted': 'rgba(41, 182, 246, 0.15)',
+      'chart-1': '#1B998B', 'chart-2': '#6A9AB0', 'chart-3': '#26A69A', 'chart-4': '#EF5350', 'chart-5': '#C8E6F0',
+      ...scrollbarColors('#15253A', '#2A4058', '#1B998B'),
+      'vortex-glow': '0 0 25px rgba(27, 153, 139, 0.4)',
+    },
+  },
+  // ─── NEW: AMBER TERMINAL (Retro) ─────────────
+  {
+    id: 'amber-terminal',
+    name: 'Amber Terminal',
+    category: 'retro',
+    isDark: true,
+    colors: {
+      background: '#1A1A00', foreground: '#FFB000',
+      card: '#242400', 'card-foreground': '#FFB000',
+      popover: '#242400', 'popover-foreground': '#FFB000',
+      primary: '#FFB000', 'primary-foreground': '#1A1A00',
+      secondary: '#2A2A08', 'secondary-foreground': '#CC8C00',
+      muted: '#333310', 'muted-foreground': '#8A7020',
+      accent: '#FFB000', 'accent-foreground': '#1A1A00',
+      destructive: '#FF4400',
+      border: '#4A4A10', input: '#242400', ring: '#FFB000',
+      success: '#88CC00', 'success-muted': 'rgba(136, 204, 0, 0.15)',
+      warning: '#FFCC00', 'warning-muted': 'rgba(255, 204, 0, 0.15)',
+      danger: '#FF4400', 'danger-muted': 'rgba(255, 68, 0, 0.15)',
+      info: '#FFB000', 'info-muted': 'rgba(255, 176, 0, 0.15)',
+      'chart-1': '#FFB000', 'chart-2': '#8A7020', 'chart-3': '#88CC00', 'chart-4': '#FF4400', 'chart-5': '#CC8C00',
+      ...scrollbarColors('#242400', '#4A4A10', '#FFB000'),
+      'vortex-glow': '0 0 25px rgba(255, 176, 0, 0.4)',
+    },
+  },
+  // ─── NEW: NEON (Futuristic) ──────────────────
+  {
+    id: 'neon',
+    name: 'Neon',
+    category: 'futuristic',
+    isDark: true,
+    colors: {
+      background: '#000000', foreground: '#E0E0F0',
+      card: '#0A0A12', 'card-foreground': '#E0E0F0',
+      popover: '#0A0A12', 'popover-foreground': '#E0E0F0',
+      primary: '#FF006E', 'primary-foreground': '#000000',
+      secondary: '#0F0F1A', 'secondary-foreground': '#E0E0F0',
+      muted: '#1A1A28', 'muted-foreground': '#7070A0',
+      accent: '#FF006E', 'accent-foreground': '#000000',
+      destructive: '#FF1744',
+      border: '#2A2A3A', input: '#0A0A12', ring: '#FF006E',
+      success: '#00E676', 'success-muted': 'rgba(0, 230, 118, 0.15)',
+      warning: '#FFEA00', 'warning-muted': 'rgba(255, 234, 0, 0.15)',
+      danger: '#FF1744', 'danger-muted': 'rgba(255, 23, 68, 0.15)',
+      info: '#00B0FF', 'info-muted': 'rgba(0, 176, 255, 0.15)',
+      'chart-1': '#FF006E', 'chart-2': '#00B0FF', 'chart-3': '#00E676', 'chart-4': '#FF1744', 'chart-5': '#FFEA00',
+      ...scrollbarColors('#0A0A12', '#2A2A3A', '#FF006E'),
+      'vortex-glow': '0 0 35px rgba(255, 0, 110, 0.5)',
     },
   },
 ];
