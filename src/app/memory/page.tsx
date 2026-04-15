@@ -706,7 +706,7 @@ function GripStatusPanel() {
           <Layers className="w-4 h-4 text-accent-cyan" />
           <span className="font-mono text-xs tracking-widest text-[var(--foreground)]">ACTIVE MODES</span>
           <span className="font-mono text-[10px] text-[var(--primary)] border border-[var(--primary)] px-1.5 py-0.5">
-            {activeModes.length}/3
+            {activeModes.length}/5
           </span>
         </div>
         {activeModes.length > 0 ? (

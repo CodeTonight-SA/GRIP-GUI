@@ -36,12 +36,13 @@ export default function ModesPage() {
     setSaving(false);
   }, []);
 
+  const MAX_ACTIVE_MODES = 5;
   const toggleMode = useCallback((modeId: string) => {
     setActiveModes(prev => {
       let next: string[];
       if (prev.includes(modeId)) {
         next = prev.filter(m => m !== modeId);
-      } else if (prev.length >= 3) {
+      } else if (prev.length >= MAX_ACTIVE_MODES) {
         next = [...prev.slice(1), modeId];
       } else {
         next = [...prev, modeId];
@@ -65,7 +66,7 @@ export default function ModesPage() {
           Modes
         </h1>
         <p className="text-[var(--muted-foreground)] mt-1">
-          Switch how GRIP thinks. Select up to 3 modes simultaneously.
+          Switch how GRIP thinks. Select up to 5 modes simultaneously.
         </p>
         {activeModes.length > 0 && (
           <div className="flex items-center gap-2 mt-3">
@@ -76,7 +77,7 @@ export default function ModesPage() {
               </span>
             ))}
             <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
-              ({activeModes.length}/3)
+              ({activeModes.length}/{MAX_ACTIVE_MODES})
             </span>
             {saving && <Loader2 className="w-3 h-3 text-[var(--primary)] animate-spin" />}
             {loaded && !saving && activeModes.length > 0 && (
