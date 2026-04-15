@@ -243,6 +243,19 @@ Goodhart-ing and must be rejected regardless of what the primary says.
   before any W8a implementation PR registers a hypothesis against this
   target. The harness is the precondition for honest future baselines.
 
+### 4.3.1 Measurement procedure (W9b, 2026-04-15)
+
+A reproducible measurement harness now exists at `scripts/measure-memory.sh`
+with full usage documentation in `docs/proposals/W9B-HARNESS.md`. The
+300 MB provisional estimate in §4.3 MUST be replaced by measured numbers
+from this harness before any W8a memory claim can be reviewed. V>> to run
+the three-point measurement (idle / one-panel / five-panels) and update
+§4.3 with the results.
+
+**Status**: harness ready, measurement awaiting manual run.
+**Hypothesis H-B5 status**: still WEAKENED. Will be resolved one way or the
+other by the first measurement run.
+
 ### 4.4 Static source LOC growth rate
 
 - **Primary**: per-PR net LOC delta in `src/` tracked, no hard cap
