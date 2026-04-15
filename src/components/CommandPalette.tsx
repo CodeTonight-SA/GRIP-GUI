@@ -4,18 +4,27 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { GRIP_MODES } from '@/lib/grip-modes';
 import { GRIP_SKILLS, searchSkills } from '@/lib/grip-skills';
+import { GRIP_COMMANDS } from '@/lib/grip-commands';
 import { useRouter } from 'next/navigation';
+
+type Category = 'RECENT' | 'NAVIGATE' | 'COMMANDS' | 'MODES' | 'PARAMOUNT' | 'SKILLS' | 'ACTIONS' | 'HIDDEN';
 
 interface CommandItem {
   id: string;
   label: string;
   description: string;
-  category: string;
+  category: Category;
   action: () => void;
 }
 
 const RECENT_KEY = 'grip-command-palette-recent';
 const MAX_RECENT = 5;
+const OPEN_EVENT = 'grip:open-palette';
+
+interface OpenPaletteDetail {
+  presetFilter?: Category;
+  query?: string;
+}
 
 function getRecentCommands(): string[] {
   try {
@@ -24,100 +33,188 @@ function getRecentCommands(): string[] {
 }
 
 function saveRecentCommand(id: string): void {
-  const recent = getRecentCommands().filter(r => r !== id);
-  recent.unshift(id);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
+  try {
+    const recent = getRecentCommands().filter(r => r !== id);
+    recent.unshift(id);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
+  } catch { /* privacy mode — ignore */ }
+}
+
+/**
+ * Dispatch a window-level intent event. Listeners choose what "activation" means:
+ * today they are unwired (no-op after the palette closes), but the contract lets
+ * future chat/terminal subsystems pick up skills and commands without touching
+ * the palette itself.
+ */
+function dispatchIntent(type: 'grip:activate-skill' | 'grip:run-command', id: string) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(type, { detail: { id } }));
 }
 
 export default function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [presetFilter, setPresetFilter] = useState<Category | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Build command list
-  const commands: CommandItem[] = [
-    // Navigation
+  // Navigation commands — routing to top-level pages
+  const navigationCommands: CommandItem[] = [
     { id: 'nav-engine', label: 'Engine', description: 'Open chat interface', category: 'NAVIGATE', action: () => router.push('/') },
     { id: 'nav-agents', label: 'Agents', description: 'Manage agent pool', category: 'NAVIGATE', action: () => router.push('/agents') },
     { id: 'nav-tasks', label: 'Tasks', description: 'Kanban task board', category: 'NAVIGATE', action: () => router.push('/kanban') },
     { id: 'nav-vault', label: 'Vault', description: 'Document storage', category: 'NAVIGATE', action: () => router.push('/vault') },
-    { id: 'nav-skills', label: 'Skills', description: 'Browse 149 skills', category: 'NAVIGATE', action: () => router.push('/skills') },
+    { id: 'nav-skills', label: 'Skills', description: `Browse ${GRIP_SKILLS.length} skills`, category: 'NAVIGATE', action: () => router.push('/skills') },
     { id: 'nav-modes', label: 'Modes', description: 'Switch operating mode', category: 'NAVIGATE', action: () => router.push('/modes') },
     { id: 'nav-learn', label: 'Learn', description: 'Understanding GRIP', category: 'NAVIGATE', action: () => router.push('/learn') },
     { id: 'nav-settings', label: 'Settings', description: 'Configuration', category: 'NAVIGATE', action: () => router.push('/settings') },
+  ];
 
-    // Modes
-    ...GRIP_MODES.map(mode => ({
-      id: `mode-${mode.id}`,
-      label: `/mode ${mode.id}`,
-      description: mode.description,
-      category: 'MODES',
-      action: () => { router.push('/modes'); },
-    })),
+  // Slash commands — dispatch a run intent and land on the engine view so the
+  // operator is one keystroke away from typing the command into a terminal
+  const slashCommands: CommandItem[] = GRIP_COMMANDS.map(cmd => ({
+    id: `cmd-${cmd.id}`,
+    label: cmd.name,
+    description: cmd.description,
+    category: 'COMMANDS' as Category,
+    action: () => {
+      dispatchIntent('grip:run-command', cmd.id);
+      router.push('/');
+    },
+  }));
 
-    // Top skills
-    ...GRIP_SKILLS.slice(0, 20).map(skill => ({
-      id: `skill-${skill.id}`,
-      label: skill.name,
-      description: skill.description,
-      category: skill.paramount ? 'PARAMOUNT' : 'SKILLS',
-      action: () => { router.push('/skills'); },
-    })),
+  // Modes — click toggles active set via /api/grip/modes
+  const modeCommands: CommandItem[] = GRIP_MODES.map(mode => ({
+    id: `mode-${mode.id}`,
+    label: `/mode ${mode.id}`,
+    description: mode.description,
+    category: 'MODES',
+    action: () => {
+      void toggleModeViaApi(mode.id);
+    },
+  }));
 
-    // Actions
+  // Skills — narrow to top-20 when there's no query so the palette isn't
+  // dominated by 149 rows, but use the full registry via searchSkills() when
+  // the user actually types something
+  const skillSource = query ? searchSkills(query) : GRIP_SKILLS.slice(0, 20);
+  const skillCommands: CommandItem[] = skillSource.map(skill => ({
+    id: `skill-${skill.id}`,
+    label: skill.name,
+    description: skill.description,
+    category: skill.paramount ? 'PARAMOUNT' : 'SKILLS',
+    action: () => {
+      dispatchIntent('grip:activate-skill', skill.id);
+      router.push(`/skills?highlight=${encodeURIComponent(skill.id)}`);
+    },
+  }));
+
+  const actionCommands: CommandItem[] = [
     { id: 'action-new-chat', label: 'New Chat', description: 'Start a fresh conversation', category: 'ACTIONS', action: () => router.push('/') },
     { id: 'action-dark-mode', label: 'Toggle Dark Mode', description: 'Switch between light and dark', category: 'ACTIONS', action: () => {
       document.documentElement.classList.toggle('dark');
     }},
+  ];
 
-    // Hidden: only appears when searching "vortex"
+  const hiddenCommands: CommandItem[] = [
     { id: 'easter-vortex', label: 'Vortex', description: 'Enter the knowledge double helix', category: 'HIDDEN', action: () => router.push('/vortex') },
   ];
 
-  // Recently used commands (shown when no query)
+  const allCommands: CommandItem[] = [
+    ...navigationCommands,
+    ...slashCommands,
+    ...modeCommands,
+    ...skillCommands,
+    ...actionCommands,
+    ...hiddenCommands,
+  ];
+
+  // Recently used commands (shown when no query and no preset filter)
   const recentIds = getRecentCommands();
   const recentCommands = recentIds
-    .map(id => commands.find(c => c.id === id))
+    .map(id => allCommands.find(c => c.id === id))
     .filter((c): c is CommandItem => c != null)
-    .map(c => ({ ...c, category: 'RECENT' }));
+    .map(c => ({ ...c, category: 'RECENT' as Category }));
 
-  // Filter commands
-  const filtered = query
-    ? commands.filter(cmd =>
-        cmd.label.toLowerCase().includes(query.toLowerCase()) ||
-        cmd.description.toLowerCase().includes(query.toLowerCase())
-      )
-    : [
-        ...recentCommands,
-        ...commands.filter(cmd => cmd.category === 'NAVIGATE' || cmd.category === 'ACTIONS')
-          .filter(cmd => cmd.category !== 'HIDDEN'),
-      ];
+  // Filtering strategy:
+  // - With a preset filter → strictly restrict to that category (Cmd+Shift+M → MODES)
+  // - With a query → fuzzy match label + description across everything
+  // - Idle → recents + navigation + actions (plus a few top commands as discoverability)
+  let filtered: CommandItem[];
+  if (presetFilter) {
+    filtered = allCommands.filter(cmd => cmd.category === presetFilter);
+    if (query) {
+      const q = query.toLowerCase();
+      filtered = filtered.filter(cmd =>
+        cmd.label.toLowerCase().includes(q) ||
+        cmd.description.toLowerCase().includes(q),
+      );
+    }
+  } else if (query) {
+    const q = query.toLowerCase();
+    filtered = allCommands.filter(cmd =>
+      cmd.category !== 'HIDDEN' || cmd.label.toLowerCase().includes(q),
+    ).filter(cmd =>
+      cmd.label.toLowerCase().includes(q) ||
+      cmd.description.toLowerCase().includes(q),
+    );
+  } else {
+    const topCommandIds = new Set(['cmd-save', 'cmd-recall', 'cmd-converge', 'cmd-broly', 'cmd-create-pr', 'cmd-shipit']);
+    filtered = [
+      ...recentCommands,
+      ...navigationCommands,
+      ...slashCommands.filter(c => topCommandIds.has(c.id)),
+      ...actionCommands,
+    ];
+  }
 
-  // Group by category
+  // Group by category — preserve insertion order across categories
   const grouped = filtered.reduce<Record<string, CommandItem[]>>((acc, cmd) => {
     if (!acc[cmd.category]) acc[cmd.category] = [];
     acc[cmd.category].push(cmd);
     return acc;
   }, {});
 
-  // Keyboard shortcut to open
+  const openWith = useCallback((detail: OpenPaletteDetail) => {
+    setIsOpen(true);
+    setPresetFilter(detail.presetFilter ?? null);
+    setQuery(detail.query ?? '');
+    setSelectedIndex(0);
+  }, []);
+
+  const close = useCallback(() => {
+    setIsOpen(false);
+    setPresetFilter(null);
+    setQuery('');
+  }, []);
+
+  // Keyboard + window-event bindings
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const keyHandler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsOpen(prev => !prev);
-        setQuery('');
-        setSelectedIndex(0);
+        if (isOpen) {
+          close();
+        } else {
+          openWith({});
+        }
       }
       if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
+        close();
       }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen]);
+    const openHandler = (e: Event) => {
+      const detail = (e as CustomEvent<OpenPaletteDetail>).detail ?? {};
+      openWith(detail);
+    };
+    window.addEventListener('keydown', keyHandler);
+    window.addEventListener(OPEN_EVENT, openHandler as EventListener);
+    return () => {
+      window.removeEventListener('keydown', keyHandler);
+      window.removeEventListener(OPEN_EVENT, openHandler as EventListener);
+    };
+  }, [isOpen, openWith, close]);
 
   // Focus input when opened
   useEffect(() => {
@@ -126,7 +223,7 @@ export default function CommandPalette() {
     }
   }, [isOpen]);
 
-  // Keyboard navigation
+  // Keyboard navigation inside the palette
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -136,24 +233,30 @@ export default function CommandPalette() {
       setSelectedIndex(prev => Math.max(prev - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (filtered[selectedIndex]) {
-        saveRecentCommand(filtered[selectedIndex].id);
-        filtered[selectedIndex].action();
-        setIsOpen(false);
+      const selected = filtered[selectedIndex];
+      if (selected) {
+        saveRecentCommand(selected.id);
+        selected.action();
+        // For MODES preset we keep the palette open so the operator can stack
+        // multiple modes in a single session without re-invoking Cmd+Shift+M
+        if (presetFilter !== 'MODES') close();
       }
     }
-  }, [filtered, selectedIndex]);
+  }, [filtered, selectedIndex, presetFilter, close]);
 
   if (!isOpen) return null;
 
   let flatIndex = 0;
+  const placeholder = presetFilter === 'MODES'
+    ? 'Stack modes — press Enter to toggle, Esc when done...'
+    : 'Search commands, skills, modes...';
 
   return (
     <div className="fixed inset-0 z-[200]">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40"
-        onClick={() => setIsOpen(false)}
+        onClick={close}
       />
 
       {/* Palette */}
@@ -167,15 +270,20 @@ export default function CommandPalette() {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
-            placeholder="Search commands, skills, modes..."
+            placeholder={placeholder}
             className="flex-1 bg-transparent border-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-0 focus:border-none"
             style={{ boxShadow: 'none' }}
           />
+          {presetFilter && (
+            <span className="font-mono text-[10px] tracking-widest text-[var(--primary)] border border-[var(--primary)] px-1.5 py-0.5">
+              {presetFilter}
+            </span>
+          )}
           <span className="font-mono text-[10px] text-[var(--muted-foreground)] border border-[var(--border)] px-1.5 py-0.5">
             ESC
           </span>
           <span className="font-mono text-[10px] text-[var(--muted-foreground)] opacity-50">
-            ⌘K
+            {presetFilter === 'MODES' ? '⌘⇧M' : '⌘K'}
           </span>
         </div>
 
@@ -193,7 +301,11 @@ export default function CommandPalette() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => { saveRecentCommand(item.id); item.action(); setIsOpen(false); }}
+                    onClick={() => {
+                      saveRecentCommand(item.id);
+                      item.action();
+                      if (presetFilter !== 'MODES') close();
+                    }}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
                       currentIndex === selectedIndex
                         ? 'bg-[var(--primary)]/10 text-[var(--foreground)]'
@@ -227,4 +339,34 @@ export default function CommandPalette() {
       </div>
     </div>
   );
+}
+
+/**
+ * Toggle an active mode via the existing /api/grip/modes endpoint without
+ * depending on the modes page being mounted. Keeps the palette stateless —
+ * the next GET from the modes page reflects the new selection.
+ */
+async function toggleModeViaApi(modeId: string): Promise<void> {
+  try {
+    const current: string[] = await fetch('/api/grip/modes')
+      .then(res => res.json())
+      .then(data => Array.isArray(data.modes) ? data.modes : [])
+      .catch(() => []);
+    const MAX_ACTIVE_MODES = 5;
+    let next: string[];
+    if (current.includes(modeId)) {
+      next = current.filter(m => m !== modeId);
+    } else if (current.length >= MAX_ACTIVE_MODES) {
+      next = [...current.slice(1), modeId];
+    } else {
+      next = [...current, modeId];
+    }
+    await fetch('/api/grip/modes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modes: next }),
+    });
+  } catch {
+    // silent — matches the page's existing "silent fail" posture
+  }
 }

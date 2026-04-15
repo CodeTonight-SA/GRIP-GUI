@@ -258,6 +258,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         return;
       }
 
+      // Cmd+Shift+M = stacked mode picker — opens the command palette pre-filtered
+      // to MODES. Uses a window event so the palette stays stateless and we don't
+      // have to lift palette open-state into the layout.
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'm' || e.key === 'M')) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('grip:open-palette', {
+          detail: { presetFilter: 'MODES' },
+        }));
+        showKeyboardToast('\u2318\u21E7M', 'STACKED MODES');
+        return;
+      }
+
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       // Number key navigation
