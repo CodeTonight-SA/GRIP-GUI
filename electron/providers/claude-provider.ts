@@ -219,6 +219,26 @@ export class ClaudeProvider implements CLIProvider {
       }
     }
 
+    // Deduplication pass: pre-posixQuote installer versions appended new quoted
+    // entries instead of editing unquoted ones in place, leaving duplicates.
+    // Keep only the first entry per (event-type, script-file) pair.
+    for (const { type, file } of hookFiles) {
+      const entries: HookEntry[] = settings.hooks![type] || [];
+      if (entries.length <= 1) continue;
+
+      let seenThisFile = false;
+      const deduped = entries.filter((h: HookEntry) => {
+        const refersToFile = h.hooks?.some(
+          (hh: { command?: string }) => (hh.command ?? '').replace(/^'|'$/g, '').includes(file)
+        );
+        if (!refersToFile) return true;     // unrelated entry — always keep
+        if (seenThisFile) { updated = true; return false; } // duplicate — drop
+        seenThisFile = true;
+        return true;                         // first occurrence — keep
+      });
+      settings.hooks![type] = deduped;
+    }
+
     if (updated) {
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
       console.log('Claude hooks configured/updated in', settingsPath);

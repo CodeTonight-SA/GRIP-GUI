@@ -274,6 +274,67 @@ describe('ClaudeProvider', () => {
       expect(settings.hooks.PostToolUse).toBeUndefined();
       expect(settings.hooks.SessionStart).toBeUndefined();
     });
+
+    it('removes duplicate entries left by pre-posixQuote installer (issue #91)', async () => {
+      // Simulates a settings.json where the legacy installer appended a quoted
+      // entry alongside the original unquoted one instead of editing in place.
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'GRIP Commander.app', 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(path.join(hooksDir, 'on-stop.sh'), '#!/bin/sh\n');
+
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+
+      const rawPath = path.join(hooksDir, 'on-stop.sh');
+      const quotedPath = `'${rawPath}'`;
+
+      // Two duplicate entries: first unquoted (old), second quoted (partial fix)
+      fs.writeFileSync(path.join(claudeDir, 'settings.json'), JSON.stringify({
+        hooks: {
+          Stop: [
+            { hooks: [{ type: 'command', command: rawPath, timeout: 60000 }] },
+            { hooks: [{ type: 'command', command: quotedPath, timeout: 30 }] },
+          ],
+        },
+      }));
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
+      // After dedup: exactly one Stop entry, with correctly quoted path
+      expect(settings.hooks.Stop).toHaveLength(1);
+      expect(settings.hooks.Stop[0].hooks[0].command).toBe(quotedPath);
+    });
+
+    it('deduplicates multiple unquoted entries and re-quotes the survivor', async () => {
+      const provider = await getProvider();
+      const hooksDir = path.join(tmpDir, 'GRIP Commander.app', 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(path.join(hooksDir, 'session-start.sh'), '#!/bin/sh\n');
+
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+
+      const rawPath = path.join(hooksDir, 'session-start.sh');
+
+      // Two unquoted duplicates (pre-posixQuote installer ran twice)
+      fs.writeFileSync(path.join(claudeDir, 'settings.json'), JSON.stringify({
+        hooks: {
+          SessionStart: [
+            { matcher: '*', hooks: [{ type: 'command', command: rawPath, timeout: 30000 }] },
+            { matcher: '*', hooks: [{ type: 'command', command: rawPath, timeout: 30 }] },
+          ],
+        },
+      }));
+
+      await provider.configureHooks(hooksDir);
+
+      const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
+      expect(settings.hooks.SessionStart).toHaveLength(1);
+      const cmd = settings.hooks.SessionStart[0].hooks[0].command;
+      expect(cmd).toBe(`'${rawPath}'`);
+    });
   });
 
   describe('isMcpServerRegistered', () => {
