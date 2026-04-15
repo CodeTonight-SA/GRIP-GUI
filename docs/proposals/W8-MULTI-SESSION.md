@@ -171,7 +171,7 @@ call, plus a workspace switcher UI.
 
 **Pros:**
 - Mirrors the editor model that power users already know (VS Code workspaces,
-  iTerm2 windows). Each workspace is genuinely independent.
+  Obsidian vaults). Each workspace is genuinely independent.
 - True OS-level isolation between workspaces — one workspace cannot crash
   another window's chat stream.
 - Multi-monitor support comes for free.
@@ -668,7 +668,261 @@ Each of 4, 5, 6 is its own PR with its own hypothesis registration.
 
 ---
 
-**Next action after council**: V>> approves the STOP verdict and the
-revised sequence in §12.6. W9 baseline measurement begins in parallel
-(does not block on W8 council sign-off). W8a does NOT begin until the
-doc rewrite in step 3 of §12.6 lands.
+## 13. Post-council locked decisions (wizard 2, 2026-04-15)
+
+After §12 was posted to PR #98, a second wizard walked V>> through the
+remaining open questions raised by the research council. Every decision
+in this section is binding on W8a implementation PRs.
+
+### 13.1 STOP verdict — RATIFIED FULLY
+
+V>> ratified the council's STOP verdict without contesting any of the
+three killed hypotheses or three weakened ones. Binds:
+
+- **§11.5 env-var mechanism** is incomplete and must be rewritten
+  before W8a touches any spawn site.
+- **H-B3 non-atomic writes** must be fixed with atomic
+  write-via-temp-rename, directory lock preventing double-open, and the
+  stale `modes.length > 3` cap fix, all inside the W8a-modes PR.
+- **H-B4 ~1400 LOC estimate** is wrong. W8a is split into three PRs
+  (W8a-refactor / W8a-ui / W8a-modes) per §12.2's mitigation.
+- **4-hour integration spike** (see §13.5) is a P0 prerequisite for
+  W8a-refactor.
+- **W9b runtime memory harness** is a P0 prerequisite for any W8a
+  claim about per-window memory budgets.
+
+Future PRs citing the old §11.5 env-var mechanism, the ~1400 LOC
+estimate, or the single-PR W8a scope are rejected on sight.
+
+### 13.2 Analogies cleanup — iTerm2 and Slack STRUCK
+
+Per Agent A's SMT finding, both analogies are removed from §4 and §11.1:
+
+- **iTerm2** — SURFACE mapping (no persistent identity, no directory
+  binding, no reopen semantics). Struck from §4 pros list, replaced
+  with Obsidian vault reference.
+- **Slack workspace** — ANTI-PATTERN (inverts trust/sync topology by
+  making workspaces server-side multi-tenant namespaces). Never
+  appeared in pre-council sections; §12.4 keeps the mention as the
+  evidence for the strike.
+
+**The two canonical analogies going forward** are:
+
+- **VS Code workspaces** — DEEP mapping, core relation `workspace ↔
+  directory ↔ per-window state ↔ reopen-by-path` preserved.
+- **Obsidian vaults** — DEEP mapping. The Obsidian
+  `.obsidian/workspace.json` file is structurally identical to the
+  proposed `~/.claude/.active-modes-<id>` file. Study Obsidian's
+  vault-id generation and multi-window coordination as concrete
+  implementation reference.
+
+### 13.3 Spike 1 locked — workspace ID transport via `additionalArguments`
+
+The custom `app://` protocol handler at `window-manager.ts:187-189`
+strips query strings, so `?ws=<uuid>` silently drops. Locked mechanism:
+`webPreferences.additionalArguments` at BrowserWindow creation.
+
+**Main process**:
+
+```typescript
+new BrowserWindow({
+  webPreferences: {
+    additionalArguments: [`--grip-ws=${wsId}`],
+    // ... other webPreferences
+  },
+});
+```
+
+**Renderer (`src/lib/workspace-context.ts`, new file)**:
+
+```typescript
+const arg = process.argv.find(a => a.startsWith('--grip-ws='));
+export const WORKSPACE_ID = arg?.slice('--grip-ws='.length) ?? null;
+```
+
+**Why not the alternatives**:
+- URL fragment (`#ws=<uuid>`) works but is visible in the DevTools URL
+  bar and mutable by `history.replaceState()`. Less safe.
+- `executeJavaScript` injection has a race condition with first render
+  — the renderer may instantiate the workspace-context hook before the
+  main process finishes the injection Promise, producing a brief
+  undefined state visible to users on boot.
+- Query string is killed by the protocol handler.
+
+**Implication for §11.5**: the `GRIP_WORKSPACE_ID` env-var mechanism is
+REPLACED for the renderer side. It still applies to PTY env injection
+(where the parent-to-child env pattern works fine). The renderer reads
+`additionalArguments`; PTY children read `process.env.GRIP_WORKSPACE_ID`.
+Two mechanisms for two different directions of data flow — main→renderer
+and main→child-process.
+
+### 13.4 Spike 2 locked — storage isolation via Electron `partition`
+
+Each workspace window is created with
+`webPreferences.partition: 'persist:ws-<uuid>'`, giving it its own
+Chromium session with isolated localStorage, IndexedDB, sessionStorage,
+cookies, and HTTP cache.
+
+```typescript
+new BrowserWindow({
+  webPreferences: {
+    partition: `persist:ws-${wsId}`,
+    additionalArguments: [`--grip-ws=${wsId}`],
+    // ...
+  },
+});
+```
+
+**Implication**: the `grip:ws:<uuid>:*` prefix namespacing in §11.2 is
+REPLACED. Windows read and write plain keys like `grip-chats`,
+`grip-chat-<id>`, `grip.sidebarCollapsed`, etc. — the partition
+provides isolation automatically. No per-call-site diffs, no leaky
+prefix bugs, no 20-file migration. Zero-cost isolation.
+
+**Migration cost (accepted risk)**: existing users' data lives in the
+Electron DEFAULT partition. On first upgrade, the main process must
+detect a legacy default-partition state and copy it into a synthetic
+"default workspace" partition before the Welcome screen opens. Failure
+of this migration would appear as lost data to the user, so the
+W8a-refactor PR MUST include:
+
+1. Legacy-state detection (`persist:ws-<default-uuid>` partition does
+   not yet exist AND default partition has non-empty `grip-chats`).
+2. Atomic copy from default partition to the new workspace partition
+   via Electron's `ses.cookies.*` and `webContents.executeJavaScript`
+   to read/write localStorage cross-partition (the only supported
+   cross-partition access path).
+3. A migration-completed flag stored OUTSIDE both partitions (e.g. in
+   `~/.grip/migration-state.json`) so the copy doesn't re-run on
+   subsequent launches.
+4. An E2E test for the clean-install path and the upgraded-install
+   path. Both must produce a correct first-launch state.
+
+**Why not prefix namespacing**: ~90 LOC across 20+ files, a forgotten
+prefix leaks silently across workspaces, and
+`useGridLayoutStorage.ts` iterates `localStorage.length` requiring a
+full-scan filter that's itself a new failure mode.
+
+### 13.5 Spike 3 locked — IPC routing via hybrid-by-originator
+
+Every `mainWindow.webContents.send(...)` broadcast site (Agent C counted
+30+) is rewritten to route by the event's originator.
+
+**Pattern 1 — Agent-initiated broadcasts** (PTY output, agent status,
+tool-use events):
+
+```typescript
+const window = getWindowForWorkspace(agent.workspaceId);
+window?.webContents.send('agent:output', { agentId, output });
+```
+
+Requires adding a `workspaceId: string` field to `AgentStatus` and
+migrating existing saved agents. On migration, existing agents are
+assigned to the "default workspace" created during the Spike 2
+partition migration.
+
+**Pattern 2 — User-initiated broadcasts** (IPC handler callbacks from a
+renderer request):
+
+```typescript
+ipcMain.handle('some:request', (event, args) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  // ... process request, broadcast result back to window
+  window?.webContents.send('some:response', result);
+});
+```
+
+This pattern works because the IPC handler knows which webContents
+issued the request and can walk back to the owning BrowserWindow.
+
+**Pattern 3 — Service-initiated broadcasts** (scheduler cron fires,
+update-checker polls, slack-bot inbound, telegram-bot inbound):
+
+```typescript
+broadcastToAllWorkspaces('update:available', updateInfo);
+```
+
+A new helper at `electron/core/broadcast.ts` iterates
+`getAllWorkspaceWindows()` and sends the event to each. Replaces every
+`mainWindow.webContents.send(...)` call inside
+`electron/services/update-checker.ts`, `slack-bot.ts`, `telegram-bot.ts`,
+and `electron/handlers/scheduler-handlers.ts`. These services do not
+know which workspace is relevant; broadcasting to all is the honest
+answer.
+
+**Implication for W8a-refactor**: the refactor PR introduces all three
+patterns and migrates every call site. The UI PR and modes PR can then
+rely on the patterns being in place.
+
+### 13.6 Spike runner — me autonomously
+
+V>> delegated the 4-hour integration spike to me for autonomous
+execution. Output is NOT a committed PR — it is a throwaway branch
+used to prove out the three locked mechanisms against the real
+codebase, plus amendments to §12 and §13 of this doc based on anything
+the spike surfaces.
+
+**Spike deliverables (next turn)**:
+
+1. **Workspace ID end-to-end trace** — one `--grip-ws=<uuid>` flag
+   surviving from `BrowserWindow` creation through `process.argv` to
+   a renderer `WORKSPACE_ID` export, with a single console log in the
+   renderer proving the value landed. Proves §13.3.
+2. **Partition isolation proof** — two windows with different
+   `persist:ws-*` partitions, each writing a unique value to
+   `localStorage`, each reading only its own value. Proves §13.4.
+3. **Hybrid IPC routing proof** — one agent-initiated event, one
+   user-initiated event, one service-initiated event, each routing to
+   the correct window(s). Proves §13.5.
+4. **Migration POC** — detect a legacy default-partition state, copy
+   into a new workspace partition, verify no data loss. Proves the
+   §13.4 migration mechanism works.
+5. **Amendments to this doc** — any surprise findings from the spike
+   that contradict §13.3–§13.5 are written back as §13 sub-sections
+   marked AMENDED-BY-SPIKE.
+
+V>> reviews the amendments before W8a-refactor PR opens.
+
+### 13.7 W9b runtime memory harness — parallel with spike
+
+V>> green-lit W9b to run in parallel with the W8 integration spike.
+W9b is a separate docs-driven PR (NOT part of W9 baseline PR #100)
+that:
+
+1. Adds a measurement harness at `scripts/w9b-measure-memory.ts` that
+   launches Commander via a child process, connects to its DevTools
+   protocol, snapshots `process.memoryUsage()` at three lifecycle
+   points (idle, after opening one agent panel, after opening five
+   agent panels), and writes the result to a timestamped JSON file.
+2. Runs the harness once on the current main (post-PR #100) to
+   populate §4.3 of the W9 baseline doc with REAL numbers replacing
+   the 300 MB estimate.
+3. Ships the harness + the baseline update as a single docs+scripts PR.
+
+**Independence guarantee**: W9b touches no file that the W8 spike
+touches. The two worktrees can run concurrently with zero conflict
+risk. W9b output feeds into the W8 §11.6 memory cap decision but
+does not block it.
+
+### 13.8 Final execution plan
+
+| Phase | Work | Owner | Blocking? |
+|---|---|---|---|
+| NOW | Doc updates (§13 this section + iTerm2 strike) pushed to PR #98 | me | done |
+| NEXT TURN | Integration spike (4h) in fresh worktree `/tmp/grip-gui-w8-spike` | me | unblocks W8a-refactor |
+| NEXT TURN | W9b memory harness PR in parallel worktree `/tmp/grip-gui-w9b-memory` | me | unblocks H-B5 resolution |
+| AFTER SPIKE | W8 doc rewrite absorbing spike findings | me | unblocks W8a-refactor |
+| AFTER W8 DOC REWRITE | W8a-refactor PR (~1200 LOC) — singleton→registry, broadcast helper, no new UI | me | unblocks W8a-ui |
+| AFTER W8a-refactor MERGED | W8a-ui PR (~1200 LOC) — Welcome, switcher, BrowserWindow multiplexing | me | unblocks W8a-modes |
+| AFTER W8a-ui MERGED + W9b LANDED | W8a-modes PR (~800 LOC) — per-workspace modes + API rewrite + PTY env + cross-repo `/mode` patch + atomic writes + stale cap + legacy migration + E2E test | me | W8 complete |
+
+**Total estimated W8a LOC**: ~3200 across three PRs (well within the
+§12.2 2500-3500 range).
+
+---
+
+**Next action**: V>> reviews §13 on PR #98. Once approved (or on the
+next ultrado wave), I begin the integration spike in parallel with
+W9b in two independent worktrees. Both run autonomously; V>> is
+consulted only when the spike produces an amendment (§13.6 step 5)
+or when W9b completes and updates §4.3 of the W9 baseline doc.
