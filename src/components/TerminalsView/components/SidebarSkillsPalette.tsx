@@ -56,8 +56,8 @@ export default function SidebarSkillsPalette({ installedSkills }: SidebarSkillsP
         </div>
       </div>
 
-      {/* Skills list */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Skills list — no nested overflow; parent panel owns the scroll container */}
+      <div className="flex-1">
         {installedSkills.length > 0 && (
           <p className="px-2.5 py-1 text-[10px] text-muted-foreground">
             Drag a skill onto a terminal to use it

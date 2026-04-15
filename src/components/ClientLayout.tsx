@@ -190,6 +190,33 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   }, [isMobile, mobileMenuOpen, setMobileMenuOpen]);
 
+  // Persist sidebarCollapsed to localStorage (survives reload / app restart).
+  // Single source of truth lives in the zustand store; this effect just syncs it.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem('grip.sidebarCollapsed');
+      if (stored !== null) {
+        const parsed = stored === 'true';
+        if (parsed !== useStore.getState().sidebarCollapsed) {
+          useStore.setState({ sidebarCollapsed: parsed });
+        }
+      }
+    } catch {
+      // localStorage unavailable (SSR, privacy mode) — ignore, use in-memory default
+    }
+    const unsub = useStore.subscribe((state, prev) => {
+      if (state.sidebarCollapsed !== prev.sidebarCollapsed) {
+        try {
+          window.localStorage.setItem('grip.sidebarCollapsed', String(state.sidebarCollapsed));
+        } catch {
+          // ignore write failures
+        }
+      }
+    });
+    return unsub;
+  }, []);
+
   const mainMarginLeft = isMobile ? 0 : (sidebarCollapsed ? 72 : 240);
 
   // Page transitions
@@ -219,6 +246,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         e.preventDefault();
         router.push('/settings');
         showKeyboardToast('\u2318,', 'SETTINGS');
+        return;
+      }
+
+      // Cmd+B = toggle sidebar (VS Code convention) — must be before modifier guard
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        useStore.getState().toggleSidebar();
+        const collapsed = useStore.getState().sidebarCollapsed;
+        showKeyboardToast('\u2318B', collapsed ? 'SIDEBAR COLLAPSED' : 'SIDEBAR EXPANDED');
         return;
       }
 
