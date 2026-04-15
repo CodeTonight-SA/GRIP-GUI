@@ -589,13 +589,17 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                                 : `\u25B8 +${hiddenCount} earlier tool call${hiddenCount === 1 ? '' : 's'}`}
                             </button>
                           )}
-                          {visibleToolUses.map((tu, i) => (
-                            <ToolUseBlock
-                              key={tu.toolId || i}
-                              toolUse={tu}
-                              result={msg.toolResults?.find(r => r.toolId === tu.toolId)}
-                            />
-                          ))}
+                          {visibleToolUses.map((tu, i) => {
+                            const isLastTool = msg.toolUses!.indexOf(tu) === msg.toolUses!.length - 1;
+                            return (
+                              <ToolUseBlock
+                                key={tu.toolId || i}
+                                toolUse={tu}
+                                result={msg.toolResults?.find(r => r.toolId === tu.toolId)}
+                                streaming={msg.streaming && isLastTool}
+                              />
+                            );
+                          })}
                         </div>
                       );
                     })()}

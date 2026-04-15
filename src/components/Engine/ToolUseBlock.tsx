@@ -6,6 +6,7 @@ import type { ToolUseEvent, ToolResultEvent } from '@/lib/grip-session';
 interface ToolUseBlockProps {
   toolUse: ToolUseEvent;
   result?: ToolResultEvent;
+  streaming?: boolean;
 }
 
 const TOOL_ICONS: Record<string, string> = {
@@ -44,11 +45,11 @@ function formatToolInput(input: Record<string, unknown>): string {
   return keys.slice(0, 3).join(', ');
 }
 
-export default function ToolUseBlock({ toolUse, result }: ToolUseBlockProps) {
+export default function ToolUseBlock({ toolUse, result, streaming }: ToolUseBlockProps) {
   const [expanded, setExpanded] = useState(false);
   const category = getToolCategory(toolUse.toolName);
   const summary = formatToolInput(toolUse.input);
-  const isPending = !result;
+  const isPending = !result && streaming === true;
   const isError = result?.isError;
 
   const categoryColors: Record<string, string> = {
