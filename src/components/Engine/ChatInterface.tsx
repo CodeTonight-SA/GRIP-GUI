@@ -552,10 +552,19 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                     {msg.gates && msg.gates.length > 0 && (
                       <GateIndicator gates={msg.gates} />
                     )}
-                    {/* Tool use blocks — show what the agent is doing */}
+                    {/* Tool use blocks — show at most the last 3 so the stream
+                        stays scannable; older calls collapse to a "+N earlier"
+                        marker above them. Full history is still stored on
+                        msg.toolUses and can be revisited later if we add an
+                        "expand all" affordance. */}
                     {msg.toolUses && msg.toolUses.length > 0 && (
                       <div className="mt-2 space-y-0.5">
-                        {msg.toolUses.map((tu, i) => (
+                        {msg.toolUses.length > 3 && (
+                          <div className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-60 px-1 py-0.5">
+                            +{msg.toolUses.length - 3} earlier tool call{msg.toolUses.length - 3 === 1 ? '' : 's'}
+                          </div>
+                        )}
+                        {msg.toolUses.slice(-3).map((tu, i) => (
                           <ToolUseBlock
                             key={tu.toolId || i}
                             toolUse={tu}
