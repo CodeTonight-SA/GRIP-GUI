@@ -219,6 +219,7 @@ interface AppState {
   selectedAgent: string | null;
   selectedChat: string | null;
   sidebarCollapsed: boolean;
+  rightPanelCollapsed: boolean;
   mobileMenuOpen: boolean;
   darkMode: boolean; // computed from theme — backward compat
   theme: string;
@@ -251,6 +252,7 @@ interface AppState {
   setSelectedAgent: (id: string | null) => void;
   setSelectedChat: (id: string | null) => void;
   toggleSidebar: () => void;
+  toggleRightPanel: () => void;
   setMobileMenuOpen: (open: boolean) => void;
   toggleMobileMenu: () => void;
   setDarkMode: (dark: boolean) => void;
@@ -280,6 +282,7 @@ export const useStore = create<AppState>((set, get) => ({
   selectedAgent: null,
   selectedChat: null,
   sidebarCollapsed: false,
+  rightPanelCollapsed: false,
   mobileMenuOpen: false,
   darkMode: true, // computed default — matches DEFAULT_THEME (swiss-nihilism-dark)
   theme: DEFAULT_THEME,
@@ -409,6 +412,7 @@ export const useStore = create<AppState>((set, get) => ({
   setSelectedAgent: (id) => set({ selectedAgent: id }),
   setSelectedChat: (id) => set({ selectedChat: id }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  toggleRightPanel: () => set((state) => ({ rightPanelCollapsed: !state.rightPanelCollapsed })),
   setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
   toggleMobileMenu: () => set((state) => ({ mobileMenuOpen: !state.mobileMenuOpen })),
   setDarkMode: (dark) => set({ darkMode: dark, theme: dark ? 'swiss-nihilism-dark' : 'swiss-nihilism-light' }),

@@ -8,6 +8,8 @@ import FocusMode from '@/components/Engine/FocusMode';
 import WelcomeAnimation from '@/components/Engine/WelcomeAnimation';
 import MobileToolbar from '@/components/Engine/MobileToolbar';
 import { useState, useCallback, useEffect } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useStore } from '@/store';
 import { isElectronEnv } from '@/lib/grip-session';
 import {
   getChatSessions,
@@ -31,6 +33,7 @@ export default function EnginePage() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatKey, setChatKey] = useState(0); // Force re-mount ChatInterface on session switch
   const [health, setHealth] = useState<HealthData>({ skillCount: 5, generation: 33, fitness: 0.467 });
+  const { rightPanelCollapsed, toggleRightPanel } = useStore();
 
   // Fetch GRIP health data for live status bar
   useEffect(() => {
@@ -102,25 +105,43 @@ export default function EnginePage() {
             </FocusMode>
           </div>
 
-          {/* Right Panel — Context + Chat History, hidden in focus mode */}
+          {/* Right Panel — sticky, collapsible, mirrors left sidebar behaviour */}
           {!focusMode && (
-            <div className="hidden lg:flex w-[280px] shrink-0 flex-col border-l border-[var(--border)] bg-[var(--card)]">
-              {/* Context Panel — top half */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <ContextPanel />
-              </div>
+            <div
+              className={`hidden lg:flex shrink-0 flex-col border-l border-[var(--border)] bg-[var(--card)] sticky top-0 h-screen self-start transition-[width] duration-200 ease-in-out ${rightPanelCollapsed ? 'w-8' : 'w-[280px]'}`}
+            >
+              {/* Collapse / expand toggle — always visible */}
+              <button
+                onClick={toggleRightPanel}
+                title={rightPanelCollapsed ? 'Expand context panel (\u2318\u21E7B)' : 'Collapse context panel (\u2318\u21E7B)'}
+                className="flex items-center justify-center h-8 w-full shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] border-b border-[var(--border)] transition-colors"
+              >
+                {rightPanelCollapsed
+                  ? <ChevronLeft className="w-3 h-3" strokeWidth={1.5} />
+                  : <ChevronRight className="w-3 h-3" strokeWidth={1.5} />}
+              </button>
 
-              {/* Chat History — bottom section */}
-              <div className="h-[240px] shrink-0 border-t border-[var(--border)] p-3 overflow-hidden">
-                <span className="grip-label block mb-2">HISTORY</span>
-                <div className="h-[calc(100%-24px)]">
-                  <ChatHistory
-                    onSessionChange={handleSessionChange}
-                    onNewChat={handleNewChat}
-                    currentModel={model}
-                  />
-                </div>
-              </div>
+              {/* Panel content — hidden when collapsed */}
+              {!rightPanelCollapsed && (
+                <>
+                  {/* Context Panel — fills remaining height */}
+                  <div className="flex-1 min-h-0 overflow-y-auto">
+                    <ContextPanel />
+                  </div>
+
+                  {/* Chat History — pinned to bottom */}
+                  <div className="h-[240px] shrink-0 border-t border-[var(--border)] p-3 overflow-hidden">
+                    <span className="grip-label block mb-2">HISTORY</span>
+                    <div className="h-[calc(100%-24px)]">
+                      <ChatHistory
+                        onSessionChange={handleSessionChange}
+                        onNewChat={handleNewChat}
+                        currentModel={model}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
