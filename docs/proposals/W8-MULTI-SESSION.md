@@ -315,9 +315,154 @@ as the W8 implementation begins, so we are forced to confront the evidence.
 | Date | Author | Decision | Rationale |
 |------|--------|----------|-----------|
 | 2026-04-15 | L>> | Draft written, awaiting V>> review | W8 council step before any implementation, per RSI queue tag |
+| 2026-04-15 | V>> + L>> | Wizard-driven design lock-in (see §11) | Walked PR #98 with /asking-users + /creating-wizards, captured 8 architectural decisions in one session |
+
+## 11. Locked decisions (wizard 2026-04-15, supersedes §5 recommendation)
+
+The §5 recommendation in this doc proposed Option B (Sessioned multi-chat in
+one window). V>> overrode that during the wizard walkthrough on 2026-04-15
+in favour of Option C (multi-window workspaces). The full set of locked
+design decisions follows. Subsequent W8 implementation PRs MUST conform to
+this section, not to §5.
+
+### 11.1 Mental model — Option C, multi-window workspaces
+
+W8 = Electron multi-`BrowserWindow` support. Each window is a "workspace"
+with its own chat, agents, modes, theme, and working directory. The user's
+mental model matches VS Code workspaces (one repo per window), not browser
+tabs (multiple chats per window).
+
+**Implication**: §5 of this doc is OBSOLETE. Implementations referencing
+"sessioned multi-chat" or "Phase 1 refactor in zustand" are wrong.
+
+### 11.2 Cross-window isolation — fully isolated
+
+No cross-window state sync. Two open windows are two separate universes
+sharing only the on-disk GRIP infrastructure. localStorage namespace per
+window: `grip:ws:<workspace-id>:*`. **Theme is per-window.** This is
+explicitly chosen — V>> wants the freedom to give each workspace its own
+visual identity (e.g. Swiss nihilism for africus, noir for nexus), not
+defended against as drift.
+
+**Implication**: there is NO `BroadcastChannel` IPC layer. There is NO
+cross-window state sync. The hard part of Option C just got dramatically
+easier.
+
+### 11.3 Workspace identity — auto-named, persistent from working directory
+
+A workspace IS its working directory. Opening `~/africus` for the first
+time creates an auto-named workspace called "africus" with a generated
+UUID, persists it under `grip:ws:<uuid>:*`, and reopens via a workspace
+switcher in the app menu. Reopening the same directory on a future launch
+reuses the same workspace id and restores all state.
+
+**Implication**: there is NO "create workspace" step. There is an "open
+directory" step that creates-or-restores. Same model VS Code uses.
+
+### 11.4 Modes — per-workspace mode files
+
+Modes today persist to a single `~/.claude/.active-modes` file (last-writer-
+wins between windows would corrupt this). Solution: one file per workspace,
+`~/.claude/.active-modes-<workspace-id>`. The 5-mode FIFO eviction rule
+stays the same but is scoped per workspace. The Next.js `/api/grip/modes`
+route gains a workspace-id parameter and reads/writes the namespaced file.
+
+**Implication**: the `/api/grip/modes` route changes shape. The
+`modes/page.tsx` component reads workspace id from the new store hook
+introduced in §11.7.
+
+### 11.5 /mode CLI binding — env var injection
+
+The `/mode` CLI in `~/.claude/commands/mode.md` runs inside an agent's
+terminal panel — a child Claude Code process spawned by Commander. To know
+which workspace's mode file to read/write, the CLI needs the workspace id.
+
+**Mechanism (locked)**: Commander's Electron main process injects
+`GRIP_WORKSPACE_ID=<uuid>` into the env of every spawned PTY. The `/mode`
+CLI reads `$GRIP_WORKSPACE_ID` and computes the modes file path.
+
+**Why not the alternatives**:
+- cwd-registry has cleanup races and breaks if cwd is shared
+- `.grip-workspace` marker file pollutes the user's git tree
+
+**Implication**: every PTY spawn site in the Electron main process needs
+the env injection. The `/mode` CLI in the GRIP repo (`~/.claude`) needs a
+small patch to read the env var. Cross-repo coordination — note this in
+the W8a PR description.
+
+### 11.6 Concurrency cap — 3 to 5 active windows
+
+Realistic load: power user with 3-5 concurrent workspaces (multiple
+clients, multiple repos). Soft warn on opening a 6th window. **W9
+performance work becomes a hard prerequisite, not a follow-up** — every
+window pays the full bundle cost, and the bundle baseline must be
+established before W8a can be reviewed responsibly.
+
+**Implication**: re-order the sprint queue. W9 baseline measurement is
+a P0 dependency for W8a. The sequence is now: W9 baseline → W8 broly
+council (§11.8) → W8a implementation.
+
+### 11.7 Phase 1 scope — full first experience (~1400 LOC)
+
+Phase 1 of W8 (the W8a PR) ships:
+- Electron `BrowserWindow` multiplexing in the main process
+- `grip:ws:<uuid>:*` localStorage namespace
+- Auto-naming + persistence layer for workspaces
+- Workspace switcher in the app menu (Open Recent Workspace)
+- Welcome screen on app launch listing recent workspaces with last-active
+  timestamps (replaces the current empty-launch state)
+- `GRIP_WORKSPACE_ID` env injection at PTY spawn (§11.5)
+- Per-workspace `.active-modes-<id>` file + API route changes (§11.4)
+- Cross-repo: `~/.claude/commands/mode.md` patch to read env var
+
+Target: ≤1400 LOC. This is bigger than the original Phase 1 estimate
+(800 LOC) because V>> chose the complete first experience over the minimum
+viable cut. Higher review burden, but a usable feature on day one rather
+than an intermediate state where windows open but there's no UI to manage
+them.
+
+### 11.8 Process — broly-auto council BEFORE W8a implementation
+
+W8a is the largest PR in the GRIP Commander UI sprint to date (~1400 LOC,
+Electron lifecycle, cross-process IPC, cross-repo coordination). V>> opted
+to spawn an actual `/broly-auto` council with the locked decisions in §11
+as input, BEFORE any W8a code is written.
+
+**Process**:
+1. This wizard concludes by updating PR #98 with the locked decisions and
+   marking it ready for review.
+2. A separate `/broly-auto` invocation is queued. Its input is this §11
+   plus the PR #98 thread.
+3. Broly-auto deliberates on Electron lifecycle bugs, IPC race conditions,
+   security implications of multi-process spawning, distribution model
+   impact, and any architectural surprises this design has missed.
+4. The broly verdict is appended to this doc as §12.
+5. Only AFTER broly verdict + V>> sign-off can W8a implementation begin.
+
+**Why broly-auto and not just continue**: W8 is uniquely architectural
+within the sprint. The original RSI queue tagged it "broly-auto worthy
+CAREFUL/VERIFY precision." V>> ratified that during the wizard. The cost
+of one missed Electron lifecycle bug in W8a (e.g. a memory leak when a
+window is closed without unsubscribing the modes file watcher) would
+exceed the cost of the broly invocation by an order of magnitude.
+
+### 11.9 Implementation sequence (final)
+
+1. **W9 baseline** (P0 dependency) — measure current bundle size, runtime
+   memory per window, React DevTools profile. Establish targets. Ships as
+   a docs-only PR.
+2. **W8 broly-auto council** (P0 dependency) — invoke `/broly-auto` with
+   §11 as input. Output goes into §12 of this doc.
+3. **W8a Phase 1 implementation** (~1400 LOC) — gated on W9 baseline +
+   broly verdict. Hypotheses to register: a revised set replacing
+   H-W8-1 through H-W8-5, since those were written for Option B.
+4. **W8b Phase 2** — split view inside one window, IF Phase 1 telemetry
+   shows demand. Likely deferred indefinitely given V>>'s preference for
+   true multi-window over in-window split.
+5. **Future**: cross-window pair-mode coordination (out of W8 scope).
 
 ---
 
-**Next action when this doc lands:** V>> answers Q1–Q7 in §7 (or on the PR
-thread). Once Q1 is locked, the recommended path in §5 is either confirmed
-or replaced, and the W8a refactor PR can begin.
+**Next action**: convert PR #98 from draft to ready-for-review with §11
+in place. Queue W9 baseline measurement and W8 broly-auto council as
+parallel P0 dependencies before W8a implementation.
