@@ -69,7 +69,7 @@ export default function ContextPanel({
                 className="h-full"
                 initial={reduceMotion ? { width: `${contextUsage}%` } : { width: '0%' }}
                 animate={{ width: `${contextUsage}%` }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 style={{ backgroundColor: ctxColour }}
               />
             </div>
