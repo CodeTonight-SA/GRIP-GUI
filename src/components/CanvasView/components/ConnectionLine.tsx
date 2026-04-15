@@ -28,7 +28,7 @@ export function ConnectionLine({ from, to, isActive }: ConnectionLineProps) {
         strokeDasharray={isActive ? '0' : '6,4'}
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{ pathLength: 1, opacity: isActive ? 1 : 0.5 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.3 }}
       />
       {isActive && (
         <>

@@ -484,7 +484,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                   key={prompt.text}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 + i * 0.05, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: 0.1 + i * 0.03, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                   onClick={() => handleSuggestedPrompt(prompt.text)}
                   className="flex items-start gap-3 p-4 border border-[var(--border)] hover:border-[var(--primary)] hover:-translate-y-px transition-all text-left group"
                 >
@@ -500,7 +500,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.6 }}
-              transition={{ delay: 0.5, duration: 0.4 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
               className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] mt-8"
             >
               CMD+K FOR COMMANDS | LOCAL GRIP BACKEND | REAL-TIME STREAMING

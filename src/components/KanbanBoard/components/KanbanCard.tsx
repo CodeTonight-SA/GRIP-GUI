@@ -172,7 +172,7 @@ export function KanbanCard({ task, onEdit, onDelete, onStart, onOpenTerminal, is
               className="h-full bg-green-500"
               initial={{ width: 0 }}
               animate={{ width: `${task.progress}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
             />
           </div>
         </div>
