@@ -1,9 +1,42 @@
 # W8 — Multi-Session Capability for GRIP Commander
 
-**Status:** DRAFT — design council, awaiting V>> review
+**Status:** COUNCIL + SPIKE COMPLETE — awaiting W8a-refactor implementation.
+**Canonical sections:** §11, §12, §13, §14.
+**Obsolete sections:** §5, §6, §8 — preserved for decision history, superseded banners inline.
 **Owner:** L>>
 **Linked branch:** `feat/w8-multi-session-design`
-**Decision required by:** before any W8 implementation lands
+**Decision required by:** before any W8 implementation lands (satisfied 2026-04-15)
+
+## 0. Document status and canonical reading order
+
+This doc accumulated four decision waves (§1–§10 original design, §11 wizard
+lock-in, §12 research council STOP + mitigations, §13 post-council re-lock,
+§14 spike results). Read in this order to avoid acting on obsolete content:
+
+1. **§0 (this)** — status + reading order.
+2. **§11 Locked decisions** — original Option C lock. Note that §11.5, §11.7,
+   §11.9 are further amended by §12 → §13 → §14.
+3. **§12 Research council findings** — STOP verdict, 3 killed hypotheses, 3
+   weakened, 4 spike requirements. Supersedes §11.5 env-var mechanism and
+   §11.7 LOC estimate.
+4. **§13 Post-council locked decisions** — locks the three spike outcomes:
+   §13.3 `additionalArguments` transport, §13.4 Electron `partition:`
+   isolation, §13.5 hybrid IPC routing. Supersedes §11.2 `grip:ws:*`
+   prefix namespacing.
+5. **§14 Spike results + amendments** — three proven mechanisms, one critical
+   RSC-incompatibility footgun (§14.2), two smaller amendments, four known
+   unknowns that must be resolved before W8a-refactor ships.
+
+**Canonical answer to any "how is X implemented?" question**: §14 wins over
+§13 wins over §12 wins over §11 wins over §5. §6 hypotheses are deprecated
+in full — see §6 SUPERSEDED banner for the replacement set.
+
+**Canonical answer for migration + cross-repo concerns** (addressed by the
+HAL Council re-review): localStorage/IndexedDB migration is specified in
+§13.4 (Electron `partition:` + migration POC) + §14.5.1 (IndexedDB known
+unknown — must be resolved before W8a-modes). Cross-repo `/mode` CLI
+dependency is specified in §11.5 (env-var mechanism for PTY children) +
+§13.5 Pattern 1 + §13.8 (flagged as critical path in W8a-modes PR).
 
 ## 1. Why this doc exists
 
@@ -193,6 +226,13 @@ single laptop screen, the multi-window value proposition is mostly cosmetic.
 
 ## 5. Recommendation
 
+> **⚠️ SUPERSEDED by §11 (wizard 2026-04-15).** V>> overrode this Option B
+> recommendation in favour of Option C (multi-window workspaces). The
+> content below is preserved as decision history. Any implementation PR
+> referencing "Option B", "sessioned multi-chat in one window", or "Phase 1
+> refactor in zustand" is **rejected on sight** per §13.1. Read §11.1 for
+> the canonical mental model.
+
 **Pick Option B (Sessioned multi-chat) as the W8 target, with two phases:**
 
 ### Phase 1 — Session abstraction with single active session (small)
@@ -231,27 +271,89 @@ single laptop screen, the multi-window value proposition is mostly cosmetic.
 
 ## 6. Falsifiable hypotheses to register before any code lands
 
-These are the claims this design rests on. Each one would, if disproved,
-force a redesign. They should be registered with the GRIP hypothesis engine
-as the W8 implementation begins, so we are forced to confront the evidence.
+> **⚠️ DEPRECATED in full — see §6A below for the canonical replacement set.**
+> The original H-W8-1 through H-W8-5 below were written for Option B and
+> every one of them either assumes the wrong architecture or measures a
+> mechanism that no longer exists. Agent B killed three of them during the
+> §12 research council under different framing. Preserved here only as a
+> historical reference for how the design ladder moved.
 
-- **H-W8-1**: "Lifting `Session` into the store does not regress streaming
-  chat reconnect-on-tab-switch behaviour." Metric: `activeStreams` map
-  preserved across the migration. Falsified if any in-flight stream is lost
-  during the Phase 1 refactor.
-- **H-W8-2**: "Per-session mode sets reduce mode-pollution complaints by
-  >50%." Metric: count of mode-related issues filed per week before vs after
-  the W8 ship. Three-month verification window.
-- **H-W8-3**: "Average power user runs ≤2 concurrent sessions." Metric:
-  daily session count from telemetry (if any). Falsified if median user has
-  >3, in which case the selector UI needs better affordances than a single
-  top-bar dropdown.
-- **H-W8-4**: "Phase 1 ships under 800 LOC." Metric: `git diff --shortstat`
-  on the merged PR.
-- **H-W8-5**: "Switching active session during a streaming chat is safe if we
-  snapshot the streaming buffer to chat-storage before the swap, then resume
-  from snapshot on session re-entry." Falsified if any stream loses chunks
-  during a session switch in manual testing.
+### 6.DEPRECATED Original Option B hypotheses (do not register)
+
+- **H-W8-1 DEPRECATED**: "Lifting `Session` into the store does not regress
+  streaming chat reconnect-on-tab-switch behaviour." Option B has no
+  `Session` store because we no longer use Option B. Electron `partition:`
+  (§13.4) gives each window its own `localStorage` without a Session type.
+- **H-W8-2 DEPRECATED**: "Per-session mode sets reduce mode-pollution
+  complaints by >50%." Mode sets are now per-workspace (§11.4 +
+  `~/.claude/.active-modes-<workspace-id>`), not per in-window session. The
+  metric becomes mode-pollution-per-workspace, which is unmeasurable until
+  §14.5.1 IndexedDB migration is resolved.
+- **H-W8-3 DEPRECATED**: "Average power user runs ≤2 concurrent sessions."
+  Replaced by H-W8-8 below — the unit is windows (workspaces), not
+  in-window sessions, and §11.6 + §12.5 H-B5 already committed to the
+  3-5 window range.
+- **H-W8-4 DEPRECATED**: "Phase 1 ships under 800 LOC." Killed by §12.2
+  H-B4. Phase 1 is now three PRs totalling 2500–3500 LOC, not one PR
+  at 800. Replaced by H-W8-10 below.
+- **H-W8-5 DEPRECATED**: "Switching active session during a streaming chat
+  is safe..." There is no in-window session switch — each workspace is a
+  separate `BrowserWindow` with its own renderer process. Switching
+  workspaces is switching OS-level windows, not swapping React state.
+
+## 6A. Canonical hypotheses for Option C (register before W8a-refactor)
+
+These are the claims the **post-§11 + §12 + §13 + §14** design rests on.
+Register via `lib/hypothesis_engine.py` before W8a-refactor opens.
+
+- **H-W8-6**: "`additionalArguments` transport delivers `--grip-ws=<uuid>`
+  from `BrowserWindow` creation to `process.argv` inside the renderer
+  AND through the React Server Component boundary via a `'use client'`
+  `WorkspaceProvider` context." Metric: E2E test opens two windows with
+  different wsIds, asserts each renderer's `useWorkspaceId()` returns the
+  correct wsId for its window, AND asserts no RSC import of
+  `workspace-context.ts` exists in the codebase (via the ESLint rule from
+  §14.2). Falsified if either assertion fails, or if production build
+  with `ELECTRON_BUILD=1 next build` breaks static export. Deadline:
+  end of W8a-refactor PR.
+- **H-W8-7**: "Electron `webPreferences.partition: 'persist:ws-<uuid>'`
+  provides true isolation of localStorage + IndexedDB + sessionStorage +
+  cookies between workspace windows with zero per-call-site prefix
+  diffs." Metric: spike deliverable 2 re-run as a real integration test
+  — two windows write the same key to `localStorage.grip-chats`, each
+  reads only its own value. Falsified if any cross-window leak is
+  observed, or if the custom `app://` protocol handler's `privileges`
+  config must be modified beyond §13.4's current assumption (§14.5.2
+  known unknown). Deadline: end of W8a-ui PR.
+- **H-W8-8**: "IndexedDB migration from the Electron DEFAULT partition
+  into a synthetic `persist:ws-<default-uuid>` partition preserves all
+  kanban-store rows with no data loss on first upgrade." Metric: E2E
+  test with a seeded DEFAULT partition containing N kanban items,
+  runs first-upgrade, asserts all N items present in the default
+  workspace after migration. Falsified if any row drops, or if
+  Electron's structured-clone export via DevTools protocol produces
+  incomplete snapshots. This hypothesis remains OPEN until §14.5.1
+  resolves. Deadline: W8a-modes PR.
+- **H-W8-9**: "`broadcastToAllWorkspaces()` continues delivering to N-1
+  windows when one window is destroyed mid-iteration (via the
+  `isDestroyed()` guard + proactive `'close'` deregistration from
+  §14.4)." Metric: regression test creates two windows, closes one,
+  calls `broadcastToAllWorkspaces('test-event', ...)`, asserts the
+  second window received the event AND no uncaught exception surfaced
+  in the main process. Falsified if the second window misses the
+  message OR the main process logs a `webContents is destroyed`
+  stack trace. Deadline: end of W8a-refactor PR.
+- **H-W8-10**: "W8a ships as three PRs totalling 2500–3500 LOC net,
+  not the original 1400 LOC single-PR estimate." Metric:
+  `git diff --shortstat main..<pr-tip>` on each of W8a-refactor,
+  W8a-ui, W8a-modes. Falsified if the total undershoots 2000 (under-scope,
+  probably incomplete), overshoots 4000 (scope creep, split again), or
+  if any single PR exceeds the §13.8 per-PR ceiling by >25%. Deadline:
+  at merge of W8a-modes (end of the W8a trilogy).
+
+The five replaced hypotheses above (H-W8-6 to H-W8-10) are structured to
+fail loudly on the exact failure modes the §12 research council and §14
+spike surfaced — they are empirically grounded, not aspirational.
 
 ## 7. Open questions for V>>
 
@@ -277,6 +379,15 @@ as the W8 implementation begins, so we are forced to confront the evidence.
   "treat with broly-level care"?
 
 ## 8. Implementation phases (assuming Option B is approved)
+
+> **⚠️ SUPERSEDED by §11.9 → §12.6 → §13.8 (the canonical sequence).**
+> §8's "Phase 1 ≤800 LOC refactor in zustand" is wrong on three counts:
+> (a) there is no zustand Session abstraction — Electron `partition:`
+> replaces it per §13.4; (b) Phase 1 is three PRs (W8a-refactor /
+> W8a-ui / W8a-modes) totalling 2500–3500 LOC, not one PR at 800;
+> (c) the ordering is now W9 baseline → integration spike → three PRs,
+> not the Option B flat sequence below. Read §13.8 for the binding
+> execution plan.
 
 ### Phase 1 — Refactor only (PR W8a, target ≤800 LOC)
 - Add `Session` interface and `sessions: Session[]`, `activeSessionId` to
@@ -373,6 +484,17 @@ introduced in §11.7.
 
 ### 11.5 /mode CLI binding — env var injection
 
+> **⚠️ AMENDED by §13.3 + §14.2 for the renderer path.** The
+> `GRIP_WORKSPACE_ID` env var is the correct transport for **PTY child
+> processes** (main→child parent-injects pattern), AND is still how the
+> `/mode` CLI inside an agent's terminal panel learns its workspace id.
+> It is **NOT** the transport for the renderer (Next.js). The renderer
+> uses `webPreferences.additionalArguments` → `process.argv` →
+> `'use client'` `WorkspaceProvider` React context (§13.3 + §14.2).
+> Two mechanisms for two different data-flow directions — do not
+> conflate them. The §12 research council killed the "env var only"
+> framing as H-B2.
+
 The `/mode` CLI in `~/.claude/commands/mode.md` runs inside an agent's
 terminal panel — a child Claude Code process spawned by Commander. To know
 which workspace's mode file to read/write, the CLI needs the workspace id.
@@ -403,6 +525,14 @@ a P0 dependency for W8a. The sequence is now: W9 baseline → W8 broly
 council (§11.8) → W8a implementation.
 
 ### 11.7 Phase 1 scope — full first experience (~1400 LOC)
+
+> **⚠️ SCOPE SUPERSEDED by §12.2 H-B4 mitigation → §13.1 → §13.8.**
+> The ~1400 LOC single-PR scope was killed by Agent B's audit: the
+> singleton `mainWindow` pattern has 40+ call sites, 30+
+> `webContents.send(...)` broadcasts need rewriting, and the
+> localStorage migration touches 20+ files. Realistic total:
+> **2500–3500 LOC across three PRs** (W8a-refactor / W8a-ui /
+> W8a-modes). Read §13.8 for the binding three-PR breakdown.
 
 Phase 1 of W8 (the W8a PR) ships:
 - Electron `BrowserWindow` multiplexing in the main process
