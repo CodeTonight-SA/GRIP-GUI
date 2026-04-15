@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { getAppBasePath } from '../utils';
 import { MIME_TYPES } from '../constants';
+import { registerWorkspaceWindow } from './broadcast';
 
 // Allowed origins for in-app navigation
 const ALLOWED_ORIGINS = ['http://localhost', 'app://-'];
@@ -25,9 +26,21 @@ export function setMainWindow(window: BrowserWindow | null) {
 }
 
 /**
- * Create the main application window
+ * Create the main application window.
+ *
+ * §13.3 — workspaceId is injected into the renderer via
+ * `webPreferences.additionalArguments`. The renderer reads `process.argv`
+ * synchronously at import time in `src/lib/workspace-context.ts`.
+ *
+ * §13.4 — Each workspace gets its own Chromium session via
+ * `webPreferences.partition: 'persist:ws-<uuid>'`. localStorage, IndexedDB,
+ * sessionStorage, cookies, and HTTP cache are fully isolated with zero
+ * per-call-site changes in the renderer.
+ *
+ * §13.5 — Every created window is registered via `registerWorkspaceWindow`
+ * so that agent-initiated and service-initiated IPC events can route correctly.
  */
-export function createWindow() {
+export function createWindow(workspaceId: string = 'default') {
   const isDarkMode = nativeTheme.shouldUseDarkColors;
 
   mainWindow = new BrowserWindow({
@@ -48,8 +61,15 @@ export function createWindow() {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // §13.4: fully isolated Chromium session per workspace.
+      partition: `persist:ws-${workspaceId}`,
+      // §13.3: workspace ID flows into renderer process.argv before first render.
+      additionalArguments: [`--grip-ws=${workspaceId}`],
     },
   });
+
+  // §13.5: register immediately so broadcast.ts can route events to this window.
+  registerWorkspaceWindow(workspaceId, mainWindow);
 
   // Show window with fade-in once content is ready (prevents white flash)
   mainWindow.once('ready-to-show', () => {

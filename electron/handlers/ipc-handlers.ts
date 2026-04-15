@@ -1,4 +1,26 @@
-import { ipcMain, dialog, shell } from 'electron';
+/**
+ * §13.5 Pattern 2 — User-initiated IPC routing (spike annotation).
+ *
+ * When a renderer initiates a request via ipcMain.handle, the handler
+ * receives `event.sender` (the WebContents of the requesting window).
+ * Route the response back to the originating window:
+ *
+ *   ipcMain.handle('some:request', (event, args) => {
+ *     const window = BrowserWindow.fromWebContents(event.sender);
+ *     // ... process request ...
+ *     window?.webContents.send('some:response', result);
+ *   });
+ *
+ * This replaces every `mainWindow.webContents.send(...)` call inside IPC
+ * handlers. The existing handlers in this file are NOT rewritten here —
+ * that is the W8a-refactor PR's job. This comment documents the pattern
+ * for V>> review and links back to §13.5 of W8-MULTI-SESSION.md.
+ *
+ * The Pattern 2 approach requires NO registry lookup and NO workspaceId
+ * parameter — the event.sender already carries the origin. It is the
+ * zero-cost routing solution for all user-initiated flows.
+ */
+import { ipcMain, BrowserWindow, dialog, shell } from 'electron';
 import { posixQuote } from '../utils/shell';
 import { checkForUpdates, downloadUpdate, quitAndInstall } from '../services/update-checker';
 import { registerMemoryHandlers } from './memory-handlers';

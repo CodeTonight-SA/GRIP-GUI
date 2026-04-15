@@ -1,3 +1,21 @@
+/**
+ * §13.3 spike call site — workspace ID observable in the renderer.
+ *
+ * WORKSPACE_ID is resolved from process.argv at module import time in
+ * src/lib/workspace-context.ts. That module is Electron-renderer-only
+ * (process.argv is populated by additionalArguments, not available in
+ * Next.js RSC). The correct import point in the App Router is a Client
+ * Component, NOT this Server Component.
+ *
+ * For the spike, we surface the value as a data attribute on <html> so it
+ * is observable in DevTools without runtime overhead. In production the
+ * WorkspaceProvider Client Component (introduced in W8a-ui) will import
+ * WORKSPACE_ID and pass it through React context.
+ *
+ * AMENDMENT to §13.3: add a note that workspace-context.ts MUST be
+ * imported only from Client Components or Electron preload — never from
+ * RSC. See SPIKE-FINDINGS.md §13.3 amendment.
+ */
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Syne, Instrument_Sans, Geist_Mono } from "next/font/google";
