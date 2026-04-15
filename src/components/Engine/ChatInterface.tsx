@@ -66,6 +66,20 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [model, setModel] = useState('sonnet');
   const spinnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Per-message expansion state for tool-use history. Default view caps at the
+  // last 3 tool calls; clicking the "+N earlier" marker reveals the full list.
+  const [expandedToolUses, setExpandedToolUses] = useState<Set<string>>(new Set());
+  const toggleToolUseExpansion = useCallback((messageId: string) => {
+    setExpandedToolUses(prev => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+      return next;
+    });
+  }, []);
 
   // Load persisted messages on mount or chat switch, reconnect active streams
   useEffect(() => {
@@ -552,27 +566,39 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                     {msg.gates && msg.gates.length > 0 && (
                       <GateIndicator gates={msg.gates} />
                     )}
-                    {/* Tool use blocks — show at most the last 3 so the stream
-                        stays scannable; older calls collapse to a "+N earlier"
-                        marker above them. Full history is still stored on
-                        msg.toolUses and can be revisited later if we add an
-                        "expand all" affordance. */}
-                    {msg.toolUses && msg.toolUses.length > 0 && (
-                      <div className="mt-2 space-y-0.5">
-                        {msg.toolUses.length > 3 && (
-                          <div className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-60 px-1 py-0.5">
-                            +{msg.toolUses.length - 3} earlier tool call{msg.toolUses.length - 3 === 1 ? '' : 's'}
-                          </div>
-                        )}
-                        {msg.toolUses.slice(-3).map((tu, i) => (
-                          <ToolUseBlock
-                            key={tu.toolId || i}
-                            toolUse={tu}
-                            result={msg.toolResults?.find(r => r.toolId === tu.toolId)}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    {/* Tool use blocks — capped at the last 3 by default so the
+                        stream stays scannable; the "+N earlier" marker is a
+                        button that reveals the full history per message. */}
+                    {msg.toolUses && msg.toolUses.length > 0 && (() => {
+                      const isExpanded = expandedToolUses.has(msg.id);
+                      const hiddenCount = msg.toolUses.length - 3;
+                      const visibleToolUses = isExpanded
+                        ? msg.toolUses
+                        : msg.toolUses.slice(-3);
+                      return (
+                        <div className="mt-2 space-y-0.5">
+                          {hiddenCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleToolUseExpansion(msg.id)}
+                              aria-expanded={isExpanded}
+                              className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-60 hover:opacity-100 hover:text-[var(--foreground)] px-1 py-0.5 transition-opacity text-left cursor-pointer"
+                            >
+                              {isExpanded
+                                ? `\u25BE collapse to last 3`
+                                : `\u25B8 +${hiddenCount} earlier tool call${hiddenCount === 1 ? '' : 's'}`}
+                            </button>
+                          )}
+                          {visibleToolUses.map((tu, i) => (
+                            <ToolUseBlock
+                              key={tu.toolId || i}
+                              toolUse={tu}
+                              result={msg.toolResults?.find(r => r.toolId === tu.toolId)}
+                            />
+                          ))}
+                        </div>
+                      );
+                    })()}
                     {msg.streaming && (
                       <span className="inline-block w-0.5 h-4 bg-[var(--primary)] ml-0.5 animate-[cursor-blink_1s_ease-in-out_infinite]" />
                     )}
