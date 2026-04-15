@@ -463,6 +463,212 @@ exceed the cost of the broly invocation by an order of magnitude.
 
 ---
 
-**Next action**: convert PR #98 from draft to ready-for-review with §11
-in place. Queue W9 baseline measurement and W8 broly-auto council as
-parallel P0 dependencies before W8a implementation.
+## 12. Research council findings (2026-04-15, post-§11 wizard)
+
+A three-agent research council reviewed §11 before any W8a code was written.
+Agents: (A) Structural Analyst applying Structure Mapping Theory,
+(B) Falsification Council pre-registering 6 hypotheses and attempting to
+kill each with codebase evidence, (C) Integration Architect producing a
+file-level changelist against the current repo state. The council ran in
+parallel on commit `93da579`.
+
+### 12.1 Aggregate verdict — STOP (do NOT ship W8a as scoped in §11.7)
+
+Three hypotheses were killed, two weakened, zero survived cleanly. The
+design's fundamental shape (multi-BrowserWindow + workspace = directory +
+VS Code / Obsidian lineage) remains structurally sound per Agent A's SMT
+analysis, but two load-bearing implementation assumptions in §11.5 and
+§11.7 are falsified by evidence in the current codebase. W8a cannot begin
+until the council's mitigations land in a revised §11.
+
+### 12.2 Killed hypotheses
+
+**H-B2 KILLED — `GRIP_WORKSPACE_ID` env injection does NOT reach every
+spawn site.** Agent B counted 13 PTY spawn sites in the Electron main
+process (which CAN receive env-var injection), plus 2 critical spawn
+sites in the Next.js server: `src/app/api/grip/chat/route.ts:52` and
+`src/lib/agent-manager.ts:59`. The Next.js server runs as ONE process
+serving ALL BrowserWindows. It has no window context at request time, so
+env-var injection is the wrong mechanism for these sites. Scheduler
+callbacks in `electron/handlers/scheduler-handlers.ts` (cron/launchd) also
+have no originating window. §11.5's env-var approach is incomplete.
+
+*Required mitigation*: propagate `workspaceId` through the IPC arg bus
+(every `ipcMain.handle` that reaches a spawn must receive `workspaceId`
+resolved via `BrowserWindow.fromWebContents(event.sender)`), AND pass
+`workspaceId` as an HTTP header on every renderer→Next.js call, AND
+persist a workspace association on every scheduled task. This is NOT a
+"small change to one env injection call" — it is a cross-cutting IPC
+redesign. §11.5 must be rewritten before W8a begins.
+
+**H-B3 KILLED — per-workspace mode files do NOT survive concurrent edits.**
+Two windows targeting the same workspace id (easy to trigger via Welcome
+list double-click, CLI reopen while GUI is already open) both write to
+`~/.claude/.active-modes-<id>` through a non-atomic `writeFile` call at
+`src/app/api/grip/modes/route.ts:37`. Last-writer-wins silently. In
+addition, the same route at line 26 still validates `modes.length > 3`
+while the global Commander config uses `MAX_ACTIVE_MODES = 5` — a stale
+latent bug that any W8a migration will collide with.
+
+*Required mitigation*: atomic write-via-temp-rename, optimistic-locking
+via mtime check, directory lock preventing two BrowserWindows from
+claiming the same workspace (first window wins, second focuses the
+existing — VS Code behaviour), AND fix the stale 3-vs-5 cap as part of
+W8a.
+
+**H-B4 KILLED — ~1400 LOC Phase 1 estimate is off by ~2x.** Agent B's
+scope audit, corroborated by Agent C's file-level changelist, found:
+(a) the singleton `mainWindow` pattern is embedded at 40+ call sites
+through `getMainWindow()` / `setMainWindow()`, (b) 30+
+`mainWindow.webContents.send(...)` broadcasts need rewriting to target
+the owning workspace window, (c) `update-checker`, `slack-bot`,
+`telegram-bot`, `scheduler-handlers` all assume a single main window and
+need multi-window broadcast helpers, (d) the localStorage migration
+touches 20+ files. Realistic total: **2500–3500 LOC across 3 PRs**, not
+1400 in one.
+
+*Required mitigation*: split W8a into three PRs:
+- **W8a-refactor** (~1200 LOC): singleton-to-registry conversion for
+  `mainWindow`, extract `broadcastToAllWorkspaces()` helper, migrate
+  update-checker/slack-bot/telegram-bot/scheduler subscribers. No new
+  UI, no behaviour change.
+- **W8a-ui** (~1200 LOC): Welcome screen, workspace switcher, Electron
+  `BrowserWindow` multiplexing, workspace persistence layer.
+- **W8a-modes** (~800 LOC): per-workspace modes file + Next.js API route
+  rewrite + `GRIP_WORKSPACE_ID` propagation (including the IPC arg bus
+  and HTTP header mechanisms from H-B2 mitigation) + cross-repo
+  `~/.claude/commands/mode.md` patch + atomic-write fix + stale cap fix.
+
+§11.7 and §11.9 must be updated with this revised sequence.
+
+### 12.3 Weakened hypotheses (require mitigation, not redesign)
+
+**H-B1 WEAKENED — "fully isolated" is aspirational, not current reality.**
+`electron/services/update-checker.ts`, `electron/services/slack-bot.ts`,
+`electron/services/telegram-bot.ts`, `electron/handlers/scheduler-handlers.ts`
+all currently assume a single main window via `getMainWindow()`. True
+isolation requires a `broadcastToAllWorkspaces()` helper replacing every
+singleton `mainWindow.webContents.send(...)` call. Design-level §11.2 is
+still correct; implementation must catch up.
+
+**H-B5 WEAKENED — 3-5 concurrent windows pressure a 16GB laptop.** Each
+Electron `BrowserWindow` with the full Next.js bundle + xterm.js + React
+tree runs ~180–350MB RSS at idle. 5 windows × ~300MB + Node main
+process (~500MB) + N Claude Code PTY children (~200–600MB each) =
+6-10GB before the OS and other apps. §11.6's "soft warn at 6th" is too
+late — pressure starts at 4-5. W9 baseline is reaffirmed as a hard P0
+prerequisite. Consider a hibernated-workspace mode (unload non-focused
+renderers after N minutes idle) in a later phase.
+
+**H-B6 WEAKENED — first-upgrade UX for existing users is unspecified.**
+Existing users have `~/.claude/.active-modes` and `grip-chats` + other
+un-namespaced localStorage keys. On first upgrade, the Welcome screen
+would show an empty "Recent Workspaces" list and the user's prior chats
+would appear lost. W8a must include a deterministic migration: detect
+legacy state, auto-create a "Default" workspace with a synthetic UUID,
+remap all legacy keys under `grip:ws:<default>:*`, copy `.active-modes`
+to `.active-modes-<default>`. Include a migration-completed flag and an
+E2E test for clean-install vs upgraded-install first-launch.
+
+### 12.4 Structural findings (Agent A, SMT)
+
+- **Workspace = VS Code workspace** and **workspace = Obsidian vault** are
+  DEEP mappings. The core relation `workspace ↔ directory ↔ per-window
+  state ↔ reopen-by-path` is preserved, not borrowed. Obsidian's
+  `.obsidian/workspace.json` is structurally identical to the proposed
+  `.active-modes-<id>` file — V>> should study Obsidian's vault-id
+  generation and multi-window coordination as concrete reference.
+- **Workspace = iTerm2 window** is SURFACE. iTerm2 windows have no
+  persistent identity, no directory binding, no reopen semantics. Drop
+  this analogy from the doc — it does not teach.
+- **Workspace = Slack workspace** is an ANTI-PATTERN. Slack workspaces
+  are server-side multi-tenant namespaces with shared membership; GRIP
+  workspaces are local per-directory client scopes. The mapping inverts
+  the trust/sync topology. If anyone cites "Slack does X, so we should
+  too" during implementation, they will fight §11.2's fully-isolated
+  decision. Strike this analogy from the doc.
+- **`GRIP_WORKSPACE_ID` env var** is a DEEP structural fit with the Unix
+  "parent injects env" pattern (`PATH`, `HOME`, `SHELL`, `TMPDIR`). Where
+  the mechanism CAN apply (main-process PTY spawns), it is the correct
+  choice. Subtle risk: env vars do not propagate across `exec` boundaries
+  the child might perform (e.g. `sudo`, `tmux new-session`), so `/mode`
+  must read `$GRIP_WORKSPACE_ID` at command invocation, not cache it.
+- **Main-process shared state blind spot**: §11.2 claims "two separate
+  universes sharing only on-disk GRIP," but the Electron main process
+  is a third shared universe brokering every PTY spawn, menu click, and
+  window lifecycle event. Main-process workspace-id capture must be
+  audited for closure-capture races when two windows spawn agents
+  simultaneously. This is the single highest-risk area.
+
+### 12.5 Integration spike requirements (Agent C)
+
+Three unresolved implementation questions that must be answered by a
+4-hour throw-away spike BEFORE W8a-refactor begins:
+
+**Spike 1 — Workspace ID transport**: the custom `app://` protocol
+handler at `window-manager.ts:187-189` strips query strings
+(`if (queryIndex !== -1) urlPath = urlPath.substring(0, queryIndex);`).
+Routing `?ws=<uuid>` would silently drop on every renderer boot. Need
+to prove which alternative mechanism survives Next.js RSC prefetch +
+static export: (a) URL fragment (`#ws=<uuid>`), (b) `executeJavaScript`
+injection, (c) 4th arg to `loadURL`, (d) per-window
+`webPreferences.additionalArguments`. Spike deliverable: one workspace
+id flowing end-to-end from `BrowserWindow.loadURL` → renderer context →
+first `workspace-context.ts` read.
+
+**Spike 2 — Storage isolation mechanism**: the doc in §11.2 implies
+localStorage prefix namespacing (~90 LOC touching 20 files, leaky by
+default because all windows share the same origin). Agent C recommends
+Electron `webPreferences.partition: 'persist:ws-<uuid>'` instead —
+3 LOC per window, gives true isolation including IndexedDB,
+sessionStorage, cookies, plus zero prefix-migration surface. But using
+`partition` requires migrating the DEFAULT partition's existing data to
+the new partition on first upgrade. Spike deliverable: confirm
+`partition:` works with the custom `app://` protocol handler, measure
+migration cost, decide with V>>.
+
+**Spike 3 — IPC routing rewrite**: 30+ `mainWindow.webContents.send(...)`
+broadcast sites across `agent-manager`, `pty-manager`, `ipc-handlers`,
+`main.ts` need rewriting to target the owning workspace window.
+Requires `AgentStatus.workspaceId` field (not present today) and a
+migration path for existing saved agents. Spike deliverable: shape of
+the `AgentStatus.workspaceId` migration + prove that sender-resolution
+via `BrowserWindow.fromWebContents(event.sender)` correctly routes
+agent events back to the spawning window.
+
+### 12.6 Revised implementation sequence
+
+The §11.9 sequence is SUPERSEDED by:
+
+1. **W9 baseline measurement** (P0, docs-only PR) — establish bundle size,
+   per-window memory, React profile. Reinforced to P0 by H-B5 weakening.
+2. **W8 4-hour integration spike** (P0, throwaway code) — resolve Spike 1,
+   2, 3 from §12.5. No PR, spike output updates §12.
+3. **W8 doc rewrite** (P0, docs-only PR) — rewrite §11.5, §11.7, §11.9 to
+   absorb the council findings and spike results. Strike Slack/iTerm2
+   analogies from §11.1. This replaces the need for a separate broly-auto
+   council invocation in §11.8 — the research council has already run.
+4. **W8a-refactor** (~1200 LOC) — singleton-to-registry, broadcast helper,
+   no new UI.
+5. **W8a-ui** (~1200 LOC) — Welcome, switcher, BrowserWindow multiplexing.
+6. **W8a-modes** (~800 LOC) — per-workspace modes, IPC + HTTP workspaceId
+   propagation, cross-repo `/mode` CLI patch, atomic writes, stale-cap fix,
+   legacy migration + E2E test.
+
+Each of 4, 5, 6 is its own PR with its own hypothesis registration.
+
+### 12.7 Council metadata
+
+- Council run date: 2026-04-15
+- Commit under review: `93da579` on `feat/w8-multi-session-design`
+- Agents: A (Structural, Opus), B (Falsification, Opus), C (Integration, Opus)
+- Individual reports: captured in PR #98 comment thread
+- Next action: V>> reviews this §12, approves the revised sequence in
+  §12.6, then the W9 baseline measurement wave begins autonomously.
+
+---
+
+**Next action after council**: V>> approves the STOP verdict and the
+revised sequence in §12.6. W9 baseline measurement begins in parallel
+(does not block on W8 council sign-off). W8a does NOT begin until the
+doc rewrite in step 3 of §12.6 lands.
