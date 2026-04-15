@@ -18,14 +18,23 @@ vi.mock('uuid', () => ({
 }));
 
 // Mock database
-const mockStmt = {
+interface MockStmt {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  all: ReturnType<typeof vi.fn<() => any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get: ReturnType<typeof vi.fn<() => any>>;
+  run: ReturnType<typeof vi.fn>;
+}
+
+const mockStmt: MockStmt = {
   all: vi.fn(() => []),
   get: vi.fn(() => undefined),
   run: vi.fn(),
 };
 
 const mockDb = {
-  prepare: vi.fn(() => mockStmt),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  prepare: vi.fn<() => any>(() => mockStmt),
 };
 
 vi.mock('../../../electron/services/vault-db', () => ({
