@@ -1,7 +1,12 @@
 {
   "name": "grip-knowledge-engine",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
+  "description": "GRIP Knowledge Work Engine",
+  "author": {
+    "name": "CodeTonight",
+    "email": "devdev@sudonum.com"
+  },
   "main": "electron/dist/main.js",
   "scripts": {
     "dev": "next dev",
@@ -122,6 +127,41 @@
         "zip"
       ]
     },
+    "linux": {
+      "icon": "public/icon.png",
+      "category": "Development",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "artifactName": "GRIP-Commander-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "icon": "public/icon.ico",
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "GRIP-Commander-${version}-${arch}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico"
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
+    },
     "dmg": {
       "artifactName": "GRIP-Commander-${version}-${arch}.${ext}",
       "title": "GRIP Commander",
@@ -175,6 +215,10 @@
     "@electron/notarize": "^3.1.1",
     "@electron/rebuild": "^4.0.2",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^20",
     "@types/node-telegram-bot-api": "^0.64.13",
@@ -186,6 +230,7 @@
     "electron-builder": "^25.1.8",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
+    "jsdom": "^29.0.2",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5",

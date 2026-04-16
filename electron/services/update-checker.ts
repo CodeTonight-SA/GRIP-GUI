@@ -1,15 +1,16 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater';
-import { BrowserWindow, app } from 'electron';
+import { app } from 'electron';
 import { GITHUB_REPO } from '../constants';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
 
 // Don't download until user clicks "Download"
 autoUpdater.autoDownload = false;
 // Install on next quit after download completes
 autoUpdater.autoInstallOnAppQuit = true;
 
-export function initAutoUpdater(getMainWindow: () => BrowserWindow | null) {
+export function initAutoUpdater() {
   autoUpdater.on('update-available', (info: UpdateInfo) => {
-    getMainWindow()?.webContents.send('app:update-available', {
+    broadcastToAllWorkspaces('app:update-available', {
       currentVersion: autoUpdater.currentVersion.version,
       latestVersion: info.version,
       releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : '',
@@ -18,14 +19,14 @@ export function initAutoUpdater(getMainWindow: () => BrowserWindow | null) {
   });
 
   autoUpdater.on('update-not-available', (info: UpdateInfo) => {
-    getMainWindow()?.webContents.send('app:update-not-available', {
+    broadcastToAllWorkspaces('app:update-not-available', {
       currentVersion: autoUpdater.currentVersion.version,
       latestVersion: info.version,
     });
   });
 
   autoUpdater.on('download-progress', (progress) => {
-    getMainWindow()?.webContents.send('app:update-progress', {
+    broadcastToAllWorkspaces('app:update-progress', {
       percent: progress.percent,
       bytesPerSecond: progress.bytesPerSecond,
       transferred: progress.transferred,
@@ -34,7 +35,7 @@ export function initAutoUpdater(getMainWindow: () => BrowserWindow | null) {
   });
 
   autoUpdater.on('update-downloaded', () => {
-    getMainWindow()?.webContents.send('app:update-downloaded');
+    broadcastToAllWorkspaces('app:update-downloaded');
   });
 
   autoUpdater.on('error', (err) => {
@@ -48,7 +49,7 @@ export function initAutoUpdater(getMainWindow: () => BrowserWindow | null) {
  * Fallback: check GitHub releases API directly (same as pre-electron-updater).
  * Used when autoUpdater fails (e.g. missing latest-mac.yml on older releases).
  */
-async function checkGitHubRelease(mainWindow: BrowserWindow | null) {
+async function checkGitHubRelease() {
   const currentVersion = app.getVersion();
   const url = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
   const response = await fetch(url, {
@@ -92,22 +93,12 @@ async function checkGitHubRelease(mainWindow: BrowserWindow | null) {
   };
 
   if (hasUpdate) {
-    mainWindow?.webContents.send('app:update-available', info);
+    broadcastToAllWorkspaces('app:update-available', info);
   } else {
-    mainWindow?.webContents.send('app:update-not-available', {
-      currentVersion,
-      latestVersion,
-    });
+    broadcastToAllWorkspaces('app:update-not-available', { currentVersion, latestVersion });
   }
 
   return info;
-}
-
-// Store a reference so the fallback can access mainWindow
-let _getMainWindow: (() => BrowserWindow | null) | null = null;
-
-export function setMainWindowGetter(fn: () => BrowserWindow | null) {
-  _getMainWindow = fn;
 }
 
 export async function checkForUpdates() {
@@ -123,8 +114,7 @@ export async function checkForUpdates() {
     // Fall back to direct GitHub API check.
     console.warn('autoUpdater failed, falling back to GitHub API:', (err as Error).message);
     try {
-      const mainWindow = _getMainWindow?.() ?? null;
-      const info = await checkGitHubRelease(mainWindow);
+      const info = await checkGitHubRelease();
       if (!info) {
         return { error: true };
       }

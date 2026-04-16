@@ -1,4 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -101,7 +102,7 @@ function saveTasks(tasks: KanbanTask[]): void {
 }
 
 function emitTaskEvent(eventName: string, task: KanbanTask): void {
-  deps?.getMainWindow()?.webContents.send(eventName, task);
+  broadcastToAllWorkspaces(eventName, task);
 }
 
 /**
@@ -380,7 +381,7 @@ export function registerKanbanHandlers(dependencies: KanbanHandlerDependencies):
 
       saveTasks(tasks);
 
-      deps?.getMainWindow()?.webContents.send('kanban:task-deleted', { id });
+      broadcastToAllWorkspaces('kanban:task-deleted', { id });
 
       return { success: true };
     } catch (err) {

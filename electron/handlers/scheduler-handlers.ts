@@ -5,6 +5,7 @@ import * as os from 'os';
 import { spawn } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
 import { getMainWindow } from '../core/window-manager';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
 import { getProvider } from '../providers';
 import type { AgentProvider, AgentStatus, AppSettings } from '../types';
 import { posixQuote } from '../utils/shell';
@@ -1306,7 +1307,7 @@ export function registerSchedulerHandlers(deps: SchedulerDeps): void {
           const data = buffer.toString('utf-8');
           const mainWindow = getMainWindow();
           if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('scheduler:log-data', { taskId, data });
+            broadcastToAllWorkspaces('scheduler:log-data', { taskId, data });
           }
         } catch {
           // File may have been deleted or rotated

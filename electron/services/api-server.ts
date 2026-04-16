@@ -3,7 +3,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import * as pty from 'node-pty';
-import { app, BrowserWindow } from 'electron';
+import { app } from 'electron';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
 import { v4 as uuidv4 } from 'uuid';
 import TelegramBot from 'node-telegram-bot-api';
 import { App as SlackApp } from '@slack/bolt';
@@ -83,7 +84,6 @@ export function getApiToken(): string {
 }
 
 export function startApiServer(
-  mainWindow: BrowserWindow | null,
   appSettings: AppSettings,
   getTelegramBot: () => TelegramBot | null,
   getSlackApp: () => SlackApp | null,
@@ -320,10 +320,8 @@ export function startApiServer(
             agent.output = agent.output.slice(-5000);
           }
           agent.lastActivity = new Date().toISOString();
+            broadcastToAllWorkspaces('agent:output', { agentId: agent.id, data });
 
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('agent:output', { agentId: agent.id, data });
-          }
         });
 
         ptyProcess.onExit(({ exitCode }) => {
@@ -641,14 +639,12 @@ export function startApiServer(
 
         if (oldStatus !== agent.status) {
           handleStatusChangeNotificationCallback(agent, agent.status);
-
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('agent:status', {
+            broadcastToAllWorkspaces('agent:status', {
               agentId: agent.id,
               status: agent.status,
               waitingReason: waiting_reason
             });
-          }
+
         }
 
         sendJson({ success: true, agent: { id: agent.id, status: agent.status } });
@@ -699,15 +695,13 @@ export function startApiServer(
             );
           }
         }
-
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('agent:notification', {
+          broadcastToAllWorkspaces('agent:notification', {
             agentId: agent?.id,
             type,
             title,
             message
           });
-        }
+
 
         sendJson({ success: true });
         return;
@@ -751,9 +745,8 @@ export function startApiServer(
           fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
 
           // Emit to frontend
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('scheduler:task-status', { taskId: task_id, status, summary });
-          }
+            broadcastToAllWorkspaces('scheduler:task-status', { taskId: task_id, status, summary });
+
 
           sendJson({ success: true });
         } catch (err) {
@@ -848,9 +841,8 @@ export function startApiServer(
           saveTasks(tasks);
 
           // Emit event to frontend
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('kanban:task-updated', task);
-          }
+            broadcastToAllWorkspaces('kanban:task-updated', task);
+
 
           console.log(`[Kanban] Task "${task.title}" marked as complete via hook`);
           sendJson({ success: true, task });
@@ -925,9 +917,8 @@ export function startApiServer(
           const document = db.prepare('SELECT * FROM documents WHERE id = ?').get(id);
 
           // Emit event to frontend
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('vault:document-created', document);
-          }
+            broadcastToAllWorkspaces('vault:document-created', document);
+
 
           sendJson({ success: true, document });
         } catch (err) {
@@ -982,10 +973,8 @@ export function startApiServer(
           db.prepare(`UPDATE documents SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
           const document = db.prepare('SELECT * FROM documents WHERE id = ?').get(docId);
+            broadcastToAllWorkspaces('vault:document-updated', document);
 
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('vault:document-updated', document);
-          }
 
           sendJson({ success: true, document });
         } catch (err) {
@@ -1007,10 +996,8 @@ export function startApiServer(
           }
 
           db.prepare('DELETE FROM documents WHERE id = ?').run(docId);
+            broadcastToAllWorkspaces('vault:document-deleted', { id: docId });
 
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('vault:document-deleted', { id: docId });
-          }
 
           sendJson({ success: true });
         } catch (err) {

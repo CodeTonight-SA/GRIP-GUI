@@ -3,25 +3,33 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { getAppBasePath } from '../utils';
 import { MIME_TYPES } from '../constants';
+import { registerWorkspaceWindow, getWindowForWorkspace } from './broadcast';
 
 // Allowed origins for in-app navigation
 const ALLOWED_ORIGINS = ['http://localhost', 'app://-'];
 
-// Global reference to the main window
-let mainWindow: BrowserWindow | null = null;
+/**
+ * The workspace ID used for the initial window in the single-workspace baseline.
+ * All pre-W8a-ui agents are assigned this workspaceId on load.
+ */
+export const DEFAULT_WORKSPACE_ID = 'default';
 
 /**
- * Get the main window instance
+ * Get the main window instance.
+ * Backwards-compatible alias — returns the 'default' workspace window.
  */
 export function getMainWindow(): BrowserWindow | null {
-  return mainWindow;
+  return getWindowForWorkspace(DEFAULT_WORKSPACE_ID);
 }
 
 /**
- * Set the main window instance
+ * Set the main window instance.
+ * Kept for backwards-compatible call sites; registers the window in the
+ * broadcast registry under the 'default' workspace ID.
+ * Passing null is a no-op — deregistration happens automatically on 'closed'.
  */
 export function setMainWindow(window: BrowserWindow | null) {
-  mainWindow = window;
+  if (window) registerWorkspaceWindow(DEFAULT_WORKSPACE_ID, window);
 }
 
 /**
@@ -30,7 +38,7 @@ export function setMainWindow(window: BrowserWindow | null) {
 export function createWindow() {
   const isDarkMode = nativeTheme.shouldUseDarkColors;
 
-  mainWindow = new BrowserWindow({
+  const win = new BrowserWindow({
     width: 1600,
     height: 1000,
     minWidth: 1200,
@@ -48,8 +56,21 @@ export function createWindow() {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // §13.3: inject workspace ID into renderer process.argv so
+      // workspace-context.ts can read it synchronously at import time.
+      // W8a-ui will pass the real workspace UUID here; for now 'default'
+      // establishes the single-workspace baseline.
+      additionalArguments: [`--grip-ws=${DEFAULT_WORKSPACE_ID}`],
     },
   });
+
+  // Register in the broadcast registry under the default workspace ID.
+  // This is the only registration site; setMainWindow() also calls
+  // registerWorkspaceWindow() but createWindow() always runs first.
+  registerWorkspaceWindow(DEFAULT_WORKSPACE_ID, win);
+
+  // Keep local variable for the rest of createWindow()'s setup code.
+  const mainWindow = win;
 
   // Show window with fade-in once content is ready (prevents white flash)
   mainWindow.once('ready-to-show', () => {
@@ -70,9 +91,8 @@ export function createWindow() {
     mainWindow.loadURL('app://-/index.html');
   }
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
+  // Deregistration from the broadcast registry happens automatically via the
+  // 'closed' listener registered in registerWorkspaceWindow(). No manual cleanup needed.
 
   // Navigation guards — prevent external URLs loading in the Electron window
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -111,9 +131,10 @@ export function createWindow() {
  * don't flash the wrong background colour.
  */
 export function updateWindowBackground(isDark: boolean, backgroundColor?: string): void {
-  if (!mainWindow) return;
+  const win = getWindowForWorkspace(DEFAULT_WORKSPACE_ID);
+  if (!win) return;
   const bg = backgroundColor ?? (isDark ? '#0a0a0a' : '#EAEAEA');
-  mainWindow.setBackgroundColor(bg);
+  win.setBackgroundColor(bg);
 }
 
 /**

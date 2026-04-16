@@ -10,6 +10,7 @@ import { isSuperAgent, formatAgentStatus, getSuperAgentInstructions, getTelegram
 import { posixQuote } from '../utils/shell';
 import { getProvider } from '../providers';
 import { writeProgrammaticInput } from '../core/pty-manager';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
 
 // ============== Telegram Bot State ==============
 let telegramBot: TelegramBot | null = null;
@@ -437,7 +438,7 @@ export function initTelegramBot() {
           // Also update legacy field for backwards compatibility
           appSettings.telegramChatId = chatId;
           saveAppSettings(appSettings);
-          mainWindow?.webContents.send('settings:updated', appSettings);
+          broadcastToAllWorkspaces('settings:updated', appSettings);
         }
 
         telegramBot?.sendMessage(chatId,

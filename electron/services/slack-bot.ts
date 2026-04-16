@@ -7,8 +7,9 @@ import { formatSlackAgentStatus, isSuperAgent, getSuperAgent, getSuperAgentInstr
 import { posixQuote } from '../utils/shell';
 import { agents, saveAgents, initAgentPty } from '../core/agent-manager';
 import { ptyProcesses, writeProgrammaticInput } from '../core/pty-manager';
-import { getMainWindow } from '../core/window-manager';
 import { app } from 'electron';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
+import { getMainWindow } from '../core/window-manager';
 
 // Slack bot state
 let slackApp: SlackApp | null = null;
@@ -140,7 +141,7 @@ export function initSlackBot(
       if (appSettings.slackChannelId !== event.channel) {
         appSettings.slackChannelId = event.channel;
         onSettingsChanged(appSettings);
-        mainWindow?.webContents.send('settings:updated', appSettings);
+        broadcastToAllWorkspaces('settings:updated', appSettings);
       }
 
       await handleSlackCommand(text, event.channel, say, appSettings, mainWindow);
@@ -173,7 +174,7 @@ export function initSlackBot(
       if (appSettings.slackChannelId !== channel) {
         appSettings.slackChannelId = channel;
         onSettingsChanged(appSettings);
-        mainWindow?.webContents.send('settings:updated', appSettings);
+        broadcastToAllWorkspaces('settings:updated', appSettings);
       }
 
       await sendToSuperAgentFromSlack(channel, msg.text, say, appSettings, mainWindow);
