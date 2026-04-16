@@ -38,8 +38,8 @@
   --accent: #0891b2;
   --accent-foreground: #EAEAEA;
 
-  /* Vortex holographic glow */
-  --vortex-glow: 0 0 20px rgba(8, 145, 178, 0.3);
+  /* Vortex holographic glow — overridden per-theme by applyTheme() */
+  --vortex-glow: 0 0 20px color-mix(in srgb, var(--primary) 32%, transparent);
 
   /* Destructive */
   --destructive: #dc2626;
@@ -57,9 +57,9 @@
   --danger: #dc2626;
   --danger-muted: rgba(220, 38, 38, 0.12);
   --info: #0891b2;
-  --info-muted: rgba(8, 145, 178, 0.12);
+  --info-muted: color-mix(in srgb, var(--info) 14%, transparent);
 
-  /* Named accent colours — used by provider selectors, agent status, terminals */
+  /* Named accent colours — overridden per-theme by applyTheme() */
   --accent-blue: #0891b2;
   --accent-green: #22c55e;
   --accent-purple: #8B5CF6;
@@ -72,6 +72,12 @@
   --chart-3: #16a34a;
   --chart-4: #dc2626;
   --chart-5: #000000;
+
+  /* Scrollbar fallbacks — set here so scrollbars are styled before applyTheme() fires.
+     applyTheme() overrides these with per-theme values at runtime. */
+  --scrollbar-track: #e0e0e0;
+  --scrollbar-thumb: #b0b0b0;
+  --scrollbar-thumb-hover: #0891b2;
 }
 
 html {
@@ -117,7 +123,7 @@ html {
   --danger: #ef4444;
   --danger-muted: rgba(239, 68, 68, 0.15);
   --info: #22d3ee;
-  --info-muted: rgba(34, 211, 238, 0.15);
+  --info-muted: color-mix(in srgb, var(--info) 18%, transparent);
 
   --accent-blue: #22d3ee;
   --accent-green: #4ade80;
@@ -130,6 +136,11 @@ html {
   --chart-3: #22c55e;
   --chart-4: #ef4444;
   --chart-5: #e5e5e5;
+
+  /* Scrollbar dark fallbacks */
+  --scrollbar-track: #171717;
+  --scrollbar-thumb: #333;
+  --scrollbar-thumb-hover: #22d3ee;
 }
 
 /* Theme-aware scrollbar — uses CSS variables set by theme engine */
@@ -305,37 +316,37 @@ html {
     border-color: var(--primary);
   }
 
-  /* Subtle accent cards — bottom border */
+  /* Subtle accent cards — bottom border, all derived from theme semantic tokens */
   .card-accent {
     transition: border-color 0.3s ease;
-    border-bottom: 1px solid rgba(8, 145, 178, 0.2);
+    border-bottom: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
   }
   .card-accent:hover {
-    border-bottom-color: rgba(8, 145, 178, 0.5);
+    border-bottom-color: color-mix(in srgb, var(--primary) 55%, transparent);
   }
 
   .card-success {
     transition: border-color 0.3s ease;
-    border-bottom: 1px solid rgba(22, 163, 74, 0.2);
+    border-bottom: 1px solid color-mix(in srgb, var(--success) 22%, transparent);
   }
   .card-success:hover {
-    border-bottom-color: rgba(22, 163, 74, 0.5);
+    border-bottom-color: color-mix(in srgb, var(--success) 55%, transparent);
   }
 
   .card-warning {
     transition: border-color 0.3s ease;
-    border-bottom: 1px solid rgba(202, 138, 4, 0.2);
+    border-bottom: 1px solid color-mix(in srgb, var(--warning) 22%, transparent);
   }
   .card-warning:hover {
-    border-bottom-color: rgba(202, 138, 4, 0.5);
+    border-bottom-color: color-mix(in srgb, var(--warning) 55%, transparent);
   }
 
   .card-danger {
     transition: border-color 0.3s ease;
-    border-bottom: 1px solid rgba(220, 38, 38, 0.2);
+    border-bottom: 1px solid color-mix(in srgb, var(--danger) 22%, transparent);
   }
   .card-danger:hover {
-    border-bottom-color: rgba(220, 38, 38, 0.5);
+    border-bottom-color: color-mix(in srgb, var(--danger) 55%, transparent);
   }
 
   /* Mono labels — Swiss Nihilism Law 2 */
@@ -518,11 +529,11 @@ html {
 }
 
 .btn-primary:hover {
-  background: #0e7490;
+  background: color-mix(in srgb, var(--primary) 82%, #000 18%);
 }
 
 .dark .btn-primary:hover {
-  background: #06b6d4;
+  background: color-mix(in srgb, var(--primary) 85%, #fff 15%);
 }
 
 /* Input styling — sharp corners */
@@ -538,19 +549,12 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   border-color: var(--primary);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
-.dark input:focus, .dark textarea:focus, .dark select:focus {
-  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
-}
-
-/* Chat input focus glow — subtle cyan ambient glow on the primary input */
+/* Chat input focus glow — derived from active theme primary */
 .chat-input-glow:focus {
-  box-shadow: 0 0 0 1px var(--primary), 0 0 12px rgba(8, 145, 178, 0.15);
-}
-.dark .chat-input-glow:focus {
-  box-shadow: 0 0 0 1px var(--primary), 0 0 16px rgba(34, 211, 238, 0.2);
+  box-shadow: 0 0 0 1px var(--primary), 0 0 14px color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
 input::placeholder, textarea::placeholder {
@@ -566,17 +570,17 @@ button, a, input, textarea, select {
    REACT-GRID-LAYOUT OVERRIDES
    ============================================ */
 .react-grid-item.react-grid-placeholder {
-  background: rgba(8, 145, 178, 0.08) !important;
-  border: 1px solid rgba(8, 145, 178, 0.2) !important;
+  background: color-mix(in srgb, var(--primary) 9%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent) !important;
   opacity: 1 !important;
 }
 
 .react-grid-item > .react-resizable-handle::after {
-  border-color: rgba(8, 145, 178, 0.3) !important;
+  border-color: color-mix(in srgb, var(--primary) 32%, transparent) !important;
 }
 
 .react-grid-item > .react-resizable-handle:hover::after {
-  border-color: rgba(8, 145, 178, 0.6) !important;
+  border-color: color-mix(in srgb, var(--primary) 65%, transparent) !important;
 }
 
 .terminal-drag-handle {
