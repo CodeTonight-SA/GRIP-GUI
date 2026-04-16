@@ -102,7 +102,7 @@ function saveTasks(tasks: KanbanTask[]): void {
 }
 
 function emitTaskEvent(eventName: string, task: KanbanTask): void {
-  deps?.broadcastToAllWorkspaces(eventName, task);
+  broadcastToAllWorkspaces(eventName, task);
 }
 
 /**
@@ -381,7 +381,7 @@ export function registerKanbanHandlers(dependencies: KanbanHandlerDependencies):
 
       saveTasks(tasks);
 
-      deps?.broadcastToAllWorkspaces('kanban:task-deleted', { id });
+      broadcastToAllWorkspaces('kanban:task-deleted', { id });
 
       return { success: true };
     } catch (err) {

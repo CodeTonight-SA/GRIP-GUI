@@ -9,6 +9,7 @@ import { agents, saveAgents, initAgentPty } from '../core/agent-manager';
 import { ptyProcesses, writeProgrammaticInput } from '../core/pty-manager';
 import { app } from 'electron';
 import { broadcastToAllWorkspaces } from '../core/broadcast';
+import { getMainWindow } from '../core/window-manager';
 
 // Slack bot state
 let slackApp: SlackApp | null = null;
