@@ -144,10 +144,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     document.documentElement.classList.add('theme-transitioning');
     applyTheme(theme);
     localStorage.setItem('grip-theme', theme);
-    // Sync Electron window background
+    // Sync Electron window background with the actual theme background colour.
+    // Passing backgroundColor ensures non-Swiss themes (Cyberpunk, Matrix, Forest, etc.)
+    // don't flash the wrong native window background on resize or reflow.
     const themeData = getTheme(theme);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).electronAPI?.grip?.notifyThemeChanged?.(themeData.isDark);
+    (window as any).electronAPI?.grip?.notifyThemeChanged?.(themeData.isDark, themeData.colors.background);
     const timer = setTimeout(() => {
       document.documentElement.classList.remove('theme-transitioning');
     }, 350);

@@ -118,19 +118,23 @@ export function createWindow() {
     console.error('Failed to load:', validatedURL, errorCode, errorDescription);
   });
 
+  // did-finish-load: no-op in production, retained for debugging with GRIP_DEVTOOLS=1
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log('Page loaded successfully');
+    if (process.env.GRIP_DEVTOOLS === '1') console.log('Page loaded successfully');
   });
 }
 
 /**
  * Update window background colour when theme changes.
  * Called from renderer via IPC to keep Electron window bg in sync with CSS theme.
+ * Accepts the actual theme background hex so non-Swiss themes (Cyberpunk, Matrix, etc.)
+ * don't flash the wrong background colour.
  */
-export function updateWindowBackground(isDark: boolean): void {
+export function updateWindowBackground(isDark: boolean, backgroundColor?: string): void {
   const win = getWindowForWorkspace(DEFAULT_WORKSPACE_ID);
   if (!win) return;
-  win.setBackgroundColor(isDark ? '#0a0a0a' : '#EAEAEA');
+  const bg = backgroundColor ?? (isDark ? '#0a0a0a' : '#EAEAEA');
+  win.setBackgroundColor(bg);
 }
 
 /**
@@ -168,18 +172,17 @@ export function setupProtocolHandler() {
   // Serve local files via local-file:// protocol (for vault image previews etc.)
   // URLs are encoded as: local-file://host/path where host is empty
   // e.g. local-file:///Users/charlie/Desktop/photo.png
-  protocol.handle('local-file', (request) => {
+  // Async to avoid blocking the main process event loop for large binary files.
+  protocol.handle('local-file', async (request) => {
     try {
-      // Parse as URL to properly decode path components
       const url = new URL(request.url);
       const filePath = decodeURIComponent(url.pathname);
 
       if (filePath && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
         const ext = path.extname(filePath).toLowerCase();
         const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
-        return new Response(fs.readFileSync(filePath), {
-          headers: { 'Content-Type': mimeType },
-        });
+        const data = await fs.promises.readFile(filePath);
+        return new Response(data, { headers: { 'Content-Type': mimeType } });
       }
       console.error('local-file:// not found:', filePath);
     } catch (err) {
@@ -191,60 +194,43 @@ export function setupProtocolHandler() {
   const isDev = process.env.NODE_ENV === 'development';
   if (!isDev) {
     const basePath = getAppBasePath();
-    console.log('Registering app:// protocol with basePath:', basePath);
+    // Single startup log — not per-request
+    console.log('app:// protocol registered, basePath:', basePath);
 
-    protocol.handle('app', (request) => {
+    protocol.handle('app', async (request) => {
       let urlPath = request.url.replace('app://', '');
 
       // Remove the host part (e.g., "localhost" or "-")
       const slashIndex = urlPath.indexOf('/');
-      if (slashIndex !== -1) {
-        urlPath = urlPath.substring(slashIndex);
-      } else {
-        urlPath = '/';
-      }
+      urlPath = slashIndex !== -1 ? urlPath.substring(slashIndex) : '/';
 
       // Strip query string — Next.js RSC adds ?_rsc=... to prefetch requests
       const queryIndex = urlPath.indexOf('?');
-      if (queryIndex !== -1) {
-        urlPath = urlPath.substring(0, queryIndex);
-      }
+      if (queryIndex !== -1) urlPath = urlPath.substring(0, queryIndex);
 
-      // Default to index.html for directory requests
-      if (urlPath === '/' || urlPath === '') {
-        urlPath = '/index.html';
-      }
+      // Default to index.html for root or directory requests
+      if (urlPath === '/' || urlPath === '') urlPath = '/index.html';
+      if (urlPath.endsWith('/')) urlPath += 'index.html';
 
-      // Handle page routes (e.g., /agents/, /settings/) - serve their index.html
-      if (urlPath.endsWith('/')) {
-        urlPath = urlPath + 'index.html';
-      }
-
-      // Remove leading slash for path.join
       const relativePath = urlPath.startsWith('/') ? urlPath.substring(1) : urlPath;
       const filePath = path.join(basePath, relativePath);
 
-      console.log(`app:// request: ${request.url} -> ${filePath}`);
-
-      // Check if file exists
+      // Check direct path first
       if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
         const ext = path.extname(filePath).toLowerCase();
         const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
-
-        return new Response(fs.readFileSync(filePath), {
-          headers: { 'Content-Type': mimeType },
-        });
+        const data = await fs.promises.readFile(filePath);
+        return new Response(data, { headers: { 'Content-Type': mimeType } });
       }
 
-      // If it's a page route without .html, try adding index.html
+      // Page route fallback — try index.html in subdirectory
       const htmlPath = path.join(basePath, relativePath, 'index.html');
       if (fs.existsSync(htmlPath)) {
-        return new Response(fs.readFileSync(htmlPath), {
-          headers: { 'Content-Type': 'text/html' },
-        });
+        const data = await fs.promises.readFile(htmlPath);
+        return new Response(data, { headers: { 'Content-Type': 'text/html' } });
       }
 
-      console.error(`File not found: ${filePath}`);
+      console.error(`app:// not found: ${filePath}`);
       return new Response('Not Found', { status: 404 });
     });
   }

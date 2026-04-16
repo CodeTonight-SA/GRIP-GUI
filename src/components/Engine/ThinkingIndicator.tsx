@@ -10,23 +10,36 @@ import { motion } from 'framer-motion';
 export default function ThinkingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="border border-amber-800/40 bg-amber-950/20 p-3 flex items-center gap-3">
+      <div
+        className="p-3 flex items-center gap-3"
+        style={{
+          borderWidth: '1px',
+          borderStyle: 'solid',
+          borderColor: 'color-mix(in srgb, var(--warning) 40%, transparent)',
+          background: 'color-mix(in srgb, var(--warning) 8%, transparent)',
+        }}
+      >
         {/* Pulsing concentric rings — represents deep thought */}
         <div className="relative w-5 h-5 flex items-center justify-center">
           <motion.div
-            className="absolute w-5 h-5 border border-amber-500/40"
+            className="absolute w-5 h-5"
+            style={{ border: '1px solid color-mix(in srgb, var(--warning) 40%, transparent)' }}
             animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
             transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
           />
           <motion.div
-            className="absolute w-3 h-3 border border-amber-500/60"
+            className="absolute w-3 h-3"
+            style={{ border: '1px solid color-mix(in srgb, var(--warning) 60%, transparent)' }}
             animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0.2, 0.6] }}
             transition={{ repeat: Infinity, duration: 2, delay: 0.3, ease: 'easeInOut' }}
           />
-          <div className="w-1.5 h-1.5 bg-amber-400" />
+          <div className="w-1.5 h-1.5" style={{ backgroundColor: 'var(--warning)' }} />
         </div>
 
-        <span className="font-mono text-[10px] tracking-widest text-amber-400/80">
+        <span
+          className="font-mono text-[10px] tracking-widest"
+          style={{ color: 'color-mix(in srgb, var(--warning) 80%, var(--foreground))' }}
+        >
           EXTENDED THINKING...
         </span>
       </div>

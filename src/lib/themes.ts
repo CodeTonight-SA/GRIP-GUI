@@ -575,6 +575,87 @@ export const THEMES: ThemeDefinition[] = [
       'vortex-glow': '0 0 35px rgba(255, 0, 110, 0.5)',
     },
   },
+
+  // ─── NEW: MIDNIGHT INDIGO (Swiss) ───────────
+  // Premium dark purple — deep, rich, jewel-toned. High contrast, elegant.
+  {
+    id: 'midnight-indigo',
+    name: 'Midnight Indigo',
+    category: 'swiss',
+    isDark: true,
+    colors: {
+      background: '#0E0B1E', foreground: '#E8E0FF',
+      card: '#160F2A', 'card-foreground': '#E8E0FF',
+      popover: '#160F2A', 'popover-foreground': '#E8E0FF',
+      primary: '#7C6FFF', 'primary-foreground': '#0E0B1E',
+      secondary: '#1C1535', 'secondary-foreground': '#E8E0FF',
+      muted: '#261D42', 'muted-foreground': '#8878B8',
+      accent: '#7C6FFF', 'accent-foreground': '#0E0B1E',
+      destructive: '#FF5370',
+      border: '#2E2452', input: '#160F2A', ring: '#7C6FFF',
+      success: '#3DDB82', 'success-muted': 'rgba(61, 219, 130, 0.15)',
+      warning: '#FFB830', 'warning-muted': 'rgba(255, 184, 48, 0.15)',
+      danger: '#FF5370', 'danger-muted': 'rgba(255, 83, 112, 0.15)',
+      info: '#7C6FFF', 'info-muted': 'rgba(124, 111, 255, 0.15)',
+      'chart-1': '#7C6FFF', 'chart-2': '#8878B8', 'chart-3': '#3DDB82', 'chart-4': '#FF5370', 'chart-5': '#E8E0FF',
+      ...scrollbarColors('#160F2A', '#2E2452', '#7C6FFF'),
+      'vortex-glow': '0 0 35px rgba(124, 111, 255, 0.45)',
+    },
+  },
+
+  // ─── NEW: POLAR DAWN (Nature) ───────────────
+  // Premium light aurora — soft blue-white, crisp, Scandinavian clarity.
+  {
+    id: 'polar-dawn',
+    name: 'Polar Dawn',
+    category: 'nature',
+    isDark: false,
+    colors: {
+      background: '#F0F5FA', foreground: '#0D1F2D',
+      card: '#FAFCFF', 'card-foreground': '#0D1F2D',
+      popover: '#FAFCFF', 'popover-foreground': '#0D1F2D',
+      primary: '#0077CC', 'primary-foreground': '#FFFFFF',
+      secondary: '#E0EEF8', 'secondary-foreground': '#0D1F2D',
+      muted: '#C8DDED', 'muted-foreground': '#3D6080',
+      accent: '#0077CC', 'accent-foreground': '#FFFFFF',
+      destructive: '#D93025',
+      border: '#B8D0E8', input: '#FAFCFF', ring: '#0099EE',
+      success: '#00875A', 'success-muted': 'rgba(0, 135, 90, 0.12)',
+      warning: '#CC7A00', 'warning-muted': 'rgba(204, 122, 0, 0.12)',
+      danger: '#D93025', 'danger-muted': 'rgba(217, 48, 37, 0.12)',
+      info: '#0077CC', 'info-muted': 'rgba(0, 119, 204, 0.12)',
+      'chart-1': '#0077CC', 'chart-2': '#3D6080', 'chart-3': '#00875A', 'chart-4': '#D93025', 'chart-5': '#0D1F2D',
+      ...scrollbarColors('#E0EEF8', '#A8C8E0', '#0077CC'),
+      'vortex-glow': '0 0 20px rgba(0, 119, 204, 0.3)',
+    },
+  },
+
+  // ─── NEW: TOKYO NIGHT (Futuristic) ──────────
+  // Inspired by the popular developer colour scheme: deep blue-grey, soft violet accent.
+  {
+    id: 'tokyo-night',
+    name: 'Tokyo Night',
+    category: 'futuristic',
+    isDark: true,
+    colors: {
+      background: '#1A1B2E', foreground: '#C0CAF5',
+      card: '#24283B', 'card-foreground': '#C0CAF5',
+      popover: '#24283B', 'popover-foreground': '#C0CAF5',
+      primary: '#7AA2F7', 'primary-foreground': '#1A1B2E',
+      secondary: '#2D3150', 'secondary-foreground': '#C0CAF5',
+      muted: '#3B4168', 'muted-foreground': '#787DA8',
+      accent: '#BB9AF7', 'accent-foreground': '#1A1B2E',
+      destructive: '#F7768E',
+      border: '#3B4168', input: '#24283B', ring: '#7AA2F7',
+      success: '#9ECE6A', 'success-muted': 'rgba(158, 206, 106, 0.15)',
+      warning: '#E0AF68', 'warning-muted': 'rgba(224, 175, 104, 0.15)',
+      danger: '#F7768E', 'danger-muted': 'rgba(247, 118, 142, 0.15)',
+      info: '#7AA2F7', 'info-muted': 'rgba(122, 162, 247, 0.15)',
+      'chart-1': '#7AA2F7', 'chart-2': '#BB9AF7', 'chart-3': '#9ECE6A', 'chart-4': '#F7768E', 'chart-5': '#C0CAF5',
+      ...scrollbarColors('#24283B', '#3B4168', '#7AA2F7'),
+      'vortex-glow': '0 0 30px rgba(122, 162, 247, 0.4)',
+    },
+  },
 ];
 
 export const DEFAULT_THEME = 'swiss-nihilism-dark';
