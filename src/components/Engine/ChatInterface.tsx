@@ -736,6 +736,15 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
                   target.style.height = Math.min(target.scrollHeight, 200) + 'px';
                 }}
               />
+              {input.length > 0 && !isStreaming && (
+                <button
+                  onClick={() => setInput('')}
+                  aria-label="Clear input"
+                  className="absolute right-2 top-2 p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
             {isStreaming ? (
               <button
@@ -749,6 +758,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
               <button
                 onClick={handleSend}
                 disabled={!input.trim()}
+                aria-label="Send message"
                 className="bg-[var(--primary)] text-[var(--primary-foreground)] p-3 min-h-[48px] min-w-[48px] flex items-center justify-center disabled:opacity-30 hover:opacity-90 transition-opacity"
               >
                 <Send className="w-4 h-4" />
