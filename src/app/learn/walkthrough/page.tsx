@@ -53,7 +53,7 @@ export default function WalkthroughPage() {
             GRIP
           </h1>
           <p className="font-mono text-xs tracking-widest text-[var(--muted-foreground)] mb-6">
-            KNOWLEDGE WORK ENGINE
+            COMMANDER
           </p>
           <p className="text-[var(--muted-foreground)] max-w-md mb-8 leading-relaxed">
             Your AI thinking partner. It adapts to how you work — whether you

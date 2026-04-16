@@ -500,7 +500,7 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
               transition={{ delay: 0.15, duration: 0.3 }}
               className="font-mono text-xs tracking-widest text-[var(--muted-foreground)] mb-8"
             >
-              KNOWLEDGE WORK ENGINE
+              COMMANDER
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 8 }}

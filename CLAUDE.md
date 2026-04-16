@@ -1,6 +1,6 @@
-# GRIP Knowledge Work Engine
+# GRIP Commander
 
-Cross-domain knowledge work engine GUI built on Next.js 16 + React 19 + Electron 33.
+Cross-domain knowledge work commander GUI built on Next.js 16 + React 19 + Electron 33.
 
 ## Design System
 
