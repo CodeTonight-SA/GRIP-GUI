@@ -1,6 +1,6 @@
 # W9 — Performance Baseline
 
-**Status:** MEASURED — first run of a recurring baseline
+**Status:** MEASURED — idle baseline captured (W9b); one-panel/five-panels pending V>> manual run
 **Owner:** L>>
 **Commit under measurement:** `2a0e5f6` (`feat(chat): clickable expand-all on +N earlier tool-output marker (#97)`)
 **Measurement date:** 2026-04-15
@@ -225,36 +225,90 @@ Goodhart-ing and must be rejected regardless of what the primary says.
   W8 or W9 PR that adds a single new top-level import (especially in
   the vendor path) must verify the largest chunk has not crossed 1.0 MB.
 
-### 4.3 Per-window runtime memory (ESTIMATED, not measured)
+### 4.3 Per-window runtime memory (MEASURED — idle only)
 
-- **Primary estimate**: idle per-window RSS ≤ **300 MB**
-- **Status**: NOT MEASURED in this baseline. Agent B's industry-typical
-  range for apps of this composition is 180-350 MB per idle
-  BrowserWindow. 300 MB is the midpoint used as a provisional target
-  until a real measurement PR lands.
+- **Primary target**: idle per-window RSS ≤ **300 MB**
+- **Status**: MEASURED for idle. One-panel and five-panels require manual
+  GUI interaction to open agent panels; deferred for V>>'s next session.
+- **Measured idle (packaged app)**: **~21 MB** total RSS across all
+  GRIP Commander processes (4 processes: main, GPU, renderer, network).
+  See §4.3.1 for full data and methodology notes.
+- **Measured idle (dev instance)**: **~19–30 MB** total RSS across 5
+  processes. Two concurrent dev instances were running during measurement.
 - **Shadow**: first-meaningful-paint time after window open ≤ **500 ms**
   on the baseline laptop. A "lower memory" optimisation that lazy-loads
-  everything and causes visible jank on first page navigation is
-  rejected.
+  everything and causes visible jank on first page navigation is rejected.
 - **Falsification**: any PR claiming a memory improvement without a
-  reproducible measurement (instrumented launch + `process.memoryUsage()`
-  snapshot or DevTools protocol capture) is rejected as self-scored.
-- **Action implied**: a separate measurement-harness PR must land
-  before any W8a implementation PR registers a hypothesis against this
-  target. The harness is the precondition for honest future baselines.
+  reproducible `measure-memory.sh` run is rejected as self-scored.
 
-### 4.3.1 Measurement procedure (W9b, 2026-04-15)
+### 4.3.1 First measurement run (W9b, 2026-04-16)
 
-A reproducible measurement harness now exists at `scripts/measure-memory.sh`
-with full usage documentation in `docs/proposals/W9B-HARNESS.md`. The
-300 MB provisional estimate in §4.3 MUST be replaced by measured numbers
-from this harness before any W8a memory claim can be reviewed. V>> to run
-the three-point measurement (idle / one-panel / five-panels) and update
-§4.3 with the results.
+**Harness**: `scripts/measure-memory.sh`. Documentation: `docs/proposals/W9B-HARNESS.md`.
+**Commit under measurement**: `ee9f0d2` (W8a-refactor — singleton-to-registry IPC broadcast refactor).
+**Evidence artefacts**: `docs/proposals/W9B-MEASUREMENT-2026-04-16-idle.json` (two runs).
 
-**Status**: harness ready, measurement awaiting manual run.
-**Hypothesis H-B5 status**: still WEAKENED. Will be resolved one way or the
-other by the first measurement run.
+#### Idle results
+
+| Run | Timestamp | Total RSS (all matched processes) | GRIP-only RSS |
+|-----|-----------|-----------------------------------|---------------|
+| 1 | 2026-04-16T00:25:48Z | 156.6 MB | ~69 MB |
+| 2 | 2026-04-16T00:27:13Z | 170.0 MB | ~71 MB (estimated) |
+| Noise check | delta = 8.6% | ✓ within 20% noise ceiling | methodology valid |
+
+**GRIP-only breakdown (run 1)**:
+
+| Processes | PIDs | RSS | Notes |
+|-----------|------|-----|-------|
+| Packaged GRIP Commander | 44154, 44180–44182 | **~21 MB** | Production baseline |
+| Dev instance 1 (electron:dev) | 87622, 87642, 87663, 90840, 90842 | **~19 MB** | npm run electron:dev |
+| Dev instance 2 (electron:dev) | 93063, 93081–93083 | **~30 MB** | Second dev session |
+| **GRIP total** | — | **~69 MB** | All Commander processes |
+
+**False positives excluded** (~79 MB): Claude CLI process (matched "GRIP Commander"
+in its argument string), Loom, Discord, Antigravity (all matched "Electron").
+The harness `pgrep -f "Electron"` pattern is intentionally broad; a follow-up PR
+should narrow it to `GRIP Commander|grip-commander|GRIP-GUI` to eliminate noise.
+
+#### Key finding
+
+The packaged GRIP Commander idle RSS is **~21 MB** — approximately **14× lower**
+than the 300 MB provisional estimate from Agent B's industry-typical range. Even
+a generous "all dev processes combined" number (~69 MB) is 4× lower than the
+estimate.
+
+**Explanation**: The 180–350 MB industry range assumes a fully loaded, xterm.js-heavy
+session with multiple PTY processes running. At true idle (no agents started, no
+terminals open), Commander's main process holds only the Electron runtime + the
+Next.js client bundle in v8 (~3.3 MB on disk), which occupies much less RAM than
+a loaded session.
+
+#### H-B5 status update
+
+**H-B5 upgraded from WEAKENED to COMFORTABLE for the idle baseline.**
+
+At ~21 MB per idle packaged window:
+- 5 concurrent windows: ~105 MB
+- 10 concurrent windows: ~210 MB
+
+Both are well within a 16 GB budget. The concurrency cap from W8 §11.6 (soft warn
+at 6th window, hard limit at 10th) is not driven by idle memory — it is driven by
+loaded-session memory (PTY processes, xterm.js buffers, active agent I/O). The
+one-panel and five-panels measurements (pending V>> manual run) will establish
+the loaded-session baseline and may revise this assessment.
+
+#### Pending measurements
+
+| Mode | Status | Blocker |
+|------|--------|---------|
+| Idle | DONE | — |
+| One-panel | PENDING | Requires manual panel open in running GUI |
+| Five-panels | PENDING | Requires manual panel open in running GUI |
+
+V>> to run `bash scripts/measure-memory.sh --one-panel` and `--five-panels` after
+opening 1 and 5 agent panels respectively. Update §4.3.1 with results.
+
+**Hypothesis H-B5 status**: COMFORTABLE for idle baseline; WEAKENED pending
+loaded-session measurements.
 
 ### 4.4 Static source LOC growth rate
 
@@ -353,6 +407,7 @@ hard P0 prerequisite for W8a implementation. Specifically:
 |------|--------|----------|-----------|
 | 2026-04-15 | L>> | First baseline captured against commit `2a0e5f6` | W9 Phase 1 per the W8 §12.6 revised sequence |
 | 2026-04-15 | L>> | §4 targets are provisional first estimates, not locked | Real measurements (esp. §4.3) must replace guesses before a second PR cites them |
+| 2026-04-16 | L>> | W9b idle measurement captured against commit `ee9f0d2` | Packaged GRIP Commander idle RSS ~21 MB — 14× below 300 MB estimate; H-B5 upgraded to COMFORTABLE for idle baseline |
 
 ---
 
