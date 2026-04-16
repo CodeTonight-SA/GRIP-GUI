@@ -13,6 +13,13 @@ import { broadcastToAllWorkspaces, getWindowForWorkspace } from '../core/broadca
  */
 export function setMainWindow(_window: unknown) { /* no-op */ }
 
+/** Cap an output array at `max` entries, trimming to `keep` most-recent when exceeded. */
+export const OUTPUT_BUFFER_MAX = 2000;
+export const OUTPUT_BUFFER_KEEP = 1000;
+export function trimOutputBuffer(output: string[]): string[] {
+  return output.length > OUTPUT_BUFFER_MAX ? output.slice(-OUTPUT_BUFFER_KEEP) : output;
+}
+
 export function getAppBasePath(): string {
   let appPath = app.getAppPath();
   if (appPath.includes('app.asar')) {

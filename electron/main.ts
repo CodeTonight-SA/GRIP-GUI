@@ -147,6 +147,7 @@ import {
   installGripStarterPack,
   migrateFromDorothy,
   migrateFromClaudeManager,
+  trimOutputBuffer,
 } from './utils';
 
 // ============== App Settings Management ==============
@@ -494,10 +495,7 @@ app.whenReady().then(async () => {
         const agent = agents.get(id);
         if (agent) {
           agent.output.push(data);
-          // Ring buffer — cap at 2000 entries to bound RAM usage in long sessions
-          if (agent.output.length > 2000) {
-            agent.output = agent.output.slice(-1000);
-          }
+          agent.output = trimOutputBuffer(agent.output);
           agent.lastActivity = new Date().toISOString();
         }
         broadcastToAllWorkspaces('agent:output', {
