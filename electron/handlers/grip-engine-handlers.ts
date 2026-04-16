@@ -66,6 +66,7 @@ interface StreamSession {
   model: string;
   sessionId: string;
   alive: boolean;
+  targetWindow: BrowserWindow | null;
 }
 
 let streamSession: StreamSession | null = null;
@@ -78,7 +79,7 @@ function killStreamSession() {
   }
 }
 
-function startStreamSession(model: string = 'sonnet'): StreamSession {
+function startStreamSession(model: string = 'sonnet', targetWindow: BrowserWindow | null = null): StreamSession {
   killStreamSession();
 
   const args = ['-p', '--verbose', '--input-format', 'stream-json', '--output-format', 'stream-json', '--model', model];
@@ -88,7 +89,7 @@ function startStreamSession(model: string = 'sonnet'): StreamSession {
   });
 
   const sessionId = crypto.randomUUID();
-  const session: StreamSession = { proc, model, sessionId, alive: true };
+  const session: StreamSession = { proc, model, sessionId, alive: true, targetWindow };
 
   proc.on('close', () => {
     session.alive = false;
@@ -127,16 +128,15 @@ export function preWarmSession(model: string = 'sonnet') {
   }
 }
 
-function getMainWindow(): BrowserWindow | null {
-  const windows = BrowserWindow.getAllWindows();
-  return windows.length > 0 ? windows[0] : null;
-}
-
-function sendToRenderer(channel: string, data: unknown) {
-  const win = getMainWindow();
-  if (win && !win.isDestroyed()) {
-    win.webContents.send(channel, data);
-  }
+/**
+ * Send an IPC message to a specific renderer window.
+ * Falls back to the first available window for backwards compatibility.
+ */
+function sendToRenderer(channel: string, data: unknown, target?: BrowserWindow | null) {
+  const win = target && !target.isDestroyed()
+    ? target
+    : BrowserWindow.getAllWindows().find(w => !w.isDestroyed()) ?? null;
+  if (win) win.webContents.send(channel, data);
 }
 
 export function registerGripEngineHandlers() {
@@ -149,9 +149,10 @@ export function registerGripEngineHandlers() {
    * The chat uses grip:prompt (one-shot, child_process.spawn) for each message.
    * This session is kept for future persistent-session streaming support.
    */
-  ipcMain.handle('grip:startSession', async (_event, options: {
+  ipcMain.handle('grip:startSession', async (event, options: {
     model?: string;
   } = {}) => {
+    const senderWindow = BrowserWindow.fromWebContents(event.sender);
     // Kill existing session if any
     if (engineSession?.ptyProcess) {
       engineSession.ptyProcess.kill();
@@ -188,11 +189,11 @@ export function registerGripEngineHandlers() {
         if (engineSession) {
           engineSession.buffer += data;
         }
-        sendToRenderer('grip:output', { sessionId, data });
+        sendToRenderer('grip:output', { sessionId, data }, senderWindow);
       });
 
       ptyProcess.onExit(({ exitCode }) => {
-        sendToRenderer('grip:sessionEnd', { sessionId, exitCode });
+        sendToRenderer('grip:sessionEnd', { sessionId, exitCode }, senderWindow);
         engineSession = null;
       });
 
@@ -227,12 +228,14 @@ export function registerGripEngineHandlers() {
    * Uses child_process.spawn (NOT pty) with stream-json for clean JSONL output.
    * PTY adds ANSI escape codes that corrupt the JSON stream.
    */
-  ipcMain.handle('grip:prompt', async (_event, options: {
+  ipcMain.handle('grip:prompt', async (event, options: {
     prompt: string;
     model?: string;
     sessionId?: string;
   }) => {
     const { prompt, model = 'sonnet', sessionId } = options;
+    // Capture sender window at invocation time for async callback routing
+    const senderWindow = BrowserWindow.fromWebContents(event.sender);
 
     const args = ['-p', '--verbose', '--output-format', 'stream-json', '--model', model];
     if (sessionId) args.push('--resume', sessionId);
@@ -253,7 +256,7 @@ export function registerGripEngineHandlers() {
 
       const flushOutput = () => {
         if (outputBuffer) {
-          sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data: outputBuffer });
+          sendToRenderer('grip:promptOutput', { sessionId: promptSessionId, data: outputBuffer }, senderWindow);
           outputBuffer = '';
         }
         flushTimer = null;
@@ -273,7 +276,7 @@ export function registerGripEngineHandlers() {
           sendToRenderer('grip:promptOutput', {
             sessionId: promptSessionId,
             data: JSON.stringify({ type: 'error', message: text.trim() }) + '\n',
-          });
+          }, senderWindow);
         }
       });
 
@@ -282,7 +285,7 @@ export function registerGripEngineHandlers() {
         if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
         flushOutput();
         activePrompts.delete(promptSessionId);
-        sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: exitCode || 0 });
+        sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: exitCode || 0 }, senderWindow);
       });
 
       proc.on('error', (err) => {
@@ -290,8 +293,8 @@ export function registerGripEngineHandlers() {
         sendToRenderer('grip:promptOutput', {
           sessionId: promptSessionId,
           data: JSON.stringify({ type: 'error', message: err.message }) + '\n',
-        });
-        sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: 1 });
+        }, senderWindow);
+        sendToRenderer('grip:promptDone', { sessionId: promptSessionId, exitCode: 1 }, senderWindow);
       });
 
       return { success: true, sessionId: promptSessionId };
@@ -349,11 +352,12 @@ export function registerGripEngineHandlers() {
    * This keeps a claude -p process alive with --input-format stream-json
    * for ultra-fast follow-up messages (no cold start).
    */
-  ipcMain.handle('grip:startStreamSession', async (_event, options: {
+  ipcMain.handle('grip:startStreamSession', async (event, options: {
     model?: string;
   } = {}) => {
     try {
-      const session = startStreamSession(options.model);
+      const senderWindow = BrowserWindow.fromWebContents(event.sender);
+      const session = startStreamSession(options.model, senderWindow);
       return { success: true, sessionId: session.sessionId };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
@@ -368,15 +372,16 @@ export function registerGripEngineHandlers() {
    * Uses line-based parsing to detect end-of-message (result event),
    * with explicit cleanup of all listeners to prevent leaks.
    */
-  ipcMain.handle('grip:streamMessage', async (_event, options: {
+  ipcMain.handle('grip:streamMessage', async (event, options: {
     prompt: string;
     model?: string;
   }) => {
     const { prompt, model = 'sonnet' } = options;
+    const senderWindow = BrowserWindow.fromWebContents(event.sender);
 
     // Start or restart session if needed
     if (!streamSession?.alive || (model && streamSession.model !== model)) {
-      startStreamSession(model);
+      startStreamSession(model, senderWindow);
     }
 
     if (!streamSession?.alive || !streamSession.proc.stdin) {
@@ -402,7 +407,7 @@ export function registerGripEngineHandlers() {
 
     const flushOutput = () => {
       if (outputBuffer) {
-        sendToRenderer('grip:promptOutput', { sessionId: messageId, data: outputBuffer });
+        sendToRenderer('grip:promptOutput', { sessionId: messageId, data: outputBuffer }, senderWindow);
         outputBuffer = '';
       }
       flushTimer = null;
@@ -438,11 +443,11 @@ export function registerGripEngineHandlers() {
           if (messageComplete) {
             // Flush any remaining line buffer
             if (lineBuffer.trim()) {
-              sendToRenderer('grip:promptOutput', { sessionId: messageId, data: lineBuffer + '\n' });
+              sendToRenderer('grip:promptOutput', { sessionId: messageId, data: lineBuffer + '\n' }, senderWindow);
               lineBuffer = '';
             }
             cleanup();
-            sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 0 });
+            sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 0 }, senderWindow);
           }
         }, 16);
       }
@@ -451,12 +456,12 @@ export function registerGripEngineHandlers() {
     const onClose = () => {
       flushOutput();
       if (lineBuffer.trim()) {
-        sendToRenderer('grip:promptOutput', { sessionId: messageId, data: lineBuffer + '\n' });
+        sendToRenderer('grip:promptOutput', { sessionId: messageId, data: lineBuffer + '\n' }, senderWindow);
         lineBuffer = '';
       }
       cleanup();
       if (!messageComplete) {
-        sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 1 });
+        sendToRenderer('grip:promptDone', { sessionId: messageId, exitCode: 1 }, senderWindow);
       }
     };
 
@@ -524,5 +529,18 @@ export function registerGripEngineHandlers() {
    */
   ipcMain.on('grip:themeChanged', (_event, isDark: boolean, backgroundColor?: string) => {
     updateWindowBackground(isDark, backgroundColor);
+  });
+
+  /**
+   * Create a new session window with an independent workspace.
+   * Each window gets its own workspace ID, its own Zustand store (automatic
+   * since each BrowserWindow has its own renderer process), and its own
+   * Claude CLI stream session.
+   */
+  ipcMain.handle('grip:createSession', async () => {
+    const { createWindow } = await import('../core/window-manager');
+    const workspaceId = crypto.randomUUID();
+    const win = createWindow(workspaceId);
+    return { success: true, workspaceId, windowId: win.id };
   });
 }

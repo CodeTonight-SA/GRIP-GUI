@@ -657,6 +657,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('grip:promptDone', handler);
       return () => { ipcRenderer.removeListener('grip:promptDone', handler); };
     },
+
+    // Multi-session — create a new independent workspace window
+    createSession: () =>
+      ipcRenderer.invoke('grip:createSession'),
   },
 
   // Temp file operations (for clipboard image paste)

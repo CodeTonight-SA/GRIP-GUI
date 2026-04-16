@@ -33,9 +33,12 @@ export function setMainWindow(window: BrowserWindow | null) {
 }
 
 /**
- * Create the main application window
+ * Create an application window for the given workspace.
+ * Each workspace gets its own BrowserWindow with an isolated renderer.
+ * The workspace ID is injected via additionalArguments so the renderer
+ * can read it synchronously from process.argv (workspace-context.ts).
  */
-export function createWindow() {
+export function createWindow(workspaceId: string = DEFAULT_WORKSPACE_ID): BrowserWindow {
   const isDarkMode = nativeTheme.shouldUseDarkColors;
 
   const win = new BrowserWindow({
@@ -43,7 +46,7 @@ export function createWindow() {
     height: 1000,
     minWidth: 1200,
     minHeight: 800,
-    title: 'GRIP',
+    title: workspaceId === DEFAULT_WORKSPACE_ID ? 'GRIP' : `GRIP — Session ${workspaceId.slice(0, 6)}`,
     titleBarStyle: 'hiddenInset',
     // Match Swiss Nihilism background to prevent white flash on load
     backgroundColor: isDarkMode ? '#0a0a0a' : '#EAEAEA',
@@ -58,16 +61,12 @@ export function createWindow() {
       nodeIntegration: false,
       // §13.3: inject workspace ID into renderer process.argv so
       // workspace-context.ts can read it synchronously at import time.
-      // W8a-ui will pass the real workspace UUID here; for now 'default'
-      // establishes the single-workspace baseline.
-      additionalArguments: [`--grip-ws=${DEFAULT_WORKSPACE_ID}`],
+      additionalArguments: [`--grip-ws=${workspaceId}`],
     },
   });
 
-  // Register in the broadcast registry under the default workspace ID.
-  // This is the only registration site; setMainWindow() also calls
-  // registerWorkspaceWindow() but createWindow() always runs first.
-  registerWorkspaceWindow(DEFAULT_WORKSPACE_ID, win);
+  // Register in the broadcast registry under this workspace ID.
+  registerWorkspaceWindow(workspaceId, win);
 
   // Keep local variable for the rest of createWindow()'s setup code.
   const mainWindow = win;
@@ -122,6 +121,8 @@ export function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     if (process.env.GRIP_DEVTOOLS === '1') console.log('Page loaded successfully');
   });
+
+  return win;
 }
 
 /**

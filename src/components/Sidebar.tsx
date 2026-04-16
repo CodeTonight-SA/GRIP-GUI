@@ -19,6 +19,7 @@ import {
   Layers,
   Lightbulb,
   Map,
+  Plus,
 } from 'lucide-react';
 import { useStore } from '@/store';
 import { getTheme } from '@/lib/themes';
@@ -191,6 +192,20 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
             </span>
           )}
         </Link>
+        <button
+          onClick={() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).electronAPI?.grip?.createSession?.();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all duration-150 font-mono text-xs tracking-wider border-l-2 border-transparent hover:bg-[var(--secondary)]"
+          title="New Session (Cmd+N)"
+        >
+          <Plus className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+          {showLabels && <span className="text-[11px] tracking-widest">NEW SESSION</span>}
+          {showLabels && (
+            <span className="text-[9px] text-[var(--muted-foreground)] opacity-40 font-mono">N</span>
+          )}
+        </button>
         <button
           onClick={() => useStore.getState().cycleTheme()}
           className="w-full flex items-center gap-2.5 px-3 py-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all duration-150 font-mono text-xs tracking-wider border-l-2 border-transparent hover:bg-[var(--secondary)]"

@@ -10,7 +10,7 @@
  * - Scheduler for automated tasks
  */
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { posixQuote } from './utils/shell';
@@ -363,6 +363,75 @@ app.whenReady().then(async () => {
 
   // Set the main window reference in utils
   setUtilsMainWindow(getMainWindow());
+
+  // Application menu with Cmd+N for new session
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(process.platform === 'darwin' ? [{
+      label: app.name,
+      submenu: [
+        { role: 'about' as const },
+        { type: 'separator' as const },
+        { role: 'hide' as const },
+        { role: 'hideOthers' as const },
+        { role: 'unhide' as const },
+        { type: 'separator' as const },
+        { role: 'quit' as const },
+      ],
+    }] : []),
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Session',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => {
+            const workspaceId = crypto.randomUUID();
+            createWindow(workspaceId);
+          },
+        },
+        { type: 'separator' },
+        { role: 'close' },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(process.platform === 'darwin' ? [
+          { type: 'separator' as const },
+          { role: 'front' as const },
+        ] : []),
+      ],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
   // Register all IPC handlers
   const deps = createIpcDependencies();
