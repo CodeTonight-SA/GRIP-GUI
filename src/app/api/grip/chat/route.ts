@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
   // Build claude CLI args
   const args = [
     '-p',
+    '--verbose',
     '--output-format', 'stream-json',
     '--model', model,
   ];

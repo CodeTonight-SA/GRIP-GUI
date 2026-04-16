@@ -81,7 +81,7 @@ function killStreamSession() {
 function startStreamSession(model: string = 'sonnet'): StreamSession {
   killStreamSession();
 
-  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--model', model];
+  const args = ['-p', '--verbose', '--input-format', 'stream-json', '--output-format', 'stream-json', '--model', model];
   const proc = cpSpawn('claude', args, {
     cwd: GRIP_DIR,
     env: { ...process.env, HOME: os.homedir(), PATH: buildClaudePath() },
@@ -234,7 +234,7 @@ export function registerGripEngineHandlers() {
   }) => {
     const { prompt, model = 'sonnet', sessionId } = options;
 
-    const args = ['-p', '--output-format', 'stream-json', '--model', model];
+    const args = ['-p', '--verbose', '--output-format', 'stream-json', '--model', model];
     if (sessionId) args.push('--resume', sessionId);
     args.push(prompt);
 

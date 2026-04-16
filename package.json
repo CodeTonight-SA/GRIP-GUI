@@ -1,6 +1,6 @@
 {
   "name": "grip-knowledge-engine",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "description": "GRIP Knowledge Work Engine",
   "author": {
@@ -135,6 +135,19 @@
         "deb"
       ],
       "artifactName": "GRIP-Commander-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "icon": "public/icon.png",
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "GRIP-Commander-${version}-${arch}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icon.png",
+      "uninstallerIcon": "public/icon.png"
     },
     "deb": {
       "depends": [
