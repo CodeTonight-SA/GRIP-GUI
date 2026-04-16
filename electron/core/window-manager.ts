@@ -106,10 +106,13 @@ export function createWindow() {
 /**
  * Update window background colour when theme changes.
  * Called from renderer via IPC to keep Electron window bg in sync with CSS theme.
+ * Accepts the actual theme background hex so non-Swiss themes (Cyberpunk, Matrix, etc.)
+ * don't flash the wrong background colour.
  */
-export function updateWindowBackground(isDark: boolean): void {
+export function updateWindowBackground(isDark: boolean, backgroundColor?: string): void {
   if (!mainWindow) return;
-  mainWindow.setBackgroundColor(isDark ? '#0a0a0a' : '#EAEAEA');
+  const bg = backgroundColor ?? (isDark ? '#0a0a0a' : '#EAEAEA');
+  mainWindow.setBackgroundColor(bg);
 }
 
 /**

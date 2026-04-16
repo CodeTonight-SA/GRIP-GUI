@@ -518,10 +518,11 @@ export function registerGripEngineHandlers() {
   });
 
   /**
-   * Theme sync — update Electron window background when renderer toggles dark mode.
-   * Prevents the native window bg from flashing the wrong colour on resize/reflow.
+   * Theme sync — update Electron window background when renderer changes theme.
+   * Passes the actual background hex so non-Swiss themes (Cyberpunk, Matrix, Forest, etc.)
+   * don't flash an incorrect background colour on window resize or reflow.
    */
-  ipcMain.on('grip:themeChanged', (_event, isDark: boolean) => {
-    updateWindowBackground(isDark);
+  ipcMain.on('grip:themeChanged', (_event, isDark: boolean, backgroundColor?: string) => {
+    updateWindowBackground(isDark, backgroundColor);
   });
 }
