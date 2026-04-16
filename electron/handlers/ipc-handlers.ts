@@ -17,6 +17,7 @@ import { buildFullPath } from '../utils/path-builder';
 import { decodeProjectPath } from '../utils/decode-project-path';
 import { getProvider, getAllProviders } from '../providers';
 import { writeProgrammaticInput } from '../core/pty-manager';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
 
 // Dependencies interface for dependency injection
 export interface IpcHandlerDependencies {
@@ -106,12 +107,12 @@ function registerPtyHandlers(deps: IpcHandlerDependencies): void {
 
     // Send data from PTY to renderer
     ptyProcess.onData((data) => {
-      getMainWindow()?.webContents.send('pty:data', { id, data });
+      broadcastToAllWorkspaces('pty:data', { id, data });
     });
 
     // Handle PTY exit
     ptyProcess.onExit(({ exitCode }) => {
-      getMainWindow()?.webContents.send('pty:exit', { id, exitCode });
+      broadcastToAllWorkspaces('pty:exit', { id, exitCode });
       ptyProcesses.delete(id);
     });
 
@@ -343,7 +344,7 @@ function registerAgentHandlers(deps: IpcHandlerDependencies): void {
         }
       }
 
-      getMainWindow()?.webContents.send('agent:output', {
+      broadcastToAllWorkspaces('agent:output', {
         type: 'output',
         agentId: id,
         ptyId,
@@ -361,7 +362,7 @@ function registerAgentHandlers(deps: IpcHandlerDependencies): void {
         agent.status = newStatus;
         agent.lastActivity = new Date().toISOString();
         handleStatusChangeNotification(agent, newStatus);
-        getMainWindow()?.webContents.send('agent:complete', {
+        broadcastToAllWorkspaces('agent:complete', {
           type: 'complete',
           agentId: id,
           ptyId,
@@ -479,7 +480,7 @@ function registerAgentHandlers(deps: IpcHandlerDependencies): void {
             }
           }
         }
-        getMainWindow()?.webContents.send('agent:output', {
+        broadcastToAllWorkspaces('agent:output', {
           type: 'output',
           agentId: id,
           ptyId: newPtyId,
@@ -498,7 +499,7 @@ function registerAgentHandlers(deps: IpcHandlerDependencies): void {
           handleStatusChangeNotification(agentData, newStatus);
         }
         ptyProcesses.delete(newPtyId);
-        getMainWindow()?.webContents.send('agent:complete', {
+        broadcastToAllWorkspaces('agent:complete', {
           type: 'complete',
           agentId: id,
           ptyId: newPtyId,
@@ -667,7 +668,7 @@ function registerAgentHandlers(deps: IpcHandlerDependencies): void {
       saveAgents();
 
       // Send status change notification to frontend immediately
-      getMainWindow()?.webContents.send('agent:status', {
+      broadcastToAllWorkspaces('agent:status', {
         type: 'status',
         agentId: id,
         status: 'idle',
@@ -807,12 +808,12 @@ function registerSkillHandlers(deps: IpcHandlerDependencies): void {
 
     // Forward PTY output to renderer
     ptyProcess.onData((data) => {
-      getMainWindow()?.webContents.send('skill:pty-data', { id, data });
+      broadcastToAllWorkspaces('skill:pty-data', { id, data });
     });
 
     // Handle PTY exit
     ptyProcess.onExit(({ exitCode }) => {
-      getMainWindow()?.webContents.send('skill:pty-exit', { id, exitCode });
+      broadcastToAllWorkspaces('skill:pty-exit', { id, exitCode });
       skillPtyProcesses.delete(id);
     });
 
@@ -968,12 +969,12 @@ function registerPluginHandlers(deps: IpcHandlerDependencies): void {
 
     // Forward PTY output to renderer
     ptyProcess.onData((data) => {
-      getMainWindow()?.webContents.send('plugin:pty-data', { id, data });
+      broadcastToAllWorkspaces('plugin:pty-data', { id, data });
     });
 
     // Handle PTY exit
     ptyProcess.onExit(({ exitCode }) => {
-      getMainWindow()?.webContents.send('plugin:pty-exit', { id, exitCode });
+      broadcastToAllWorkspaces('plugin:pty-exit', { id, exitCode });
       pluginPtyProcesses.delete(id);
     });
 
@@ -1256,7 +1257,7 @@ function registerAppSettingsHandlers(deps: IpcHandlerDependencies): void {
 
     // Notify frontend of settings change
     const mainWindow = getMainWindow();
-    mainWindow?.webContents.send('settings:updated', appSettings);
+    broadcastToAllWorkspaces('settings:updated', appSettings);
 
     return { success: true };
   });
@@ -1835,12 +1836,12 @@ function registerShellHandlers(deps: IpcHandlerDependencies): void {
 
     // Forward PTY output to renderer
     ptyProcess.onData((data) => {
-      getMainWindow()?.webContents.send('shell:ptyOutput', { ptyId: id, data });
+      broadcastToAllWorkspaces('shell:ptyOutput', { ptyId: id, data });
     });
 
     // Handle PTY exit
     ptyProcess.onExit(({ exitCode }) => {
-      getMainWindow()?.webContents.send('shell:ptyExit', { ptyId: id, exitCode });
+      broadcastToAllWorkspaces('shell:ptyExit', { ptyId: id, exitCode });
       quickPtyProcesses.delete(id);
     });
 

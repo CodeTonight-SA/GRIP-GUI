@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Hoisted mocks (available inside vi.mock factories) ─────────────
-const { mockAutoUpdater, mockFetch } = vi.hoisted(() => ({
+const { mockAutoUpdater, mockFetch, mockBroadcast } = vi.hoisted(() => ({
   mockAutoUpdater: {
     autoDownload: true,
     autoInstallOnAppQuit: false,
@@ -12,6 +12,7 @@ const { mockAutoUpdater, mockFetch } = vi.hoisted(() => ({
     quitAndInstall: vi.fn(),
   },
   mockFetch: vi.fn(),
+  mockBroadcast: vi.fn(),
 }));
 
 vi.mock('electron-updater', () => ({
@@ -19,14 +20,18 @@ vi.mock('electron-updater', () => ({
 }));
 
 vi.mock('electron', () => ({
-  BrowserWindow: vi.fn(),
-  app: {
-    getVersion: () => '1.2.1',
-  },
+  app: { getVersion: () => '1.2.1' },
 }));
 
 vi.mock('../../electron/constants', () => ({
   GITHUB_REPO: 'Charlie85270/dorothy',
+}));
+
+// W8a: update-checker now calls broadcastToAllWorkspaces instead of
+// targeting a specific window. Mock the broadcast module so tests can
+// verify the correct channel and payload are emitted.
+vi.mock('../../electron/core/broadcast', () => ({
+  broadcastToAllWorkspaces: mockBroadcast,
 }));
 
 vi.stubGlobal('fetch', mockFetch);
@@ -37,7 +42,6 @@ import {
   checkForUpdates,
   downloadUpdate,
   quitAndInstall,
-  setMainWindowGetter,
 } from '../../electron/services/update-checker';
 
 // Helper: capture event handlers registered via autoUpdater.on()
@@ -46,26 +50,17 @@ function getEventHandler(eventName: string) {
   return call ? call[1] : undefined;
 }
 
-// Helper: make a mock BrowserWindow
-function makeMockWindow() {
-  return {
-    webContents: {
-      send: vi.fn(),
-    },
-  } as unknown as Electron.BrowserWindow;
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockAutoUpdater.currentVersion = { version: '1.2.1' };
   mockFetch.mockReset();
+  mockBroadcast.mockReset();
 });
 
 describe('update-checker', () => {
   describe('initAutoUpdater', () => {
     it('registers event handlers on autoUpdater', () => {
-      const win = makeMockWindow();
-      initAutoUpdater(() => win);
+      initAutoUpdater();
 
       const events = mockAutoUpdater.on.mock.calls.map((call) => call[0] as string);
       expect(events).toContain('update-available');
@@ -75,14 +70,13 @@ describe('update-checker', () => {
       expect(events).toContain('error');
     });
 
-    it('sends app:update-available IPC on update-available event', () => {
-      const win = makeMockWindow();
-      initAutoUpdater(() => win);
+    it('broadcasts app:update-available on update-available event', () => {
+      initAutoUpdater();
 
       const handler = getEventHandler('update-available');
       handler({ version: '2.0.0', releaseNotes: 'New features' });
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', {
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', {
         currentVersion: '1.2.1',
         latestVersion: '2.0.0',
         releaseNotes: 'New features',
@@ -91,38 +85,35 @@ describe('update-checker', () => {
     });
 
     it('handles releaseNotes that are not a string', () => {
-      const win = makeMockWindow();
-      initAutoUpdater(() => win);
+      initAutoUpdater();
 
       const handler = getEventHandler('update-available');
       handler({ version: '2.0.0', releaseNotes: [{ note: 'something' }] });
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
         releaseNotes: '',
       }));
     });
 
-    it('sends app:update-not-available IPC', () => {
-      const win = makeMockWindow();
-      initAutoUpdater(() => win);
+    it('broadcasts app:update-not-available', () => {
+      initAutoUpdater();
 
       const handler = getEventHandler('update-not-available');
       handler({ version: '1.2.1' });
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-not-available', {
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-not-available', {
         currentVersion: '1.2.1',
         latestVersion: '1.2.1',
       });
     });
 
-    it('sends app:update-progress IPC with progress data', () => {
-      const win = makeMockWindow();
-      initAutoUpdater(() => win);
+    it('broadcasts app:update-progress with progress data', () => {
+      initAutoUpdater();
 
       const handler = getEventHandler('download-progress');
       handler({ percent: 42, bytesPerSecond: 1024000, transferred: 5000000, total: 12000000 });
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-progress', {
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-progress', {
         percent: 42,
         bytesPerSecond: 1024000,
         transferred: 5000000,
@@ -130,22 +121,13 @@ describe('update-checker', () => {
       });
     });
 
-    it('sends app:update-downloaded IPC', () => {
-      const win = makeMockWindow();
-      initAutoUpdater(() => win);
+    it('broadcasts app:update-downloaded', () => {
+      initAutoUpdater();
 
       const handler = getEventHandler('update-downloaded');
       handler();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-downloaded');
-    });
-
-    it('does not crash when mainWindow is null', () => {
-      initAutoUpdater(() => null);
-
-      const handler = getEventHandler('update-available');
-      // Should not throw
-      expect(() => handler({ version: '2.0.0', releaseNotes: '' })).not.toThrow();
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-downloaded');
     });
   });
 
@@ -166,9 +148,6 @@ describe('update-checker', () => {
 
     it('falls back to GitHub API when autoUpdater throws', async () => {
       mockAutoUpdater.checkForUpdates.mockRejectedValue(new Error('Cannot find latest-mac.yml'));
-
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
 
       mockFetch.mockResolvedValue({
         ok: true,
@@ -194,11 +173,8 @@ describe('update-checker', () => {
       );
     });
 
-    it('sends update-available IPC via fallback when newer version exists', async () => {
+    it('broadcasts update-available via fallback when newer version exists', async () => {
       mockAutoUpdater.checkForUpdates.mockRejectedValue(new Error('No yml'));
-
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
 
       mockFetch.mockResolvedValue({
         ok: true,
@@ -214,7 +190,7 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
         currentVersion: '1.2.1',
         latestVersion: '2.0.0',
         hasUpdate: true,
@@ -223,11 +199,8 @@ describe('update-checker', () => {
       }));
     });
 
-    it('sends update-not-available IPC via fallback when on latest', async () => {
+    it('broadcasts update-not-available via fallback when on latest', async () => {
       mockAutoUpdater.checkForUpdates.mockRejectedValue(new Error('No yml'));
-
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
 
       mockFetch.mockResolvedValue({
         ok: true,
@@ -241,7 +214,7 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-not-available', {
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-not-available', {
         currentVersion: '1.2.1',
         latestVersion: '1.2.1',
       });
@@ -249,8 +222,6 @@ describe('update-checker', () => {
 
     it('returns error when both autoUpdater and GitHub API fail', async () => {
       mockAutoUpdater.checkForUpdates.mockRejectedValue(new Error('No yml'));
-
-      setMainWindowGetter(() => null);
       mockFetch.mockResolvedValue({ ok: false, status: 403 });
 
       const result = await checkForUpdates();
@@ -259,8 +230,6 @@ describe('update-checker', () => {
 
     it('returns error when GitHub API fetch throws', async () => {
       mockAutoUpdater.checkForUpdates.mockRejectedValue(new Error('No yml'));
-
-      setMainWindowGetter(() => null);
       mockFetch.mockRejectedValue(new Error('Network error'));
 
       const result = await checkForUpdates();
@@ -274,9 +243,6 @@ describe('update-checker', () => {
     });
 
     it('detects patch update (1.2.1 → 1.2.2)', async () => {
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
-
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -289,16 +255,13 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
         hasUpdate: true,
         latestVersion: '1.2.2',
       }));
     });
 
     it('detects minor update (1.2.1 → 1.3.0)', async () => {
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
-
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -311,15 +274,12 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
         hasUpdate: true,
       }));
     });
 
     it('does not flag downgrade as update (1.2.1 → 1.1.0)', async () => {
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
-
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -332,16 +292,13 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-not-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-not-available', expect.objectContaining({
         currentVersion: '1.2.1',
         latestVersion: '1.1.0',
       }));
     });
 
     it('strips v prefix from tag_name', async () => {
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
-
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -354,15 +311,12 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
         latestVersion: '3.0.0',
       }));
     });
 
     it('prefers DMG asset over ZIP for download URL', async () => {
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
-
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -378,15 +332,12 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
         downloadUrl: 'https://example.com/Dorothy-2.0.0.dmg',
       }));
     });
 
     it('falls back to ZIP when no DMG asset', async () => {
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
-
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -401,15 +352,12 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
         downloadUrl: 'https://example.com/Dorothy-2.0.0.zip',
       }));
     });
 
     it('falls back to html_url when no assets', async () => {
-      const win = makeMockWindow();
-      setMainWindowGetter(() => win);
-
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -422,7 +370,7 @@ describe('update-checker', () => {
 
       await checkForUpdates();
 
-      expect(win.webContents.send).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('app:update-available', expect.objectContaining({
         downloadUrl: 'https://github.com/releases/v2.0.0',
       }));
     });

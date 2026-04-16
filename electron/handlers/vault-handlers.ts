@@ -1,9 +1,10 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { getVaultDb } from '../services/vault-db';
 import { VAULT_DIR } from '../constants';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
 
 // Types
 export interface VaultFolder {
@@ -42,7 +43,7 @@ export interface VaultHandlerDependencies {
 
 function emitVaultEvent(mainWindow: BrowserWindow | null, event: string, data: unknown) {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(event, data);
+    broadcastToAllWorkspaces(event, data);
   }
 }
 

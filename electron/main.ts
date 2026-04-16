@@ -47,6 +47,7 @@ import {
   setupProtocolHandler,
   getMainWindow,
 } from './core/window-manager';
+import { broadcastToAllWorkspaces } from './core/broadcast';
 
 import {
   agents,
@@ -288,7 +289,6 @@ function createIpcDependencies(): IpcHandlerDependencies {
 
 function initApiServer() {
   startApiServer(
-    getMainWindow(),
     appSettings,
     getTelegramBot,
     getSlackApp,
@@ -374,7 +374,7 @@ app.whenReady().then(async () => {
         agent.lastActivity = new Date().toISOString();
         saveAgents();
 
-        getMainWindow()?.webContents.send('agent:status', {
+        broadcastToAllWorkspaces('agent:status', {
           type: 'status',
           agentId,
           status: 'idle',
@@ -473,7 +473,7 @@ app.whenReady().then(async () => {
           agent.output.push(data);
           agent.lastActivity = new Date().toISOString();
         }
-        getMainWindow()?.webContents.send('agent:output', {
+        broadcastToAllWorkspaces('agent:output', {
           type: 'output',
           agentId: id,
           ptyId,
@@ -492,13 +492,13 @@ app.whenReady().then(async () => {
         }
         ptyProcesses.delete(ptyId);
         // Emit status event so kanban sync can detect completion
-        getMainWindow()?.webContents.send('agent:status', {
+        broadcastToAllWorkspaces('agent:status', {
           type: 'status',
           agentId: id,
           status: exitCode === 0 ? 'completed' : 'error',
           timestamp: new Date().toISOString(),
         });
-        getMainWindow()?.webContents.send('agent:complete', {
+        broadcastToAllWorkspaces('agent:complete', {
           type: 'complete',
           agentId: id,
           ptyId,

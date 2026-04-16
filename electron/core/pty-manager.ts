@@ -2,6 +2,7 @@ import * as pty from 'node-pty';
 import { v4 as uuidv4 } from 'uuid';
 import * as os from 'os';
 import { BrowserWindow } from 'electron';
+import { broadcastToAllWorkspaces } from './broadcast';
 
 export const ptyProcesses: Map<string, pty.IPty> = new Map();
 export const quickPtyProcesses: Map<string, pty.IPty> = new Map();
@@ -92,13 +93,13 @@ export function createQuickPty(
 
   ptyProcess.onData((data) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('shell:ptyOutput', { ptyId: id, data });
+      broadcastToAllWorkspaces('shell:ptyOutput', { ptyId: id, data });
     }
   });
 
   ptyProcess.onExit(({ exitCode }) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('shell:ptyExit', { ptyId: id, exitCode });
+      broadcastToAllWorkspaces('shell:ptyExit', { ptyId: id, exitCode });
     }
     quickPtyProcesses.delete(id);
   });
