@@ -25,6 +25,7 @@ export interface ChatSession {
 const CHATS_KEY = 'grip-chats';
 const ACTIVE_KEY = 'grip-active-chat';
 const CHAT_PREFIX = 'grip-chat-';
+const TABS_KEY = 'grip-open-tabs';
 const VERSION_KEY = 'grip-storage-version';
 const CURRENT_STORAGE_VERSION = 4;
 const MAX_CHATS = 50;
@@ -227,6 +228,25 @@ export function updateSessionId(chatId: string, sessionId: string): void {
     sessions[idx].sessionId = sessionId;
     localStorage.setItem(CHATS_KEY, JSON.stringify(sessions));
   }
+}
+
+/**
+ * Get the list of currently open tab IDs (persisted across reloads).
+ */
+export function getOpenTabIds(): string[] {
+  try {
+    const raw = localStorage.getItem(TABS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Persist the open tab list.
+ */
+export function setOpenTabIds(ids: string[]): void {
+  localStorage.setItem(TABS_KEY, JSON.stringify(ids));
 }
 
 /**
