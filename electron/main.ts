@@ -15,6 +15,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { posixQuote } from './utils/shell';
 
+// Linux sandbox: Electron's sandbox requires unprivileged user namespaces.
+// Ubuntu/Debian often restrict these, causing an immediate crash on launch.
+// Disable the sandbox on Linux to match what VS Code, Slack, etc. do.
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox');
+}
+
 // V8 stability: ad-hoc code signing on macOS can cause V8's memory protection
 // (ThreadIsolation::WriteProtectMemory) to crash with EXC_BREAKPOINT.
 // --jitless disables JIT entirely (10-100x slower), so we only use it as a fallback.
