@@ -137,7 +137,7 @@
       "artifactName": "GRIP-Commander-${version}-${arch}.${ext}"
     },
     "win": {
-      "icon": "public/icon.png",
+      "icon": "public/icon.ico",
       "target": [
         "nsis"
       ],
@@ -146,8 +146,8 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "public/icon.png",
-      "uninstallerIcon": "public/icon.png"
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico"
     },
     "deb": {
       "depends": [
