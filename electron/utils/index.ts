@@ -1,15 +1,17 @@
-import { app, Notification, BrowserWindow } from 'electron';
+import { app, Notification } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { AgentStatus } from '../types';
 import { TG_CHARACTER_FACES, SLACK_CHARACTER_FACES, DATA_DIR, OLD_DATA_DIR, LEGACY_DATA_DIR } from '../constants';
+import { broadcastToAllWorkspaces, getWindowForWorkspace } from '../core/broadcast';
 
-let mainWindow: BrowserWindow | null = null;
-
-export function setMainWindow(window: BrowserWindow | null) {
-  mainWindow = window;
-}
+/**
+ * Kept for backwards compatibility — main.ts calls setUtilsMainWindow(getMainWindow()).
+ * No longer needed now that sendNotification uses getWindowForWorkspace('default')
+ * directly. Safe to remove in W8a-ui when main.ts is fully updated.
+ */
+export function setMainWindow(_window: unknown) { /* no-op */ }
 
 export function getAppBasePath(): string {
   let appPath = app.getAppPath();
@@ -337,11 +339,12 @@ export function sendNotification(
   });
 
   notification.on('click', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+    const win = getWindowForWorkspace('default');
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
       if (agentId) {
-        mainWindow.webContents.send('agent:focus', { agentId });
+        broadcastToAllWorkspaces('agent:focus', { agentId });
       }
     }
   });

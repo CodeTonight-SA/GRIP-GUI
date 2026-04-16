@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as pty from 'node-pty';
 import { v4 as uuidv4 } from 'uuid';
 import { BrowserWindow, Notification } from 'electron';
+import { broadcastToAllWorkspaces } from './broadcast';
 import { AgentStatus, AppSettings } from '../types';
 import { AGENTS_FILE, DATA_DIR } from '../constants';
 import { ensureDataDir, isSuperAgent } from '../utils';
@@ -208,6 +209,8 @@ export function loadAgents() {
 
       agent.status = 'idle';
       agent.ptyId = undefined;
+      // W8a migration: assign 'default' workspace to all pre-W8a agents.
+      if (!agent.workspaceId) agent.workspaceId = 'default';
 
       agents.set(agent.id, agent);
     }
@@ -319,7 +322,7 @@ export async function initAgentPty(
       }
     }
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('agent:output', {
+      broadcastToAllWorkspaces('agent:output', {
         type: 'output',
         agentId: agent.id,
         ptyId,
@@ -341,7 +344,7 @@ export async function initAgentPty(
     }
     ptyProcesses.delete(ptyId);
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('agent:complete', {
+      broadcastToAllWorkspaces('agent:complete', {
         type: 'complete',
         agentId: agent.id,
         ptyId,

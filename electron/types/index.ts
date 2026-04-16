@@ -29,6 +29,7 @@ export interface AgentStatus {
   provider?: AgentProvider;   // 'claude' (default) or 'local' (Tasmania)
   localModel?: string;        // Tasmania model name when provider is 'local'
   obsidianVaultPaths?: string[]; // Obsidian vault paths to mount via --add-dir (read-only)
+  workspaceId?: string;       // W8a: owning workspace window ID; 'default' for single-window baseline
 }
 
 export interface CLIPaths {

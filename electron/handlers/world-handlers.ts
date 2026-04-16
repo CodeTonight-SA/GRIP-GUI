@@ -1,4 +1,5 @@
 import { ipcMain, BrowserWindow, dialog, app } from 'electron';
+import { broadcastToAllWorkspaces } from '../core/broadcast';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
