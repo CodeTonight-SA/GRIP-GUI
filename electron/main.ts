@@ -24,6 +24,22 @@ if (process.env.GRIP_JITLESS === '1') {
   app.commandLine.appendSwitch('disable-gpu-sandbox');
 }
 
+// Chromium feature trimming — disable background services GRIP never uses.
+// Reduces initial memory footprint and eliminates IPC chatter from unused
+// browser subsystems. Safe to remove any entry if a future feature needs it.
+app.commandLine.appendSwitch(
+  'disable-features',
+  [
+    'Translate',                   // Built-in page translation — not needed
+    'AutofillServerCommunication', // Autofill server sync — no forms
+    'MediaRouter',                 // Cast / presentation API — not used
+    'DialMediaRouteProvider',      // DIAL media routing — not used
+    'OptimizationHints',           // Lite mode loading hints — not used
+    'HeavyAdIntervention',         // Heavy ad throttling — internal app
+    'InterestFeedContentSuggestions', // Chrome feed — not a browser
+  ].join(','),
+);
+
 // Crash recovery: log uncaught exceptions instead of silently dying
 process.on('uncaughtException', (error) => {
   console.error('Uncaught exception in main process:', error);
@@ -471,6 +487,10 @@ app.whenReady().then(async () => {
         const agent = agents.get(id);
         if (agent) {
           agent.output.push(data);
+          // Ring buffer — cap at 2000 entries to bound RAM usage in long sessions
+          if (agent.output.length > 2000) {
+            agent.output = agent.output.slice(-1000);
+          }
           agent.lastActivity = new Date().toISOString();
         }
         getMainWindow()?.webContents.send('agent:output', {

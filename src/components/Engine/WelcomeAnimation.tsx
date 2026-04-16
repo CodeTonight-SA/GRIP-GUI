@@ -75,7 +75,7 @@ export default function WelcomeAnimation({ onComplete }: { onComplete: () => voi
             GRIP
           </span>
           <span className="block font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] mt-1">
-            KNOWLEDGE WORK ENGINE
+            COMMANDER
           </span>
         </div>
       </div>

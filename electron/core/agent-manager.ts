@@ -309,6 +309,11 @@ export async function initAgentPty(
     const agentData = agents.get(agent.id);
     if (agentData) {
       agentData.output.push(data);
+      // Cap output buffer at 2000 entries to prevent unbounded memory growth
+      // in long-running agent sessions. Keeps most-recent output for display.
+      if (agentData.output.length > 2000) {
+        agentData.output = agentData.output.slice(-1000);
+      }
       agentData.lastActivity = new Date().toISOString();
 
       if (superAgentTelegramTask && isSuperAgent(agentData)) {
