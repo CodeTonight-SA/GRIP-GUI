@@ -124,8 +124,25 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   const rafIdRef = useRef<number | null>(null);
   const pendingContentRef = useRef('');
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks whether the user is within 200px of the bottom. True by default so
+  // new chats start pinned. Updated by the scroll handler below (via ref to
+  // avoid stale-closure issues inside the messages effect).
+  const isNearBottomRef = useRef(true);
+  // Tracks message count to distinguish "new message added" from "existing
+  // message content updated" (tool output streaming). Count increases are
+  // always scrolled; content-only updates only scroll when near the bottom.
+  const messageCountRef = useRef(0);
 
   useEffect(() => {
+    const newCount = messages.length;
+    const countIncreased = newCount > messageCountRef.current;
+    messageCountRef.current = newCount;
+
+    // Skip auto-scroll when tool output is streaming into an existing message
+    // and the user has scrolled up to read history. This eliminates the janky
+    // jump-to-bottom on every chunk. Always scroll when a new message appears.
+    if (!countIncreased && !isNearBottomRef.current) return;
+
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
     scrollTimerRef.current = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -141,7 +158,9 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
     if (!container) return;
     const handleScroll = () => {
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      setShowScrollButton(distanceFromBottom > 200);
+      const nearBottom = distanceFromBottom <= 200;
+      isNearBottomRef.current = nearBottom;
+      setShowScrollButton(!nearBottom);
     };
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
