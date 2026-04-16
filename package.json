@@ -2,6 +2,11 @@
   "name": "grip-knowledge-engine",
   "version": "0.2.0",
   "private": true,
+  "description": "GRIP Knowledge Work Engine",
+  "author": {
+    "name": "CodeTonight",
+    "email": "devdev@sudonum.com"
+  },
   "main": "electron/dist/main.js",
   "scripts": {
     "dev": "next dev",
@@ -120,6 +125,28 @@
       "target": [
         "dmg",
         "zip"
+      ]
+    },
+    "linux": {
+      "icon": "public/icon.png",
+      "category": "Development",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "artifactName": "GRIP-Commander-${version}-${arch}.${ext}"
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
       ]
     },
     "dmg": {
