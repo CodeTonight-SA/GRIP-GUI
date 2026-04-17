@@ -8,6 +8,7 @@ import FocusMode from '@/components/Engine/FocusMode';
 import WelcomeAnimation from '@/components/Engine/WelcomeAnimation';
 import MobileToolbar from '@/components/Engine/MobileToolbar';
 import ChatTabBar from '@/components/Engine/ChatTabBar';
+import ContextGateSlideUp from '@/components/Engine/ContextGateSlideUp';
 import { useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '@/store';
@@ -291,6 +292,10 @@ export default function EnginePage() {
           />
         )}
       </div>
+
+      {/* Context-gate slide-up (S5) — sits above the status bar, triggered by
+          grip:context-gate-warning events with { percent }. Renders at >= 85. */}
+      {!focusMode && <ContextGateSlideUp />}
 
       {/* Mobile bottom toolbar */}
       {!focusMode && <MobileToolbar />}
