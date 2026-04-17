@@ -39,7 +39,13 @@ jobs:
             target: dmg
           - platform: mac
             arch: x64
-            runner: macos-13          # x64 runner (Intel) — must be Intel for native x64 rebuild
+            runner: macos-14          # arm64 runner; x64 DMG cross-compiled via
+                                      # @electron/rebuild --arch x64 --platform darwin.
+                                      # Was macos-13 Intel but GitHub's Intel-runner pool
+                                      # queues for 30+ min during business hours and is
+                                      # being wound down. Cross-compile on macos-14 runs
+                                      # in ~3m with the same artefact correctness
+                                      # (verified by scripts/verify-native-arch.mjs).
             target: dmg
           - platform: win
             arch: x64
