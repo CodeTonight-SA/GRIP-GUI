@@ -1,6 +1,6 @@
 {
   "name": "grip-knowledge-engine",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "description": "GRIP Knowledge Work Engine",
   "author": {
@@ -52,7 +52,10 @@
       "!node_modules/@next/eslint-plugin-next",
       "skills/**/*",
       "hooks/**/*",
-      "grip-starter/**/*"
+      "grip-starter/**/*",
+      "!node_modules/@next/swc-*/**",
+      "!node_modules/@img/sharp-*/**",
+      "!node_modules/@img/sharp-libvips-*/**"
     ],
     "asarUnpack": [
       "out/**/*",
