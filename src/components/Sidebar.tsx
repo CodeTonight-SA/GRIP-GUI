@@ -25,6 +25,7 @@ import { useStore } from '@/store';
 import { getTheme } from '@/lib/themes';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import ModeStackChip from './ModeStackChip';
 
 const navItems = [
   { href: '/', icon: Terminal, label: 'ENGINE', shortcut: '1' },
@@ -150,6 +151,10 @@ export default function Sidebar({ isMobile = false }: SidebarProps) {
           )}
         </div>
       </div>
+
+      {/* Active mode-stack chip — sits between logo and nav. Click opens the
+          MODES preset of the Command Palette via window event. */}
+      <ModeStackChip showLabels={showLabels} isMobile={isMobile} />
 
       {/* Main navigation */}
       <motion.nav
