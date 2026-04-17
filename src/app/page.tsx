@@ -202,6 +202,7 @@ export default function EnginePage() {
                         key={tabId}
                         chatId={tabId}
                         onModelChange={setModel}
+                        isActive={tabId === activeTabId}
                       />
                     </div>
                   ))}
