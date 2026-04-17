@@ -37,7 +37,36 @@ export default function EnginePage() {
   const [openTabIds, setOpenTabIdsState] = useState<string[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [health, setHealth] = useState<HealthData>({ skillCount: 5, generation: 33, fitness: 0.467 });
+  const [activeModes, setActiveModes] = useState<string[]>([]);
   const { rightPanelCollapsed, toggleRightPanel } = useStore();
+
+  // Active-mode poll for the status bar (S2-PR2). Matches ModeStackChip's
+  // contract — GET /api/grip/modes, 30s poll. Duplicate of the chip fetch
+  // today; a shared hook is a YSH candidate once a third caller appears.
+  useEffect(() => {
+    let cancelled = false;
+    const fetchModes = async () => {
+      try {
+        const res = await fetch('/api/grip/modes');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setActiveModes(
+          Array.isArray(data?.modes)
+            ? data.modes.filter((m: unknown): m is string => typeof m === 'string')
+            : [],
+        );
+      } catch {
+        // Silent — status bar falls back to the default 'code' label.
+      }
+    };
+    fetchModes();
+    const interval = setInterval(fetchModes, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Fetch GRIP health data for live status bar
   useEffect(() => {
@@ -256,6 +285,7 @@ export default function EnginePage() {
           <GripStatusBar
             skillCount={health.skillCount}
             version={APP_VERSION}
+            activeMode={activeModes[0] ?? 'code'}
             // contextPercent omitted deliberately: no authoritative source wired
             // yet. Widget renders "CTX --" per the S2-PR1 council scope rider.
           />
