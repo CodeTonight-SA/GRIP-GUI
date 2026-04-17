@@ -12,11 +12,74 @@ Cross-domain knowledge work engine. Run, orchestrate, and automate Claude Code a
 
 ## Download
 
-| Platform | Architecture | Link |
-|----------|-------------|------|
-| macOS | ARM64 (Apple Silicon) | [Download DMG](https://github.com/CodeTonight-SA/GRIP-GUI/releases/download/v0.1.0-alpha.1/GRIP-Commander-0.1.0-arm64.dmg) |
+Latest release: [**github.com/CodeTonight-SA/GRIP-GUI/releases/latest**](https://github.com/CodeTonight-SA/GRIP-GUI/releases/latest)
 
-> **Unsigned alpha.** After installing: `xattr -cr /Applications/GRIP\ Commander.app`
+| Platform | Architecture | File |
+|----------|-------------|------|
+| macOS | ARM64 (Apple Silicon) | `GRIP-Commander-<version>-arm64.dmg` |
+| macOS | x64 (Intel) | `GRIP-Commander-<version>-x64.dmg` |
+| Windows | x64 | `GRIP-Commander-<version>-x64-setup.exe` |
+| Linux | x64 | `GRIP-Commander-<version>-x86_64.AppImage` |
+
+> **Unsigned build.** First launch needs one manual step to get past OS security. See [First-time launch](#first-time-launch) below.
+
+---
+
+## First-time launch
+
+GRIP Commander is distributed unsigned (no Apple Developer certificate, no Microsoft Authenticode signature). Your OS will block the first launch until you explicitly allow it. Pick the path for your platform.
+
+### macOS (Apple Silicon or Intel)
+
+When you double-click the app the first time you'll see:
+
+> **"GRIP Commander" is damaged and can't be opened. You should move it to the Trash.**
+
+The app isn't damaged — macOS Gatekeeper is blocking an unsigned download. Two ways to unblock:
+
+**Option A — Terminal (fastest)**
+
+```bash
+xattr -cr "/Applications/GRIP Commander.app"
+```
+
+Then re-launch. Strips the `com.apple.quarantine` flag so Gatekeeper stops blocking.
+
+**Option B — System Settings (no Terminal)**
+
+1. Double-click the app — it fails with the "damaged" message.
+2. Open **System Settings → Privacy & Security**.
+3. Scroll to the bottom. You'll see *"GRIP Commander was blocked from use because it is not from an identified developer."*
+4. Click **Open Anyway** and confirm.
+5. The next launch prompts once more, then it works from then on.
+
+### Windows
+
+Running `GRIP-Commander-<version>-x64-setup.exe` will show a SmartScreen warning:
+
+> **Windows protected your PC** — Microsoft Defender SmartScreen prevented an unrecognised app from starting.
+
+Click **More info** → **Run anyway**. This happens once per version.
+
+### Linux
+
+Make the AppImage executable, then run it:
+
+```bash
+chmod +x GRIP-Commander-<version>-x86_64.AppImage
+./GRIP-Commander-<version>-x86_64.AppImage
+```
+
+Some distros need `libfuse2` installed for AppImages:
+
+```bash
+sudo apt install libfuse2         # Ubuntu/Debian
+sudo dnf install fuse-libs        # Fedora/RHEL
+```
+
+### Why unsigned?
+
+Code signing requires paid developer accounts on each platform (Apple Developer Program $99/year, Microsoft Authenticode cert ~$300+/year). We'll move to signed + notarised builds before the 1.0 release. Until then, the steps above are the one-time friction per version.
 
 ---
 
@@ -184,12 +247,11 @@ GRIP Commander bundles MCP servers for programmatic control:
 - **Claude Code CLI**: `npm install -g @anthropic-ai/claude-code`
 - **Claude login**: `claude login` (each user authenticates with their own Anthropic account)
 
-### Install from DMG
+### Install (any platform)
 
-1. [Download the DMG](https://github.com/CodeTonight-SA/GRIP-GUI/releases/download/v0.1.0-alpha.1/GRIP-Commander-0.1.0-arm64.dmg)
-2. Drag to Applications
-3. Run `xattr -cr /Applications/GRIP\ Commander.app`
-4. Launch GRIP Commander
+1. Grab the matching artefact for your OS from the [latest release](https://github.com/CodeTonight-SA/GRIP-GUI/releases/latest)
+2. Install per your platform's convention (drag DMG to Applications, run NSIS setup, chmod the AppImage)
+3. Follow the [First-time launch](#first-time-launch) steps above — this is the one-time OS-security unblock
 
 ### Build from Source
 
