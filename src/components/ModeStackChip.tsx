@@ -15,6 +15,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Layers } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { isFeatureEnabled } from '@/lib/feature-flag';
 
 const OPEN_PALETTE_EVENT = 'grip:open-palette';
 const FLAG_KEY = 'sidebarShowModeChip';
@@ -28,15 +29,6 @@ type FetchState =
   | { status: 'loading' }
   | { status: 'ready'; modes: string[] }
   | { status: 'error' };
-
-function isEnabled(): boolean {
-  if (typeof window === 'undefined') return true;
-  try {
-    return localStorage.getItem(FLAG_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-}
 
 function openModesPalette(): void {
   if (typeof window === 'undefined') return;
@@ -55,7 +47,7 @@ function renderLabel(state: FetchState): string {
 export default function ModeStackChip({ showLabels, isMobile = false }: ModeStackChipProps) {
   const [state, setState] = useState<FetchState>({ status: 'loading' });
   const pathname = usePathname();
-  const [flagEnabled] = useState(() => isEnabled());
+  const [flagEnabled] = useState(() => isFeatureEnabled(FLAG_KEY));
 
   useEffect(() => {
     if (!flagEnabled) return;

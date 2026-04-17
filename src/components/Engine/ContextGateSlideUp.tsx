@@ -24,6 +24,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, Compass, Save, Zap } from 'lucide-react';
+import { isFeatureEnabled } from '@/lib/feature-flag';
 
 const WARN_EVENT = 'grip:context-gate-warning';
 const ACTION_EVENT = 'grip:context-gate-action';
@@ -36,15 +37,6 @@ interface WarnDetail {
   percent: number;
 }
 
-function isEnabled(): boolean {
-  if (typeof window === 'undefined') return true;
-  try {
-    return localStorage.getItem(FLAG_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-}
-
 function dispatchAction(action: Action): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(ACTION_EVENT, { detail: { action } }));
@@ -53,7 +45,7 @@ function dispatchAction(action: Action): void {
 export default function ContextGateSlideUp() {
   const [percent, setPercent] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState(false);
-  const [flagEnabled] = useState(() => isEnabled());
+  const [flagEnabled] = useState(() => isFeatureEnabled(FLAG_KEY));
 
   useEffect(() => {
     if (!flagEnabled) return;
