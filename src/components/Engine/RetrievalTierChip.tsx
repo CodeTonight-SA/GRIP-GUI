@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { Database, Search } from 'lucide-react';
+import { isFeatureEnabled } from '@/lib/feature-flag';
 
 const EVENT_NAME = 'grip:retrieval-tier';
 const FLAG_KEY = 'retrievalTierChip';
@@ -44,18 +45,9 @@ function renderLabel(state: ChipState): string {
   return 'SEARCHED';
 }
 
-function isEnabled(): boolean {
-  if (typeof window === 'undefined') return true;
-  try {
-    return localStorage.getItem(FLAG_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-}
-
 export default function RetrievalTierChip() {
   const [state, setState] = useState<ChipState>({ status: 'idle' });
-  const [flagEnabled] = useState(() => isEnabled());
+  const [flagEnabled] = useState(() => isFeatureEnabled(FLAG_KEY));
 
   useEffect(() => {
     if (!flagEnabled) return;
