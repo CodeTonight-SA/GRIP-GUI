@@ -1,5 +1,15 @@
 name: Build Release
 
+# Cross-platform DMG / NSIS / AppImage + deb build.
+#
+# Each matrix entry runs on a dedicated fresh runner with its own node_modules,
+# so native modules (better-sqlite3, node-pty) can never contaminate across
+# architectures. scripts/verify-native-arch.mjs runs after packaging and fails
+# the job if any .node file inside the artefact doesn't match the target.
+#
+# Triggered by: tag push (v*) -> publishes release artefacts, or manual dispatch
+# -> uploads per-job artefacts for download without publishing.
+
 on:
   push:
     tags:
@@ -7,105 +17,125 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g. v0.4.0)'
+        description: 'Version tag (e.g. v0.4.1) — informational only, artefacts use package.json version'
         required: false
 
 permissions:
   contents: write
 
 jobs:
-  build-mac:
-    name: Mac (arm64 + x64)
-    runs-on: macos-latest
+  build:
+    name: ${{ matrix.platform }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      # Do not cancel sibling jobs when one arch fails — we want to know which
+      # platform+arch combinations break so we can fix them in one PR cycle.
+      fail-fast: false
+      matrix:
+        include:
+          - platform: mac
+            arch: arm64
+            runner: macos-14          # arm64 runner (Apple Silicon)
+            target: dmg
+          - platform: mac
+            arch: x64
+            runner: macos-13          # x64 runner (Intel) — must be Intel for native x64 rebuild
+            target: dmg
+          - platform: win
+            arch: x64
+            runner: windows-latest
+            target: nsis
+          - platform: linux
+            arch: x64
+            runner: ubuntu-latest
+            target: appimage
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-      - run: npm ci
-      - run: npm run build
 
-      - name: Build Mac DMG (arm64)
-        run: npx electron-builder --mac dmg --arm64
+      # --------------------------------------------------------------------
+      # Linux-only: electron-builder needs a handful of native deps for
+      # AppImage / deb + some sandbox libraries that don't ship with ubuntu-latest.
+      # --------------------------------------------------------------------
+      - name: Install Linux build deps
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libopenjp2-tools fakeroot rpm dpkg \
+            libnss3 libatk-bridge2.0-0 libgtk-3-0 libasound2t64 || \
+          sudo apt-get install -y --no-install-recommends \
+            libopenjp2-tools fakeroot rpm dpkg \
+            libnss3 libatk-bridge2.0-0 libgtk-3-0 libasound2
+
+      - name: Clean install
+        run: npm ci --no-audit --no-fund
+
+      # --------------------------------------------------------------------
+      # Build via the extracted script (Bash is available on all 3 OSes
+      # via actions/setup-node's shell defaults — Windows uses Git Bash).
+      # --------------------------------------------------------------------
+      - name: Build ${{ matrix.platform }} ${{ matrix.arch }} (${{ matrix.target }})
+        shell: bash
         env:
           SKIP_NOTARIZE: '1'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          chmod +x scripts/build-electron.sh
+          scripts/build-electron.sh ${{ matrix.platform }} ${{ matrix.arch }} ${{ matrix.target }}
 
-      - name: Build Mac DMG (x64)
-        run: npx electron-builder --mac dmg --x64
-        env:
-          SKIP_NOTARIZE: '1'
+      # --------------------------------------------------------------------
+      # Independent verifier step — even if build-electron.sh's internal
+      # verify step is skipped (SKIP_VERIFY=1), this job-level step will
+      # catch arch mismatches and fail the release.
+      # --------------------------------------------------------------------
+      - name: Verify native module architecture
+        shell: bash
+        run: node scripts/verify-native-arch.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --dir release
 
-      - name: Upload Mac artifacts
+      - name: Upload ${{ matrix.platform }}-${{ matrix.arch }} artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: mac-builds
+          name: ${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             release/*.dmg
             release/*.dmg.blockmap
-
-  build-linux:
-    name: Linux (x64)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run build
-
-      - name: Build Linux deb + AppImage
-        run: npx electron-builder --linux deb AppImage --x64
-
-      - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-builds
-          path: |
-            release/*.deb
-            release/*.AppImage
-
-  build-windows:
-    name: Windows (x64)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run build
-
-      - name: Build Windows NSIS installer
-        run: npx electron-builder --win nsis --x64
-
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-builds
-          path: |
             release/*.exe
             release/*.exe.blockmap
+            release/*.AppImage
+            release/*.deb
+            release/*.zip
+          if-no-files-found: error
 
   release:
     name: Upload to GitHub Release
-    needs: [build-mac, build-linux, build-windows]
+    needs: [build]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download all artifacts
+      - name: Download all artefacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: artefacts
 
-      - name: Upload to release
+      - name: List downloaded artefacts
+        run: find artefacts -type f | sort
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/mac-builds/*
-            artifacts/linux-builds/*
-            artifacts/windows-builds/*
+            artefacts/**/*.dmg
+            artefacts/**/*.dmg.blockmap
+            artefacts/**/*.exe
+            artefacts/**/*.exe.blockmap
+            artefacts/**/*.AppImage
+            artefacts/**/*.deb
+            artefacts/**/*.zip
           fail_on_unmatched_files: false
+          generate_release_notes: true

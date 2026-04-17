@@ -45,6 +45,14 @@ vi.mock('../../../electron/constants', () => ({
   VAULT_DIR: '/mock/vault',
 }));
 
+// After the multi-session refactor (commit 26b56c6), vault events are emitted
+// via broadcastToAllWorkspaces instead of mainWindow.webContents.send directly.
+// Mock the broadcast function so tests can assert event emission.
+const mockBroadcastToAllWorkspaces = vi.fn();
+vi.mock('../../../electron/core/broadcast', () => ({
+  broadcastToAllWorkspaces: mockBroadcastToAllWorkspaces,
+}));
+
 function invokeHandler(channel: string, ...args: unknown[]): Promise<unknown> {
   const fn = handlers.get(channel);
   if (!fn) throw new Error(`No handler for "${channel}"`);
@@ -170,7 +178,7 @@ describe('vault-handlers', () => {
 
       expect(result.success).toBe(true);
       expect(result.document).toEqual(createdDoc);
-      expect(mockMainWindow.webContents.send).toHaveBeenCalledWith('vault:document-created', createdDoc);
+      expect(mockBroadcastToAllWorkspaces).toHaveBeenCalledWith('vault:document-created', createdDoc);
     });
 
     it('returns error on failure', async () => {
@@ -204,7 +212,7 @@ describe('vault-handlers', () => {
 
       expect(result.success).toBe(true);
       expect(result.document).toEqual(updated);
-      expect(mockMainWindow.webContents.send).toHaveBeenCalledWith('vault:document-updated', updated);
+      expect(mockBroadcastToAllWorkspaces).toHaveBeenCalledWith('vault:document-updated', updated);
     });
 
     it('returns error for non-existent document', async () => {
@@ -229,7 +237,7 @@ describe('vault-handlers', () => {
       const result = await invokeHandler('vault:deleteDocument', 'del-1') as { success: boolean };
 
       expect(result.success).toBe(true);
-      expect(mockMainWindow.webContents.send).toHaveBeenCalledWith('vault:document-deleted', { id: 'del-1' });
+      expect(mockBroadcastToAllWorkspaces).toHaveBeenCalledWith('vault:document-deleted', { id: 'del-1' });
     });
   });
 
