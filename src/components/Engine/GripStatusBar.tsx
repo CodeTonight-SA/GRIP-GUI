@@ -5,15 +5,28 @@ import { Activity, Layers, Sparkles, Shield, Clock, Cpu, Zap } from 'lucide-reac
 import GripPulse from './GripPulse';
 import SessionSparkline from './SessionSparkline';
 import type { GripMetrics } from '@/lib/grip-session';
+import { formatStatusBarVersion } from '@/lib/app-version';
 
 interface GripStatusBarProps {
   activeMode?: string;
   skillCount?: number;
+  /**
+   * Session context usage. When `undefined` the widget renders `--` with an
+   * empty gauge (Devil's Advocate council rider: "an honestly blank gauge is
+   * safer than a calibration error"). Pass a real percentage when the parent
+   * has authoritative telemetry; omit until then.
+   */
   contextPercent?: number;
   safetyActive?: boolean;
   metrics?: GripMetrics | null;
   isStreaming?: boolean;
   messageTimestamps?: number[];
+  /**
+   * Version string shown in the footer corner. Defaults to the app version
+   * read from `package.json` via `@/lib/app-version`; parent can override for
+   * tests or custom builds.
+   */
+  version?: string;
 }
 
 /**
@@ -24,11 +37,12 @@ interface GripStatusBarProps {
 export default function GripStatusBar({
   activeMode = 'code',
   skillCount = 5,
-  contextPercent = 23,
+  contextPercent,
   safetyActive = true,
   metrics,
   isStreaming = false,
   messageTimestamps = [],
+  version,
 }: GripStatusBarProps) {
   // Session elapsed time — updates every 30s (not every second, to avoid re-renders)
   const [elapsed, setElapsed] = useState('');
@@ -65,16 +79,24 @@ export default function GripStatusBar({
         </span>
       </div>
 
-      {/* Context */}
-      <div className="flex items-center gap-1.5">
+      {/* Context — honest-blank "--" when parent has no authoritative reading */}
+      <div className="flex items-center gap-1.5" data-testid="status-bar-context">
         <Activity className="w-3 h-3 text-[var(--muted-foreground)]" strokeWidth={1.5} />
         <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)]">
-          CTX {contextPercent}%
+          {contextPercent === undefined ? 'CTX --' : `CTX ${contextPercent}%`}
         </span>
         <div className="w-16 h-1 bg-[var(--border)]">
           <div
-            className={`h-full transition-all ${contextPercent > 80 ? 'bg-[var(--danger)]' : contextPercent > 60 ? 'bg-[var(--warning)]' : 'bg-[var(--primary)]'}`}
-            style={{ width: `${contextPercent}%` }}
+            className={`h-full transition-all ${
+              contextPercent === undefined
+                ? 'bg-transparent'
+                : contextPercent > 80
+                  ? 'bg-[var(--danger)]'
+                  : contextPercent > 60
+                    ? 'bg-[var(--warning)]'
+                    : 'bg-[var(--primary)]'
+            }`}
+            style={{ width: contextPercent === undefined ? '0%' : `${contextPercent}%` }}
           />
         </div>
       </div>
@@ -140,8 +162,11 @@ export default function GripStatusBar({
           {elapsed}
         </span>
       )}
-      <span className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-40">
-        GRIP 0.1.0
+      <span
+        className="font-mono text-[10px] tracking-widest text-[var(--muted-foreground)] opacity-40"
+        data-testid="status-bar-version"
+      >
+        {formatStatusBarVersion(version)}
       </span>
     </div>
   );

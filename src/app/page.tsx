@@ -12,6 +12,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '@/store';
 import { isElectronEnv } from '@/lib/grip-session';
+import { APP_VERSION } from '@/lib/app-version';
 import {
   getChatSessions,
   getActiveChatId,
@@ -250,7 +251,14 @@ export default function EnginePage() {
           )}
         </div>
 
-        {!focusMode && <GripStatusBar skillCount={health.skillCount} />}
+        {!focusMode && (
+          <GripStatusBar
+            skillCount={health.skillCount}
+            version={APP_VERSION}
+            // contextPercent omitted deliberately: no authoritative source wired
+            // yet. Widget renders "CTX --" per the S2-PR1 council scope rider.
+          />
+        )}
       </div>
 
       {/* Mobile bottom toolbar */}
