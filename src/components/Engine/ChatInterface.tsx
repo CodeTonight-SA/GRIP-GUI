@@ -8,6 +8,7 @@ import TypingIndicator from './TypingIndicator';
 import ThinkingIndicator from './ThinkingIndicator';
 import ToolUseBlock from './ToolUseBlock';
 import GateIndicator from './GateIndicator';
+import RetrievalTierChip from './RetrievalTierChip';
 import {
   getChatMessages,
   saveChatMessages,
@@ -717,6 +718,13 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
               </button>
             </div>
           )}
+
+          {/* Retrieval-tier chip — surfaces Rule 0 (GRIP-First Thinking) above
+              the input. Honest-blank until the first grip:retrieval-tier
+              event fires; binary cached/searched label in this PR, upgraded
+              to 5-way detail in a follow-on. */}
+          <RetrievalTierChip />
+
           <div className="flex items-end gap-3">
             <div className="flex-1 relative">
               <textarea
