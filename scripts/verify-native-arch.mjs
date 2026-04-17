@@ -26,7 +26,7 @@ import { join, relative } from 'node:path';
 // ---------------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const out = { platform: null, arch: null, dir: 'release', strict: true };
+  const out = { platform: null, arch: null, dir: 'release', strict: true, includePrebuilds: false };
   for (let i = 2; i < argv.length; i++) {
     const k = argv[i];
     const v = argv[i + 1];
@@ -35,9 +35,16 @@ function parseArgs(argv) {
       case '--arch':     out.arch = v; i++; break;
       case '--dir':      out.dir = v; i++; break;
       case '--no-strict': out.strict = false; break;
+      case '--include-prebuilds': out.includePrebuilds = true; break;
       case '-h':
       case '--help':
-        console.log('usage: verify-native-arch.mjs --platform <mac|win|linux> --arch <arm64|x64> [--dir release]');
+        console.log('usage: verify-native-arch.mjs --platform <mac|win|linux> --arch <arm64|x64> [--dir release] [--include-prebuilds]');
+        console.log('');
+        console.log('  --include-prebuilds   also inspect files under /prebuilds/ subdirs.');
+        console.log('                        Default: skip — packages like node-pty ship a');
+        console.log('                        multi-platform prebuild bundle and pick the');
+        console.log('                        matching one at runtime, so foreign-arch files');
+        console.log('                        under prebuilds/ are expected and benign.');
         process.exit(0);
       default:
         if (k.startsWith('--')) {
@@ -47,6 +54,16 @@ function parseArgs(argv) {
     }
   }
   return out;
+}
+
+/**
+ * True when the path is inside a `prebuilds/<platform-arch>/` subdirectory.
+ * Packages like node-pty ship multi-platform prebuilds so the same npm
+ * tarball works on Windows / macOS / Linux; only the matching prebuild
+ * is loaded at runtime. The verifier skips these by default.
+ */
+export function isPrebuildPath(p) {
+  return /[\\/]prebuilds[\\/][^\\/]+[\\/]/.test(p);
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +224,10 @@ function main() {
     process.exit(2);
   }
 
-  const nativeFiles = [...walkNativeModules(args.dir)];
+  const allFiles = [...walkNativeModules(args.dir)];
+  const skipped = args.includePrebuilds ? [] : allFiles.filter(isPrebuildPath);
+  const nativeFiles = args.includePrebuilds ? allFiles : allFiles.filter(p => !isPrebuildPath(p));
+
   if (nativeFiles.length === 0) {
     console.warn(`! no .node files found under ${args.dir} — nothing to verify`);
     if (args.strict) {
@@ -235,8 +255,11 @@ function main() {
       : r.det.arch;
     console.log(`  [${mark}] ${r.det.platform}/${archDesc.padEnd(12)} ${rel(r.path)}`);
   }
+  if (skipped.length > 0) {
+    console.log(`  (skipped ${skipped.length} file(s) under /prebuilds/ subdirs — multi-platform bundles, use --include-prebuilds to inspect)`);
+  }
   console.log('-'.repeat(100));
-  console.log(`  ${rows.length} native module(s) scanned, ${bad.length} mismatch(es)`);
+  console.log(`  ${rows.length} active native module(s) scanned, ${bad.length} mismatch(es)`);
 
   if (bad.length > 0) {
     console.error('');

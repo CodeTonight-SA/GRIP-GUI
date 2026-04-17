@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 // The verifier is an ES module (.mjs). Vitest's esbuild transform handles the
 // cross-extension import transparently.
 // @ts-expect-error - .mjs import without declaration file
-import { detectNativeArch, walkNativeModules } from '../../scripts/verify-native-arch.mjs';
+import { detectNativeArch, walkNativeModules, isPrebuildPath } from '../../scripts/verify-native-arch.mjs';
 
 // ---------------------------------------------------------------------------
 // Header builders — minimum valid bytes for each format we care about.
@@ -184,6 +184,28 @@ describe('walkNativeModules', () => {
     const nonexistent = join(tmpRoot, 'does-not-exist');
     const found = [...walkNativeModules(nonexistent)];
     expect(found).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isPrebuildPath — node-pty-style multi-platform prebuild bundles
+// ---------------------------------------------------------------------------
+
+describe('isPrebuildPath', () => {
+  it('recognises node-pty prebuilds/<platform-arch>/ paths', () => {
+    expect(isPrebuildPath('release/mac-arm64/app.asar.unpacked/node_modules/node-pty/prebuilds/win32-x64/pty.node')).toBe(true);
+    expect(isPrebuildPath('release/mac-arm64/app.asar.unpacked/node_modules/node-pty/prebuilds/darwin-arm64/pty.node')).toBe(true);
+    expect(isPrebuildPath('release/mac-arm64/app.asar.unpacked/node_modules/node-pty/prebuilds/linux-x64/conpty.node')).toBe(true);
+  });
+
+  it('does NOT match active native module paths', () => {
+    expect(isPrebuildPath('release/mac-arm64/app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node')).toBe(false);
+    expect(isPrebuildPath('release/mac-arm64/app.asar.unpacked/node_modules/node-pty/build/Release/pty.node')).toBe(false);
+    expect(isPrebuildPath('release/mac-arm64/app.asar.unpacked/node_modules/node-pty/bin/darwin-arm64-130/node-pty.node')).toBe(false);
+  });
+
+  it('handles Windows-style path separators', () => {
+    expect(isPrebuildPath('release\\mac-arm64\\node_modules\\node-pty\\prebuilds\\win32-x64\\pty.node')).toBe(true);
   });
 });
 
