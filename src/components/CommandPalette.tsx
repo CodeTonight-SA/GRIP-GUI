@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { GRIP_MODES } from '@/lib/grip-modes';
 import { GRIP_SKILLS, searchSkills } from '@/lib/grip-skills';
 import { GRIP_COMMANDS } from '@/lib/grip-commands';
+import { enqueueRunCommand } from '@/lib/palette-intent-queue';
 import { useRouter } from 'next/navigation';
 
 type Category = 'RECENT' | 'NAVIGATE' | 'COMMANDS' | 'MODES' | 'PARAMOUNT' | 'SKILLS' | 'ACTIONS' | 'HIDDEN';
@@ -71,14 +72,17 @@ export default function CommandPalette() {
     { id: 'nav-settings', label: 'Settings', description: 'Configuration', category: 'NAVIGATE', action: () => router.push('/settings') },
   ];
 
-  // Slash commands — dispatch a run intent and land on the engine view so the
-  // operator is one keystroke away from typing the command into a terminal
+  // Slash commands — enqueue the intent so ChatInterface can consume it on
+  // mount (fixes the race where dispatch fires before the listener is
+  // attached after router.push), then dispatch the event for already-mounted
+  // listeners, then route to the engine view.
   const slashCommands: CommandItem[] = GRIP_COMMANDS.map(cmd => ({
     id: `cmd-${cmd.id}`,
     label: cmd.name,
     description: cmd.description,
     category: 'COMMANDS' as Category,
     action: () => {
+      enqueueRunCommand(cmd.id, cmd.name);
       dispatchIntent('grip:run-command', cmd.id);
       router.push('/');
     },

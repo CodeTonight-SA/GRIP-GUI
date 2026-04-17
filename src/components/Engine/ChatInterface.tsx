@@ -8,6 +8,8 @@ import TypingIndicator from './TypingIndicator';
 import ThinkingIndicator from './ThinkingIndicator';
 import ToolUseBlock from './ToolUseBlock';
 import GateIndicator from './GateIndicator';
+import { GRIP_COMMANDS } from '@/lib/grip-commands';
+import { consumePendingRunCommand } from '@/lib/palette-intent-queue';
 import RetrievalTierChip from './RetrievalTierChip';
 import {
   getChatMessages,
@@ -55,9 +57,15 @@ const SUGGESTED_PROMPTS = [
 interface ChatInterfaceProps {
   chatId?: string | null;
   onModelChange?: (model: string) => void;
+  /**
+   * When false, suppresses palette-intent injection so hidden tabs don't
+   * silently collect `/save`-style text the operator only meant for the
+   * active tab. Parent (page.tsx) wires this to `tabId === activeTabId`.
+   */
+  isActive?: boolean;
 }
 
-export default function ChatInterface({ chatId, onModelChange }: ChatInterfaceProps) {
+export default function ChatInterface({ chatId, onModelChange, isActive = true }: ChatInterfaceProps) {
   const [currentChatId, setCurrentChatId] = useState<string | null>(chatId || null);
   const [messages, setMessages] = useState<GripMessage[]>([]);
   const [input, setInput] = useState('');
@@ -113,6 +121,51 @@ export default function ChatInterface({ chatId, onModelChange }: ChatInterfacePr
   useEffect(() => {
     if (chatId !== undefined) setCurrentChatId(chatId);
   }, [chatId]);
+
+  // Palette-intent injection (S1). On becoming active, drain any queued
+  // slash-command left by CommandPalette -> router.push('/'), then listen for
+  // live grip:run-command events. Hidden tabs (isActive=false) never inject.
+  //
+  // Feature flag: `localStorage.paletteExecute === 'false'` disables the whole
+  // effect — standard rollback knob. Default is on.
+  useEffect(() => {
+    if (!isActive || typeof window === 'undefined') return;
+
+    const flagOk = (() => {
+      try {
+        return localStorage.getItem('paletteExecute') !== 'false';
+      } catch {
+        return true;
+      }
+    })();
+    if (!flagOk) return;
+
+    const injectById = (id: string) => {
+      const cmd = GRIP_COMMANDS.find((c) => c.id === id);
+      if (!cmd) return;
+      const injection = `${cmd.name} `;
+      setInput((prev) => {
+        if (!prev) return injection;
+        return prev.endsWith(' ') ? `${prev}${injection}` : `${prev} ${injection}`;
+      });
+      // Defer focus so React settles the value before cursor positioning.
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+    };
+
+    // 1) Consume the queue (post-route-change mount case).
+    const pending = consumePendingRunCommand();
+    if (pending) injectById(pending.id);
+
+    // 2) Listen for same-route dispatches.
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ id?: string }>).detail;
+      if (detail && typeof detail.id === 'string') injectById(detail.id);
+    };
+    window.addEventListener('grip:run-command', handler);
+    return () => window.removeEventListener('grip:run-command', handler);
+  }, [isActive]);
   const [pastedImage, setPastedImage] = useState<{ dataUrl: string; tempPath?: string } | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const reduceMotion = useReducedMotion();
