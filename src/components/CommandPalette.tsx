@@ -354,7 +354,8 @@ export default function CommandPalette() {
  */
 async function toggleModeViaApi(modeId: string): Promise<void> {
   try {
-    const current = await getActiveModes();
+    const { modes: current, error } = await getActiveModes();
+    if (error) return; // Don't blindly overwrite on read failure
     const MAX_ACTIVE_MODES = 5;
     let next: string[];
     if (current.includes(modeId)) {

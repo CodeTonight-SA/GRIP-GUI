@@ -9,10 +9,13 @@
  * Both paths read/write the same file (~/.claude/.active-modes) so either
  * transport agrees on the authoritative state.
  *
- * Callers get an always-safe Promise<string[]> for reads (never throws,
- * returns []) and Promise<void> for writes (errors are swallowed, but
- * logged in dev). Callers that need richer error info can use the raw
- * electronAPI.grip.setModes() directly.
+ * Callers get an always-safe Promise<ModesReadResult> for reads
+ * ({ modes: string[]; error: boolean }). The `error` flag distinguishes
+ * "fetched empty" from "fetch failed" — ModeStackChip needs this for its
+ * honest-blank 'MODES —' state, CommandPalette needs it to avoid
+ * overwriting state on a read failure. Callers that don't care about
+ * error distinction can just destructure `modes` and ignore `error`.
+ * setActiveModes() returns Promise<void>; errors are swallowed silently.
  */
 
 import { isElectronEnv } from './grip-session';
@@ -33,23 +36,28 @@ function sanitise(raw: unknown): string[] {
   return raw.filter((m): m is string => typeof m === 'string');
 }
 
-export async function getActiveModes(): Promise<string[]> {
+export interface ModesReadResult {
+  modes: string[];
+  error: boolean;
+}
+
+export async function getActiveModes(): Promise<ModesReadResult> {
   const grip = gripApi();
   if (isElectronEnv() && grip?.getModes) {
     try {
       const result = await grip.getModes();
-      return sanitise(result?.modes);
+      return { modes: sanitise(result?.modes), error: false };
     } catch {
-      return [];
+      return { modes: [], error: true };
     }
   }
   try {
     const res = await fetch('/api/grip/modes');
-    if (!res.ok) return [];
+    if (!res.ok) return { modes: [], error: true };
     const data = await res.json();
-    return sanitise(data?.modes);
+    return { modes: sanitise(data?.modes), error: false };
   } catch {
-    return [];
+    return { modes: [], error: true };
   }
 }
 

@@ -48,7 +48,7 @@ export default function EnginePage() {
   useEffect(() => {
     let cancelled = false;
     const fetchModes = async () => {
-      const modes = await getActiveModes();
+      const { modes } = await getActiveModes();
       if (cancelled) return;
       setActiveModes(modes);
     };

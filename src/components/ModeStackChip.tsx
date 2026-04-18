@@ -56,11 +56,12 @@ export default function ModeStackChip({ showLabels, isMobile = false }: ModeStac
 
     // IPC-aware read: Electron uses window.electronAPI.grip.getModes(),
     // web uses fetch('/api/grip/modes'). Helper picks the right transport
-    // so the packaged build doesn't 404 (Issue #133). No-throw contract:
-    // getActiveModes() always resolves to string[] — empty on any error.
-    getActiveModes().then((modes) => {
+    // so the packaged build doesn't 404 (Issue #133). Error flag lets us
+    // distinguish "fetched empty" (render 'NO MODES') from "fetch failed"
+    // (render honest 'MODES —').
+    getActiveModes().then(({ modes, error }) => {
       if (cancelled) return;
-      setState({ status: 'ready', modes });
+      setState(error ? { status: 'error' } : { status: 'ready', modes });
     });
 
     return () => {
