@@ -14,6 +14,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '@/store';
 import { isElectronEnv } from '@/lib/grip-session';
 import { APP_VERSION } from '@/lib/app-version';
+import { getActiveModes } from '@/lib/grip-modes-client';
 import {
   getChatSessions,
   getActiveChatId,
@@ -41,25 +42,15 @@ export default function EnginePage() {
   const [activeModes, setActiveModes] = useState<string[]>([]);
   const { rightPanelCollapsed, toggleRightPanel } = useStore();
 
-  // Active-mode poll for the status bar (S2-PR2). Matches ModeStackChip's
-  // contract — GET /api/grip/modes, 30s poll. Duplicate of the chip fetch
-  // today; a shared hook is a YSH candidate once a third caller appears.
+  // Active-mode poll for the status bar (S2-PR2). Uses the surface-agnostic
+  // getActiveModes() helper (IPC in Electron, fetch on web) so the packaged
+  // app doesn't 404 on /api/grip/modes (Issue #133).
   useEffect(() => {
     let cancelled = false;
     const fetchModes = async () => {
-      try {
-        const res = await fetch('/api/grip/modes');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (cancelled) return;
-        setActiveModes(
-          Array.isArray(data?.modes)
-            ? data.modes.filter((m: unknown): m is string => typeof m === 'string')
-            : [],
-        );
-      } catch {
-        // Silent — status bar falls back to the default 'code' label.
-      }
+      const { modes } = await getActiveModes();
+      if (cancelled) return;
+      setActiveModes(modes);
     };
     fetchModes();
     const interval = setInterval(fetchModes, 30000);
@@ -204,8 +195,10 @@ export default function EnginePage() {
       <div className="h-[calc(100vh-64px)] lg:h-screen flex flex-col pb-6">
         <div className="flex-1 flex min-h-0">
 
-          {/* Chat area — left / main column */}
-          <div className="flex-1 min-w-0 flex flex-col min-h-0">
+          {/* Chat area — left / main column. `relative` anchors the absolute
+              ContextGateSlideUp so it respects the column width instead of
+              running edge-to-edge and clipping under the left sidebar (#134). */}
+          <div className="flex-1 min-w-0 flex flex-col min-h-0 relative">
 
             {/* Tab bar — only rendered when multiple tabs are open */}
             {openTabIds.length > 1 && !focusMode && (
@@ -243,12 +236,22 @@ export default function EnginePage() {
                 </div>
               </FocusMode>
             </div>
+
+            {/* Context-gate slide-up (S5) — scoped to the chat column so it
+                doesn't clip behind the left sidebar. Triggered by
+                grip:context-gate-warning events with { percent }. Renders at >= 85. */}
+            {!focusMode && <ContextGateSlideUp />}
           </div>
 
-          {/* Right Panel — sticky, collapsible, mirrors left sidebar */}
+          {/* Right Panel — collapsible, mirrors left sidebar.
+              NOTE: switched from `sticky top-0 h-screen self-start` to flex-native
+              `h-full self-stretch` so the panel respects its parent row height in
+              windowed mode. The h-screen (100vh) variant clipped / over-extended when
+              the window was smaller than the screen because the status bar + pb-6
+              reduced the row to less than 100vh. Flex stretch is the honest fit. */}
           {!focusMode && (
             <div
-              className={`hidden lg:flex shrink-0 flex-col border-l border-[var(--border)] bg-[var(--card)] sticky top-0 h-screen self-start transition-[width] duration-200 ease-in-out ${rightPanelCollapsed ? 'w-8' : 'w-[280px]'}`}
+              className={`hidden lg:flex shrink-0 flex-col border-l border-[var(--border)] bg-[var(--card)] h-full self-stretch transition-[width] duration-200 ease-in-out ${rightPanelCollapsed ? 'w-8' : 'w-[280px]'}`}
             >
               {/* Collapse / expand toggle */}
               <button
@@ -292,10 +295,6 @@ export default function EnginePage() {
           />
         )}
       </div>
-
-      {/* Context-gate slide-up (S5) — sits above the status bar, triggered by
-          grip:context-gate-warning events with { percent }. Renders at >= 85. */}
-      {!focusMode && <ContextGateSlideUp />}
 
       {/* Mobile bottom toolbar */}
       {!focusMode && <MobileToolbar />}

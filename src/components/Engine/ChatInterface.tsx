@@ -149,9 +149,20 @@ export default function ChatInterface({ chatId, onModelChange, isActive = true }
         return prev.endsWith(' ') ? `${prev}${injection}` : `${prev} ${injection}`;
       });
       // Defer focus so React settles the value before cursor positioning.
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 0);
+      // Retry on each animation frame until the ref is populated (router.push
+      // can mount the ChatInterface AFTER the palette fires, so the first
+      // frame may have a null ref). preventScroll stops the textarea focus
+      // from yanking the transcript to the bottom — user who was reading
+      // earlier history stays where they were. Issue #132.
+      const focusWhenReady = () => {
+        const textarea = inputRef.current;
+        if (textarea) {
+          textarea.focus({ preventScroll: true });
+        } else {
+          requestAnimationFrame(focusWhenReady);
+        }
+      };
+      requestAnimationFrame(focusWhenReady);
     };
 
     // 1) Consume the queue (post-route-change mount case).

@@ -85,6 +85,25 @@ html {
 }
 
 /* ============================================
+   ELECTRON WINDOW DRAG REGION
+   ============================================
+   With titleBarStyle: 'hiddenInset', the top-inset area needs an
+   explicit -webkit-app-region: drag to be draggable. Extending the
+   drag region across the whole window (with no-drag carved out for
+   interactive elements) matches how Slack, Linear, Notion, etc. behave.
+   Side-effect: fixes #v0.6.0 "can't drag the window" report.
+*/
+html, body {
+  -webkit-app-region: drag;
+}
+
+/* Interactive elements: never consume drag. */
+button, input, textarea, select, a, [role="button"], [contenteditable="true"],
+.electron-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ============================================
    DARK MODE
    ============================================ */
 .dark {

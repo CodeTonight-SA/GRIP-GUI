@@ -23,7 +23,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { AlertTriangle, Compass, Save, Zap } from 'lucide-react';
+import { AlertTriangle, Compass, Save, Zap, type LucideIcon } from 'lucide-react';
 import { isFeatureEnabled } from '@/lib/feature-flag';
 
 const WARN_EVENT = 'grip:context-gate-warning';
@@ -35,6 +35,32 @@ type Action = 'compact' | 'fresh' | 'checkpoint';
 
 interface WarnDetail {
   percent: number;
+}
+
+/**
+ * ContextGateActionButton — DRY subcomponent for the three slide-up actions.
+ * Extracted per Issue #127: the original three buttons differed only in
+ * icon, label, and action argument. Keeping the markup here (not a separate
+ * file) because it's only meaningful inside ContextGateSlideUp.
+ */
+interface ActionButtonProps {
+  action: Action;
+  icon: LucideIcon;
+  label: string;
+  onClick: (action: Action) => void;
+}
+
+function ContextGateActionButton({ action, icon: Icon, label, onClick }: ActionButtonProps) {
+  return (
+    <button
+      onClick={() => onClick(action)}
+      data-testid={`context-gate-action-${action}`}
+      className="flex items-center gap-1.5 border border-[var(--border)] px-3 py-1 font-mono text-[10px] tracking-widest text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors"
+    >
+      <Icon className="w-3 h-3" strokeWidth={1.5} aria-hidden="true" />
+      {label}
+    </button>
+  );
 }
 
 function dispatchAction(action: Action): void {
@@ -78,7 +104,7 @@ export default function ContextGateSlideUp() {
       aria-labelledby="context-gate-title"
       aria-describedby="context-gate-description"
       data-testid="context-gate-slide-up"
-      className="fixed bottom-6 left-0 right-0 z-30 border-t border-b border-[var(--danger)] bg-[var(--card)] animate-[slideUp_200ms_ease-out]"
+      className="absolute bottom-4 left-4 right-4 z-30 border border-[var(--danger)] bg-[var(--card)] shadow-lg animate-[slideUp_200ms_ease-out]"
     >
       <div className="flex items-center gap-4 px-6 py-3">
         <AlertTriangle
@@ -100,30 +126,9 @@ export default function ContextGateSlideUp() {
             pick an action before we blow the 85% ceiling.
           </span>
         </div>
-        <button
-          onClick={() => handle('compact')}
-          data-testid="context-gate-action-compact"
-          className="flex items-center gap-1.5 border border-[var(--border)] px-3 py-1 font-mono text-[10px] tracking-widest text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors"
-        >
-          <Compass className="w-3 h-3" strokeWidth={1.5} aria-hidden="true" />
-          COMPACT
-        </button>
-        <button
-          onClick={() => handle('fresh')}
-          data-testid="context-gate-action-fresh"
-          className="flex items-center gap-1.5 border border-[var(--border)] px-3 py-1 font-mono text-[10px] tracking-widest text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors"
-        >
-          <Zap className="w-3 h-3" strokeWidth={1.5} aria-hidden="true" />
-          FRESH SESSION
-        </button>
-        <button
-          onClick={() => handle('checkpoint')}
-          data-testid="context-gate-action-checkpoint"
-          className="flex items-center gap-1.5 border border-[var(--border)] px-3 py-1 font-mono text-[10px] tracking-widest text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors"
-        >
-          <Save className="w-3 h-3" strokeWidth={1.5} aria-hidden="true" />
-          CHECKPOINT
-        </button>
+        <ContextGateActionButton action="compact" icon={Compass} label="COMPACT" onClick={handle} />
+        <ContextGateActionButton action="fresh" icon={Zap} label="FRESH SESSION" onClick={handle} />
+        <ContextGateActionButton action="checkpoint" icon={Save} label="CHECKPOINT" onClick={handle} />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { GRIP_MODES } from '@/lib/grip-modes';
 import { GRIP_SKILLS, searchSkills } from '@/lib/grip-skills';
 import { GRIP_COMMANDS } from '@/lib/grip-commands';
 import { enqueueRunCommand } from '@/lib/palette-intent-queue';
+import { getActiveModes, setActiveModes } from '@/lib/grip-modes-client';
 import { useRouter } from 'next/navigation';
 
 type Category = 'RECENT' | 'NAVIGATE' | 'COMMANDS' | 'MODES' | 'PARAMOUNT' | 'SKILLS' | 'ACTIONS' | 'HIDDEN';
@@ -227,6 +228,16 @@ export default function CommandPalette() {
     }
   }, [isOpen]);
 
+  // DRY helper: every activation (Enter or click) records the recent item,
+  // fires its action, and conditionally closes the palette. MODES preset
+  // keeps the palette open so the operator can stack multiple modes without
+  // re-invoking ⌘⇧M. Extracted per Issue #126.
+  const executeCommand = useCallback((item: CommandItem) => {
+    saveRecentCommand(item.id);
+    item.action();
+    if (presetFilter !== 'MODES') close();
+  }, [presetFilter, close]);
+
   // Keyboard navigation inside the palette
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -238,15 +249,9 @@ export default function CommandPalette() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const selected = filtered[selectedIndex];
-      if (selected) {
-        saveRecentCommand(selected.id);
-        selected.action();
-        // For MODES preset we keep the palette open so the operator can stack
-        // multiple modes in a single session without re-invoking Cmd+Shift+M
-        if (presetFilter !== 'MODES') close();
-      }
+      if (selected) executeCommand(selected);
     }
-  }, [filtered, selectedIndex, presetFilter, close]);
+  }, [filtered, selectedIndex, executeCommand]);
 
   if (!isOpen) return null;
 
@@ -305,11 +310,7 @@ export default function CommandPalette() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => {
-                      saveRecentCommand(item.id);
-                      item.action();
-                      if (presetFilter !== 'MODES') close();
-                    }}
+                    onClick={() => executeCommand(item)}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
                       currentIndex === selectedIndex
                         ? 'bg-[var(--primary)]/10 text-[var(--foreground)]'
@@ -346,31 +347,26 @@ export default function CommandPalette() {
 }
 
 /**
- * Toggle an active mode via the existing /api/grip/modes endpoint without
- * depending on the modes page being mounted. Keeps the palette stateless —
- * the next GET from the modes page reflects the new selection.
+ * Toggle an active mode via getActiveModes/setActiveModes. Keeps the palette
+ * stateless — the next read from the modes page reflects the new selection.
+ * The grip-modes-client helper picks IPC (packaged Electron) or fetch (web)
+ * transparently, so this function works in both surfaces (Issue #133).
  */
 async function toggleModeViaApi(modeId: string): Promise<void> {
   try {
-    const current: string[] = await fetch('/api/grip/modes')
-      .then(res => res.json())
-      .then(data => Array.isArray(data.modes) ? data.modes : [])
-      .catch(() => []);
+    const { modes: current, error } = await getActiveModes();
+    if (error) return; // Don't blindly overwrite on read failure
     const MAX_ACTIVE_MODES = 5;
     let next: string[];
     if (current.includes(modeId)) {
-      next = current.filter(m => m !== modeId);
+      next = current.filter((m) => m !== modeId);
     } else if (current.length >= MAX_ACTIVE_MODES) {
       next = [...current.slice(1), modeId];
     } else {
       next = [...current, modeId];
     }
-    await fetch('/api/grip/modes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ modes: next }),
-    });
+    await setActiveModes(next);
   } catch {
-    // silent — matches the page's existing "silent fail" posture
+    // silent — matches the existing "silent fail" posture
   }
 }
