@@ -228,6 +228,16 @@ export default function CommandPalette() {
     }
   }, [isOpen]);
 
+  // DRY helper: every activation (Enter or click) records the recent item,
+  // fires its action, and conditionally closes the palette. MODES preset
+  // keeps the palette open so the operator can stack multiple modes without
+  // re-invoking ⌘⇧M. Extracted per Issue #126.
+  const executeCommand = useCallback((item: CommandItem) => {
+    saveRecentCommand(item.id);
+    item.action();
+    if (presetFilter !== 'MODES') close();
+  }, [presetFilter, close]);
+
   // Keyboard navigation inside the palette
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -239,15 +249,9 @@ export default function CommandPalette() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const selected = filtered[selectedIndex];
-      if (selected) {
-        saveRecentCommand(selected.id);
-        selected.action();
-        // For MODES preset we keep the palette open so the operator can stack
-        // multiple modes in a single session without re-invoking Cmd+Shift+M
-        if (presetFilter !== 'MODES') close();
-      }
+      if (selected) executeCommand(selected);
     }
-  }, [filtered, selectedIndex, presetFilter, close]);
+  }, [filtered, selectedIndex, executeCommand]);
 
   if (!isOpen) return null;
 
@@ -306,11 +310,7 @@ export default function CommandPalette() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => {
-                      saveRecentCommand(item.id);
-                      item.action();
-                      if (presetFilter !== 'MODES') close();
-                    }}
+                    onClick={() => executeCommand(item)}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
                       currentIndex === selectedIndex
                         ? 'bg-[var(--primary)]/10 text-[var(--foreground)]'
