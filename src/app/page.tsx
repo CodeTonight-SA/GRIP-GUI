@@ -245,10 +245,15 @@ export default function EnginePage() {
             </div>
           </div>
 
-          {/* Right Panel — sticky, collapsible, mirrors left sidebar */}
+          {/* Right Panel — collapsible, mirrors left sidebar.
+              NOTE: switched from `sticky top-0 h-screen self-start` to flex-native
+              `h-full self-stretch` so the panel respects its parent row height in
+              windowed mode. The h-screen (100vh) variant clipped / over-extended when
+              the window was smaller than the screen because the status bar + pb-6
+              reduced the row to less than 100vh. Flex stretch is the honest fit. */}
           {!focusMode && (
             <div
-              className={`hidden lg:flex shrink-0 flex-col border-l border-[var(--border)] bg-[var(--card)] sticky top-0 h-screen self-start transition-[width] duration-200 ease-in-out ${rightPanelCollapsed ? 'w-8' : 'w-[280px]'}`}
+              className={`hidden lg:flex shrink-0 flex-col border-l border-[var(--border)] bg-[var(--card)] h-full self-stretch transition-[width] duration-200 ease-in-out ${rightPanelCollapsed ? 'w-8' : 'w-[280px]'}`}
             >
               {/* Collapse / expand toggle */}
               <button
