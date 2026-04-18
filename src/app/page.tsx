@@ -204,8 +204,10 @@ export default function EnginePage() {
       <div className="h-[calc(100vh-64px)] lg:h-screen flex flex-col pb-6">
         <div className="flex-1 flex min-h-0">
 
-          {/* Chat area — left / main column */}
-          <div className="flex-1 min-w-0 flex flex-col min-h-0">
+          {/* Chat area — left / main column. `relative` anchors the absolute
+              ContextGateSlideUp so it respects the column width instead of
+              running edge-to-edge and clipping under the left sidebar (#134). */}
+          <div className="flex-1 min-w-0 flex flex-col min-h-0 relative">
 
             {/* Tab bar — only rendered when multiple tabs are open */}
             {openTabIds.length > 1 && !focusMode && (
@@ -243,6 +245,11 @@ export default function EnginePage() {
                 </div>
               </FocusMode>
             </div>
+
+            {/* Context-gate slide-up (S5) — scoped to the chat column so it
+                doesn't clip behind the left sidebar. Triggered by
+                grip:context-gate-warning events with { percent }. Renders at >= 85. */}
+            {!focusMode && <ContextGateSlideUp />}
           </div>
 
           {/* Right Panel — collapsible, mirrors left sidebar.
@@ -297,10 +304,6 @@ export default function EnginePage() {
           />
         )}
       </div>
-
-      {/* Context-gate slide-up (S5) — sits above the status bar, triggered by
-          grip:context-gate-warning events with { percent }. Renders at >= 85. */}
-      {!focusMode && <ContextGateSlideUp />}
 
       {/* Mobile bottom toolbar */}
       {!focusMode && <MobileToolbar />}

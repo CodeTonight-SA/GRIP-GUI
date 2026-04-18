@@ -78,7 +78,7 @@ export default function ContextGateSlideUp() {
       aria-labelledby="context-gate-title"
       aria-describedby="context-gate-description"
       data-testid="context-gate-slide-up"
-      className="fixed bottom-6 left-0 right-0 z-30 border-t border-b border-[var(--danger)] bg-[var(--card)] animate-[slideUp_200ms_ease-out]"
+      className="absolute bottom-4 left-4 right-4 z-30 border border-[var(--danger)] bg-[var(--card)] shadow-lg animate-[slideUp_200ms_ease-out]"
     >
       <div className="flex items-center gap-4 px-6 py-3">
         <AlertTriangle
