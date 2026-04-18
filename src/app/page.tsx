@@ -14,6 +14,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '@/store';
 import { isElectronEnv } from '@/lib/grip-session';
 import { APP_VERSION } from '@/lib/app-version';
+import { getActiveModes } from '@/lib/grip-modes-client';
 import {
   getChatSessions,
   getActiveChatId,
@@ -41,25 +42,15 @@ export default function EnginePage() {
   const [activeModes, setActiveModes] = useState<string[]>([]);
   const { rightPanelCollapsed, toggleRightPanel } = useStore();
 
-  // Active-mode poll for the status bar (S2-PR2). Matches ModeStackChip's
-  // contract — GET /api/grip/modes, 30s poll. Duplicate of the chip fetch
-  // today; a shared hook is a YSH candidate once a third caller appears.
+  // Active-mode poll for the status bar (S2-PR2). Uses the surface-agnostic
+  // getActiveModes() helper (IPC in Electron, fetch on web) so the packaged
+  // app doesn't 404 on /api/grip/modes (Issue #133).
   useEffect(() => {
     let cancelled = false;
     const fetchModes = async () => {
-      try {
-        const res = await fetch('/api/grip/modes');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (cancelled) return;
-        setActiveModes(
-          Array.isArray(data?.modes)
-            ? data.modes.filter((m: unknown): m is string => typeof m === 'string')
-            : [],
-        );
-      } catch {
-        // Silent — status bar falls back to the default 'code' label.
-      }
+      const modes = await getActiveModes();
+      if (cancelled) return;
+      setActiveModes(modes);
     };
     fetchModes();
     const interval = setInterval(fetchModes, 30000);

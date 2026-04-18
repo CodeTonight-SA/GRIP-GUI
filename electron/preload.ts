@@ -661,6 +661,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Multi-session — create a new independent workspace window
     createSession: () =>
       ipcRenderer.invoke('grip:createSession'),
+
+    // Active modes — IPC replacement for /api/grip/modes (Issue #133).
+    // The packaged static export strips API routes; these handlers read/
+    // write ~/.claude/.active-modes directly from the main process.
+    getModes: () =>
+      ipcRenderer.invoke('grip:getModes') as Promise<{ modes: string[] }>,
+    setModes: (modes: string[]) =>
+      ipcRenderer.invoke('grip:setModes', modes) as Promise<{ modes?: string[]; saved?: boolean; error?: string }>,
   },
 
   // Temp file operations (for clipboard image paste)

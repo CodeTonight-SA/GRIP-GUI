@@ -6,6 +6,7 @@ import { GRIP_MODES } from '@/lib/grip-modes';
 import { GRIP_SKILLS, searchSkills } from '@/lib/grip-skills';
 import { GRIP_COMMANDS } from '@/lib/grip-commands';
 import { enqueueRunCommand } from '@/lib/palette-intent-queue';
+import { getActiveModes, setActiveModes } from '@/lib/grip-modes-client';
 import { useRouter } from 'next/navigation';
 
 type Category = 'RECENT' | 'NAVIGATE' | 'COMMANDS' | 'MODES' | 'PARAMOUNT' | 'SKILLS' | 'ACTIONS' | 'HIDDEN';
@@ -346,31 +347,25 @@ export default function CommandPalette() {
 }
 
 /**
- * Toggle an active mode via the existing /api/grip/modes endpoint without
- * depending on the modes page being mounted. Keeps the palette stateless —
- * the next GET from the modes page reflects the new selection.
+ * Toggle an active mode via getActiveModes/setActiveModes. Keeps the palette
+ * stateless — the next read from the modes page reflects the new selection.
+ * The grip-modes-client helper picks IPC (packaged Electron) or fetch (web)
+ * transparently, so this function works in both surfaces (Issue #133).
  */
 async function toggleModeViaApi(modeId: string): Promise<void> {
   try {
-    const current: string[] = await fetch('/api/grip/modes')
-      .then(res => res.json())
-      .then(data => Array.isArray(data.modes) ? data.modes : [])
-      .catch(() => []);
+    const current = await getActiveModes();
     const MAX_ACTIVE_MODES = 5;
     let next: string[];
     if (current.includes(modeId)) {
-      next = current.filter(m => m !== modeId);
+      next = current.filter((m) => m !== modeId);
     } else if (current.length >= MAX_ACTIVE_MODES) {
       next = [...current.slice(1), modeId];
     } else {
       next = [...current, modeId];
     }
-    await fetch('/api/grip/modes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ modes: next }),
-    });
+    await setActiveModes(next);
   } catch {
-    // silent — matches the page's existing "silent fail" posture
+    // silent — matches the existing "silent fail" posture
   }
 }

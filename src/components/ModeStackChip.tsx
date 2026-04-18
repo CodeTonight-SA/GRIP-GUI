@@ -16,6 +16,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Layers } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { isFeatureEnabled } from '@/lib/feature-flag';
+import { getActiveModes } from '@/lib/grip-modes-client';
 
 const OPEN_PALETTE_EVENT = 'grip:open-palette';
 const FLAG_KEY = 'sidebarShowModeChip';
@@ -53,22 +54,14 @@ export default function ModeStackChip({ showLabels, isMobile = false }: ModeStac
     if (!flagEnabled) return;
     let cancelled = false;
 
-    fetch('/api/grip/modes')
-      .then((res) => {
-        if (!res.ok) throw new Error(`status ${res.status}`);
-        return res.json();
-      })
-      .then((data: unknown) => {
-        if (cancelled) return;
-        const modes =
-          data && typeof data === 'object' && 'modes' in data && Array.isArray((data as { modes: unknown }).modes)
-            ? ((data as { modes: string[] }).modes.filter((m): m is string => typeof m === 'string'))
-            : [];
-        setState({ status: 'ready', modes });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ status: 'error' });
-      });
+    // IPC-aware read: Electron uses window.electronAPI.grip.getModes(),
+    // web uses fetch('/api/grip/modes'). Helper picks the right transport
+    // so the packaged build doesn't 404 (Issue #133). No-throw contract:
+    // getActiveModes() always resolves to string[] — empty on any error.
+    getActiveModes().then((modes) => {
+      if (cancelled) return;
+      setState({ status: 'ready', modes });
+    });
 
     return () => {
       cancelled = true;

@@ -543,4 +543,46 @@ export function registerGripEngineHandlers() {
     const win = createWindow(workspaceId);
     return { success: true, workspaceId, windowId: win.id };
   });
+
+  /**
+   * Read active GRIP modes from ~/.claude/.active-modes.
+   * IPC equivalent of /api/grip/modes GET — needed because the packaged
+   * static export strips server-side API routes (Issue #133).
+   * Same file contract as the Next.js route: newline-separated mode IDs.
+   */
+  ipcMain.handle('grip:getModes', async () => {
+    const fs = await import('fs/promises');
+    const activeModesFile = path.join(os.homedir(), '.claude', '.active-modes');
+    try {
+      const content = await fs.readFile(activeModesFile, 'utf-8');
+      return { modes: content.trim().split('\n').filter(Boolean) };
+    } catch {
+      return { modes: [] };
+    }
+  });
+
+  /**
+   * Write active GRIP modes to ~/.claude/.active-modes.
+   * IPC equivalent of /api/grip/modes POST. Same validation rules as the
+   * Next.js route (max 3 modes, alphanumeric+hyphens only) so either
+   * transport layer enforces identical guarantees.
+   */
+  ipcMain.handle('grip:setModes', async (_event, modes: string[]) => {
+    if (!Array.isArray(modes) || modes.length > 3) {
+      return { error: 'Invalid modes (max 3)' };
+    }
+    for (const mode of modes) {
+      if (typeof mode !== 'string' || !/^[a-z0-9-]+$/.test(mode)) {
+        return { error: `Invalid mode ID: ${mode}` };
+      }
+    }
+    const fs = await import('fs/promises');
+    const activeModesFile = path.join(os.homedir(), '.claude', '.active-modes');
+    try {
+      await fs.writeFile(activeModesFile, modes.join('\n') + '\n', 'utf-8');
+      return { modes, saved: true };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Write failed' };
+    }
+  });
 }
