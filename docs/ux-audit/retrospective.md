@@ -29,7 +29,7 @@
 |---|---|
 | **Rave-mode on wave completion** (#32) | Ceremony-bias — delights once, annoys forever. Devil's-advocate kill. Re-introducible behind flag as opt-in v0.6 "ceremony bundle". |
 | **Handoff-chime UI wiring** (#33) | Same as rave — sound is intrusive by default. Could work as opt-in. |
-| **Easter eggs #36 / #7 / #8** | Low leverage. Insider jokes don't convert new operators. |
+| **Easter eggs #36 / #7 / #8** | De-scoped (not killed). Didn't make the top-5 cut for Phase 2 shipping. Insider delight is a legitimate goal — re-add any time, they compose additively with the shipped surfaces. |
 | **v0.5.0 walkthrough video PR #128** | Scope mismatch — targeted v0.5.0-specific content when "explain GRIP" was the actual follow-on ask. Killed after QA; pivoted into `/remotion-video-creation` v2.0.0 skill improvement with a Phase 0 scope gate. |
 
 ## Lessons — what to keep doing
