@@ -95,7 +95,7 @@ export function useVoice(onTranscript: TranscriptCallback, onError?: (msg: strin
 }
 
 export function speakText(text: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
@@ -140,7 +140,7 @@ let currentAudio: HTMLAudioElement | null = null;
 
 export function stopSpeaking(): void {
   if (typeof window === 'undefined') return;
-  window.speechSynthesis.cancel();
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.src = '';
@@ -206,6 +206,10 @@ export async function speakCloud(
     await audio.play();
   } catch (err) {
     console.warn('[speakCloud] fallback to system voice:', err);
+    if (typeof window === 'undefined' || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+      onEnd?.();
+      return;
+    }
     const utter = new SpeechSynthesisUtterance(cleaned);
     utter.onstart = () => onStart?.();
     utter.onend = () => onEnd?.();
