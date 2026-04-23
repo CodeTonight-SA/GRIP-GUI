@@ -17,7 +17,12 @@ export async function POST(req: NextRequest) {
 
   const buf = Buffer.from(await file.arrayBuffer());
   const base64 = buf.toString('base64');
-  const mime = file.type || 'audio/webm';
+  // Gemini's MIME validator does not document whether it strips the
+  // ;codecs= parameter before matching, and Google's own docs disagree
+  // on whether audio/webm is in the allow-list. MediaRecorder in Chromium
+  // emits "audio/webm;codecs=opus" — strip the parameter so we send the
+  // plain base MIME and avoid the 200-with-empty-transcript black hole.
+  const mime = (file.type || 'audio/webm').split(';')[0].trim() || 'audio/webm';
 
   const res = await fetch(`${GEMINI_URL}?key=${key}`, {
     method: 'POST',

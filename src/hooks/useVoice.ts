@@ -45,7 +45,9 @@ export function useVoice(onTranscript: TranscriptCallback, onError?: (msg: strin
         setIsListening(false);
 
         const blob = new Blob(chunksRef.current, { type: mime });
-        if (blob.size < 1000) {
+        // 200 bytes is roughly a ~0.1s WebM/Opus frame. The previous 1000
+        // floor silently dropped valid sub-0.5s utterances.
+        if (blob.size < 200) {
           onError?.('No audio captured');
           return;
         }
@@ -58,8 +60,12 @@ export function useVoice(onTranscript: TranscriptCallback, onError?: (msg: strin
           const json = await res.json();
           if (!res.ok || json.error) {
             onError?.(json.error || `Transcribe failed: ${res.status}`);
-          } else if (json.text) {
-            onTranscript(json.text, true);
+          } else if (json.text?.trim()) {
+            onTranscript(json.text.trim(), true);
+          } else {
+            // Gemini returned 200 with empty text — surface it instead of
+            // failing silently (Laurie's review: black-hole failure mode).
+            onError?.('No speech detected — try speaking closer to the mic or for longer.');
           }
         } catch (err) {
           onError?.(err instanceof Error ? err.message : 'Transcribe request failed');
