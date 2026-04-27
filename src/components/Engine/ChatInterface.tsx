@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, type ClipboardEvent, type DragEvent } from 'react';
-import { Send, Sparkles, Square, X, Image as ImageIcon, ArrowDown } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, useMemo, type ClipboardEvent, type DragEvent } from 'react';
+import { Send, Sparkles, Square, X, Image as ImageIcon, ArrowDown, Mic, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { sendToGrip, filterResponseMetadata, detectGateInText, type GripMessage, type GripMetrics, type ToolUseEvent, type ToolResultEvent, type GateEvent } from '@/lib/grip-session';
 import TypingIndicator from './TypingIndicator';
@@ -24,6 +24,11 @@ import {
 } from '@/lib/chat-storage';
 import MarkdownContent from './MarkdownContent';
 import ModelSelector from './ModelSelector';
+import { speakCloud, stopSpeaking } from '@/hooks/useVoice';
+import VoiceConversation from './VoiceConversation';
+
+const AUTO_SPEAK_KEY = 'grip.voice.autoSpeak';
+const VOICE_ID_KEY = 'grip.voice.geminiVoice';
 
 // Module-level: tracks active streams across component mount/unmount cycles.
 // Enables session persistence when user switches tabs during streaming.
@@ -179,6 +184,11 @@ export default function ChatInterface({ chatId, onModelChange, isActive = true }
   }, [isActive]);
   const [pastedImage, setPastedImage] = useState<{ dataUrl: string; tempPath?: string } | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [pendingVoiceSend, setPendingVoiceSend] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const spokenIdsRef = useRef<Set<string>>(new Set());
+  const autoSpeakDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduceMotion = useReducedMotion();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -517,6 +527,88 @@ export default function ChatInterface({ chatId, onModelChange, isActive = true }
     e.preventDefault();
     setIsDragOver(false);
   }, []);
+ 
+  const handleVoiceTranscript = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setInput(trimmed);
+    setPendingVoiceSend(true);
+  }, []);
+
+  useEffect(() => {
+    if (pendingVoiceSend && input.trim() && !isStreaming) {
+      setPendingVoiceSend(false);
+      handleSend();
+    }
+  }, [pendingVoiceSend, input, isStreaming, handleSend]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setAutoSpeak(localStorage.getItem(AUTO_SPEAK_KEY) === '1');
+  }, []);
+
+  // Auto-speak newly completed assistant messages when the toggle is on.
+  // Fires immediately on streaming=false; otherwise debounces on content
+  // changes so messages paused mid-flight (e.g. awaiting a tool-permission
+  // gate) still get spoken after a short period of quiescence.
+  useEffect(() => {
+    if (!autoSpeak || voiceOpen) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant' || !last.content) return;
+    if (spokenIdsRef.current.has(last.id)) return;
+
+    const idSnapshot = last.id;
+    const contentSnapshot = last.content;
+    const speak = () => {
+      if (spokenIdsRef.current.has(idSnapshot)) return;
+      spokenIdsRef.current.add(idSnapshot);
+      const voice = localStorage.getItem(VOICE_ID_KEY) || 'Aoede';
+      speakCloud(contentSnapshot, voice);
+    };
+
+    if (autoSpeakDebounceRef.current) clearTimeout(autoSpeakDebounceRef.current);
+    if (!last.streaming) {
+      speak();
+    } else {
+      autoSpeakDebounceRef.current = setTimeout(speak, 2500);
+    }
+
+    return () => {
+      if (autoSpeakDebounceRef.current) {
+        clearTimeout(autoSpeakDebounceRef.current);
+        autoSpeakDebounceRef.current = null;
+      }
+    };
+  }, [autoSpeak, voiceOpen, messages]);
+
+  // When the toggle flips ON, mark existing assistant messages as already
+  // spoken — the user expects auto-speak to apply to FUTURE replies, not
+  // replay the whole history.
+  useEffect(() => {
+    if (!autoSpeak) return;
+    for (const m of messages) {
+      if (m.role === 'assistant' && !m.streaming) spokenIdsRef.current.add(m.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSpeak]);
+
+  const toggleAutoSpeak = useCallback(() => {
+    setAutoSpeak((prev) => {
+      const next = !prev;
+      localStorage.setItem(AUTO_SPEAK_KEY, next ? '1' : '0');
+      if (!next) stopSpeaking();
+      return next;
+    });
+  }, []);
+
+  const lastAssistantMessage = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant') {
+        return { content: messages[i].content, streaming: !!messages[i].streaming };
+      }
+    }
+    return null;
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-full">
@@ -695,6 +787,11 @@ export default function ChatInterface({ chatId, onModelChange, isActive = true }
                     <span className="font-mono text-[10px] tracking-wider text-[var(--muted-foreground)]">
                       {msg.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </span>
+                    {msg.role === 'assistant' && !msg.streaming && msg.content && (
+                      <button type="button" onClick={() => speakCloud(msg.content, localStorage.getItem(VOICE_ID_KEY) || 'Aoede')} aria-label="Speak message" className="text-[var(--muted-foreground)] opacity-40 hover:opacity-100 hover:text-[var(--primary)] transition-opacity">
+                        <Volume2 className="w-3 h-3" />
+                      </button>
+                    )}
                     {msg.metrics && (
                       <>
                         {msg.metrics.totalDurationMs && (
@@ -818,7 +915,30 @@ export default function ChatInterface({ chatId, onModelChange, isActive = true }
                 </button>
               )}
             </div>
-            {isStreaming ? (
+            <button
+              type="button"
+              onClick={toggleAutoSpeak}
+              aria-label={autoSpeak ? 'Disable auto-speak' : 'Enable auto-speak'}
+              title={autoSpeak ? 'Auto-speak: ON (replies will be read aloud)' : 'Auto-speak: OFF'}
+              className={`p-3 min-h-[48px] min-w-[48px] flex items-center justify-center border transition-colors ${
+                autoSpeak
+                  ? 'bg-[var(--primary)] border-[var(--primary)] text-[var(--primary-foreground)]'
+                  : 'bg-[var(--card)] border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]'
+              }`}
+            >
+              {autoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setVoiceOpen(true)}
+              disabled={isStreaming}
+              aria-label="Open voice mode"
+              title="Voice conversation"
+              className="p-3 min-h-[48px] min-w-[48px] flex items-center justify-center border bg-[var(--card)] border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors disabled:opacity-30"
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+          {isStreaming ? (
               <button
                 onClick={handleStop}
                 className="bg-[var(--danger)] text-white p-3 min-h-[48px] min-w-[48px] flex items-center justify-center hover:opacity-90 transition-opacity"
@@ -861,6 +981,12 @@ export default function ChatInterface({ chatId, onModelChange, isActive = true }
           </div>
         </div>
       </div>
+      <VoiceConversation
+        open={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onTranscript={handleVoiceTranscript}
+        assistantMessage={lastAssistantMessage}
+      />
     </div>
   );
 }
