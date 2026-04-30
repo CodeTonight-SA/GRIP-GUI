@@ -12,6 +12,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { applyTheme, getTheme, DEFAULT_THEME } from '@/lib/themes';
 import KeyboardToast, { showKeyboardToast } from './KeyboardToast';
 import FPSCounter from './FPSCounter';
+import { initSessionBridge } from '@/lib/session-bridge';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -155,6 +156,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }, 350);
     return () => clearTimeout(timer);
   }, [theme]);
+
+  // Bootstrap the IPC session store on first mount. Idempotent — safe to call
+  // even when not in Electron (no-op there). Migrates existing localStorage
+  // session metadata into ~/.grip/sessions.json the first time, then keeps
+  // localStorage in sync with cross-window mutations via session:changed.
+  useEffect(() => {
+    initSessionBridge().catch((err) => {
+      console.warn('[GRIP] Session bridge init failed:', err);
+    });
+  }, []);
 
   // Global vault unread badge: listen for new documents even when VaultView is not mounted
   useEffect(() => {
