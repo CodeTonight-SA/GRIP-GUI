@@ -26,8 +26,9 @@ export default function LearnPage() {
         </p>
       </div>
 
-      {/* Vortex Hero */}
-      <div className="mb-8 border border-[var(--border)] overflow-hidden">
+      {/* Vortex Hero — pointer-events-none lets page scroll pass through the
+          OrbitControls wheel capture; the canvas is decorative-only on /learn. */}
+      <div className="mb-8 border border-[var(--border)] overflow-hidden pointer-events-none">
         <VortexScene height={300} autoRotate showLabels={false} />
       </div>
 
