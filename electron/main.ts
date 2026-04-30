@@ -130,6 +130,7 @@ import { registerKanbanHandlers } from './handlers/kanban-handlers';
 import { registerVaultHandlers } from './handlers/vault-handlers';
 import { registerWorldHandlers } from './handlers/world-handlers';
 import { registerGripEngineHandlers } from './handlers/grip-engine-handlers';
+import { registerSessionHandlers } from './handlers/session-handlers';
 import { initVaultDb, closeVaultDb } from './services/vault-db';
 // Auto-updater disabled — was pointing to Dorothy GitHub (Charlie85270/Dorothy)
 // TODO: Re-enable with GRIP-specific update mechanism (CodeTonight-SA/GRIP-GUI)
@@ -507,6 +508,11 @@ app.whenReady().then(async () => {
   // Register world (generative zone) handlers
   registerWorldHandlers({ getMainWindow });
   registerGripEngineHandlers();
+
+  // Register session-store handlers (per-session modes + cross-window state sync).
+  // Initialises the in-memory cache from ~/.grip/sessions.json on first call.
+  // Mutations broadcast session:changed to all workspace windows.
+  registerSessionHandlers();
 
   // Initialize kanban automation service
   initKanbanAutomation({

@@ -14,6 +14,27 @@ type AgentEventCallback = (event: {
 type PtyDataCallback = (event: { id: string; data: string }) => void;
 type PtyExitCallback = (event: { id: string; exitCode: number }) => void;
 
+// Session store types — mirrors PersistedSession + SessionStoreFile from
+// electron/services/session-store.ts. Duplicated rather than imported because
+// preload runs in renderer-side context and cannot share electron-internal types.
+interface SessionRecord {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+  model: string;
+  sessionId?: string;
+  modes: string[];
+}
+
+interface SessionStoreSnapshot {
+  version: 1;
+  sessions: SessionRecord[];
+  activeSessionId: string | null;
+  openTabIds: string[];
+}
+
 // Expose protected APIs to renderer
 contextBridge.exposeInMainWorld('electronAPI', {
   // PTY terminal management
@@ -669,6 +690,44 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('grip:getModes') as Promise<{ modes: string[] }>,
     setModes: (modes: string[]) =>
       ipcRenderer.invoke('grip:setModes', modes) as Promise<{ modes?: string[]; saved?: boolean; error?: string }>,
+  },
+
+  // Session store (per-session modes + cross-window state sync, Issue: ADR per-session-modes-cross-window).
+  // Source of truth lives in main process at ~/.grip/sessions.json. Mutations broadcast
+  // session:changed to all workspace windows so multi-window state stays in sync.
+  session: {
+    list: () =>
+      ipcRenderer.invoke('session:list') as Promise<{ sessions: SessionRecord[] }>,
+    store: () =>
+      ipcRenderer.invoke('session:store') as Promise<SessionStoreSnapshot>,
+    active: () =>
+      ipcRenderer.invoke('session:active') as Promise<{ activeSessionId: string | null; openTabIds: string[] }>,
+    create: (params: { model?: string }) =>
+      ipcRenderer.invoke('session:create', params) as Promise<{ session: SessionRecord; store: SessionStoreSnapshot }>,
+    setActive: (params: { id: string | null }) =>
+      ipcRenderer.invoke('session:setActive', params) as Promise<{ store: SessionStoreSnapshot }>,
+    setModes: (params: { id: string; modes: string[] }) =>
+      ipcRenderer.invoke('session:setModes', params) as Promise<{ store: SessionStoreSnapshot }>,
+    setOpenTabs: (params: { ids: string[] }) =>
+      ipcRenderer.invoke('session:setOpenTabs', params) as Promise<{ store: SessionStoreSnapshot }>,
+    close: (params: { id: string }) =>
+      ipcRenderer.invoke('session:close', params) as Promise<{ store: SessionStoreSnapshot }>,
+    rename: (params: { id: string; title: string }) =>
+      ipcRenderer.invoke('session:rename', params) as Promise<{ store: SessionStoreSnapshot }>,
+    updateMeta: (params: { id: string; meta: Partial<{ messageCount: number; sessionId: string; model: string; title: string }> }) =>
+      ipcRenderer.invoke('session:updateMeta', params) as Promise<{ store: SessionStoreSnapshot }>,
+    importLegacy: (payload: {
+      sessions: Array<SessionRecord & { modes?: string[] }>;
+      activeSessionId: string | null;
+      openTabIds: string[];
+      globalModes: string[];
+    }) =>
+      ipcRenderer.invoke('session:importLegacy', payload) as Promise<{ store: SessionStoreSnapshot; imported: boolean }>,
+    onChanged: (callback: (store: SessionStoreSnapshot) => void) => {
+      const listener = (_: unknown, store: SessionStoreSnapshot) => callback(store);
+      ipcRenderer.on('session:changed', listener);
+      return () => ipcRenderer.removeListener('session:changed', listener);
+    },
   },
 
   // Temp file operations (for clipboard image paste)
