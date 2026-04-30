@@ -219,31 +219,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return unsub;
   }, []);
 
-  // Persist rightPanelCollapsed to localStorage (same pattern as sidebarCollapsed above).
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const stored = window.localStorage.getItem('grip.rightPanelCollapsed');
-      if (stored !== null) {
-        const parsed = stored === 'true';
-        if (parsed !== useStore.getState().rightPanelCollapsed) {
-          useStore.setState({ rightPanelCollapsed: parsed });
-        }
-      }
-    } catch {
-      // localStorage unavailable — ignore, use in-memory default
-    }
-    const unsub = useStore.subscribe((state, prev) => {
-      if (state.rightPanelCollapsed !== prev.rightPanelCollapsed) {
-        try {
-          window.localStorage.setItem('grip.rightPanelCollapsed', String(state.rightPanelCollapsed));
-        } catch {
-          // ignore write failures
-        }
-      }
-    });
-    return unsub;
-  }, []);
 
   const mainMarginLeft = isMobile ? 0 : (sidebarCollapsed ? 72 : 240);
 
@@ -277,14 +252,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         return;
       }
 
-      // Cmd+Shift+B = toggle right context panel — checked before Cmd+B to avoid shadowing
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'b' || e.key === 'B')) {
-        e.preventDefault();
-        useStore.getState().toggleRightPanel();
-        const collapsed = useStore.getState().rightPanelCollapsed;
-        showKeyboardToast('\u2318\u21E7B', collapsed ? 'CONTEXT COLLAPSED' : 'CONTEXT EXPANDED');
-        return;
-      }
 
       // Cmd+B = toggle sidebar (VS Code convention) — must be before modifier guard
       if ((e.metaKey || e.ctrlKey) && (e.key === 'b' || e.key === 'B')) {

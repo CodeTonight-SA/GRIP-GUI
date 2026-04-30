@@ -37,7 +37,7 @@ export default function ChatTabBar({
   }, [openTabIds]);
 
   return (
-    <div className="flex items-stretch border-b border-[var(--border)] bg-[var(--card)] overflow-x-auto shrink-0 min-h-[32px]">
+    <div className="flex items-stretch border-b border-[var(--border)] bg-[var(--card)] overflow-x-auto shrink-0 min-h-[40px]">
       {openTabIds.map((id) => {
         const session = sessionMap[id];
         const title = session?.title ?? 'New Chat';
@@ -53,9 +53,9 @@ export default function ChatTabBar({
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTabSelect(id); }
             }}
-            className={`flex items-center gap-1.5 px-3 shrink-0 cursor-pointer border-r border-[var(--border)] transition-colors select-none group max-w-[160px] min-w-[80px] ${
+            className={`relative flex items-center gap-1.5 px-3 shrink-0 cursor-pointer border-r border-[var(--border)] transition-colors select-none group max-w-[160px] min-w-[80px] ${
               isActive
-                ? 'bg-[var(--background)] text-[var(--foreground)] border-b-2 border-b-[var(--primary)] -mb-px'
+                ? 'bg-[var(--background)] text-[var(--foreground)] after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-[var(--primary)] after:pointer-events-none'
                 : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)]'
             }`}
           >

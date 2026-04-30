@@ -628,9 +628,9 @@ button, a, input, textarea, select {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Ensure minimum 48px touch targets on mobile */
+/* Ensure minimum 44px touch targets on mobile (WCAG 2.5.5, Apple HIG) */
 @media (max-width: 1023px) {
-  button, a, [role="button"] {
+  button, a, [role="button"], [role="tab"] {
     min-height: 44px;
     min-width: 44px;
   }

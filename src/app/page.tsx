@@ -1,8 +1,6 @@
 'use client';
 
 import ChatInterface from '@/components/Engine/ChatInterface';
-import ContextPanel from '@/components/Engine/ContextPanel';
-import ChatHistory from '@/components/Engine/ChatHistory';
 import GripStatusBar from '@/components/Engine/GripStatusBar';
 import FocusMode from '@/components/Engine/FocusMode';
 import WelcomeAnimation from '@/components/Engine/WelcomeAnimation';
@@ -10,8 +8,6 @@ import MobileToolbar from '@/components/Engine/MobileToolbar';
 import ChatTabBar from '@/components/Engine/ChatTabBar';
 import ContextGateSlideUp from '@/components/Engine/ContextGateSlideUp';
 import { useState, useCallback, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useStore } from '@/store';
 import { isElectronEnv } from '@/lib/grip-session';
 import { APP_VERSION } from '@/lib/app-version';
 import { getActiveModes } from '@/lib/grip-modes-client';
@@ -40,7 +36,6 @@ export default function EnginePage() {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [health, setHealth] = useState<HealthData>({ skillCount: 5, generation: 33, fitness: 0.467 });
   const [activeModes, setActiveModes] = useState<string[]>([]);
-  const { rightPanelCollapsed, toggleRightPanel } = useStore();
 
   // Active-mode poll for the status bar (S2-PR2). Uses the surface-agnostic
   // getActiveModes() helper (IPC in Electron, fetch on web) so the packaged
@@ -129,20 +124,6 @@ export default function EnginePage() {
   const handleWelcomeComplete = useCallback(() => setShowWelcome(false), []);
   const handleFocusToggle = useCallback((focused: boolean) => setFocusMode(focused), []);
 
-  // Called from ChatHistory when the user clicks a past session —
-  // opens it as a new tab, or switches to an already-open tab.
-  const handleSessionChange = useCallback((chatId: string) => {
-    setOpenTabIdsState(prev => {
-      if (prev.includes(chatId)) {
-        setActiveTabId(chatId);
-        return prev;
-      }
-      const next = prev.length >= MAX_TABS ? prev : [...prev, chatId];
-      setActiveTabId(chatId);
-      return next;
-    });
-  }, []);
-
   const handleNewTab = useCallback(() => {
     setOpenTabIdsState(prev => {
       if (prev.length >= MAX_TABS) return prev;
@@ -151,9 +132,6 @@ export default function EnginePage() {
       return [...prev, session.id];
     });
   }, [model]);
-
-  // ChatHistory's onNewChat — same as opening a new tab
-  const handleNewChat = useCallback(() => handleNewTab(), [handleNewTab]);
 
   const handleTabClose = useCallback((id: string) => {
     setOpenTabIdsState(prev => {
@@ -243,46 +221,6 @@ export default function EnginePage() {
             {!focusMode && <ContextGateSlideUp />}
           </div>
 
-          {/* Right Panel — collapsible, mirrors left sidebar.
-              NOTE: switched from `sticky top-0 h-screen self-start` to flex-native
-              `h-full self-stretch` so the panel respects its parent row height in
-              windowed mode. The h-screen (100vh) variant clipped / over-extended when
-              the window was smaller than the screen because the status bar + pb-6
-              reduced the row to less than 100vh. Flex stretch is the honest fit. */}
-          {!focusMode && (
-            <div
-              className={`hidden lg:flex shrink-0 flex-col border-l border-[var(--border)] bg-[var(--card)] h-full self-stretch transition-[width] duration-200 ease-in-out ${rightPanelCollapsed ? 'w-8' : 'w-[280px]'}`}
-            >
-              {/* Collapse / expand toggle */}
-              <button
-                onClick={toggleRightPanel}
-                title={rightPanelCollapsed ? 'Expand context panel (\u2318\u21E7B)' : 'Collapse context panel (\u2318\u21E7B)'}
-                className="flex items-center justify-center h-8 w-full shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] border-b border-[var(--border)] transition-colors"
-              >
-                {rightPanelCollapsed
-                  ? <ChevronLeft className="w-3 h-3" strokeWidth={1.5} />
-                  : <ChevronRight className="w-3 h-3" strokeWidth={1.5} />}
-              </button>
-
-              {!rightPanelCollapsed && (
-                <>
-                  <div className="flex-1 min-h-0 overflow-y-auto">
-                    <ContextPanel />
-                  </div>
-                  <div className="h-[240px] shrink-0 border-t border-[var(--border)] p-3 overflow-hidden">
-                    <span className="grip-label block mb-2">HISTORY</span>
-                    <div className="h-[calc(100%-24px)]">
-                      <ChatHistory
-                        onSessionChange={handleSessionChange}
-                        onNewChat={handleNewChat}
-                        currentModel={model}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         {!focusMode && (
