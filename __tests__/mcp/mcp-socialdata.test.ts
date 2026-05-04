@@ -210,7 +210,7 @@ function formatTweetDetail(tweet: TweetDetail): string {
   if (tweet.entities.user_mentions && tweet.entities.user_mentions.length > 0) {
     parts.push(`\nMentions: ${tweet.entities.user_mentions.map(m => `@${m.screen_name}`).join(', ')}`);
   }
-  parts.push(`\nAuthor: @${tweet.user.screen_name} — ${tweet.user.followers_count.toLocaleString()} followers, ${tweet.user.friends_count.toLocaleString()} following`);
+  parts.push(`\nAuthor: @${tweet.user.screen_name} — ${tweet.user.followers_count.toLocaleString('en-US')} followers, ${tweet.user.friends_count.toLocaleString('en-US')} following`);
 
   return parts.join('\n');
 }
@@ -227,11 +227,11 @@ function formatUserProfile(user: UserProfile): string {
     `🔗 URL: ${user.url || 'None'}`,
     `📅 Joined: ${user.created_at}`,
     '',
-    `👥 Followers: ${user.followers_count.toLocaleString()}`,
-    `👤 Following: ${user.friends_count.toLocaleString()}`,
-    `📝 Tweets: ${user.statuses_count.toLocaleString()}`,
-    `❤️ Likes: ${user.favourites_count.toLocaleString()}`,
-    `📋 Listed: ${user.listed_count.toLocaleString()}`,
+    `👥 Followers: ${user.followers_count.toLocaleString('en-US')}`,
+    `👤 Following: ${user.friends_count.toLocaleString('en-US')}`,
+    `📝 Tweets: ${user.statuses_count.toLocaleString('en-US')}`,
+    `❤️ Likes: ${user.favourites_count.toLocaleString('en-US')}`,
+    `📋 Listed: ${user.listed_count.toLocaleString('en-US')}`,
     '',
     `Protected: ${user.protected ? 'Yes' : 'No'}`,
     `Verified: ${user.verified ? 'Yes' : 'No'}`,
@@ -564,6 +564,32 @@ describe('mcp-socialdata', () => {
       expect(text).toContain('200 following');
     });
 
+    // Regression: issue #136 — toLocaleString() without explicit locale used the
+    // system default, which renders thousands separators as non-breaking spaces
+    // on many CI / non-en-US machines (e.g. '1 500 000' instead of '1,500,000').
+    // Pinning to 'en-US' makes output deterministic.
+    it('renders thousands with en-US comma separators regardless of system locale', () => {
+      const tweet = makeTweetDetail({
+        user: {
+          id_str: '999',
+          name: 'Locale Test',
+          screen_name: 'localetest',
+          description: 'desc',
+          followers_count: 2_000_000,
+          friends_count: 1_500,
+          verified: false,
+          profile_image_url_https: 'https://img.test',
+        },
+      });
+      const text = formatTweetDetail(tweet);
+      expect(text).toContain('2,000,000 followers');
+      expect(text).toContain('1,500 following');
+      // Falsifier: the bug was a non-breaking-space separator (U+00A0).
+      expect(text).not.toMatch(/\d \d{3}/);
+      // Falsifier: also rule out plain ASCII space separators.
+      expect(text).not.toMatch(/\d \d{3} followers/);
+    });
+
     it('handles tweet with all entity types', () => {
       const tweet = makeTweetDetail({
         entities: {
@@ -680,6 +706,28 @@ describe('mcp-socialdata', () => {
       const publicUser = makeUserProfile({ protected: false });
       expect(formatUserProfile(protectedUser)).toContain('Protected: Yes');
       expect(formatUserProfile(publicUser)).toContain('Protected: No');
+    });
+
+    // Regression: issue #136 — see matching test in formatTweetDetail above.
+    // Pin all numeric formatting to 'en-US' so output is locale-stable.
+    it('renders all counts with en-US comma separators regardless of system locale', () => {
+      const user = makeUserProfile({
+        followers_count: 1_234_567,
+        friends_count: 8_900,
+        listed_count: 12_345,
+        favourites_count: 67_890,
+        statuses_count: 2_500,
+      });
+      const text = formatUserProfile(user);
+      expect(text).toContain('Followers: 1,234,567');
+      expect(text).toContain('Following: 8,900');
+      expect(text).toContain('Tweets: 2,500');
+      expect(text).toContain('Likes: 67,890');
+      expect(text).toContain('Listed: 12,345');
+      // Falsifier: the bug was a non-breaking-space (U+00A0) or plain-space
+      // separator instead of a comma. Either form would have failed the
+      // original v0.6.1 follow-up tests.
+      expect(text).not.toMatch(/\d \d{3}/);
     });
   });
 
