@@ -10,6 +10,7 @@ import type {
   OneShotCommandParams,
   ProviderModel,
   HookConfig,
+  McpRegisterOptions,
 } from './cli-provider';
 import { posixQuote } from '../utils/shell';
 
@@ -213,7 +214,10 @@ export class GeminiProvider implements CLIProvider {
     }
   }
 
-  async registerMcpServer(name: string, command: string, args: string[]): Promise<void> {
+  async registerMcpServer(name: string, command: string, args: string[], options?: McpRegisterOptions): Promise<void> {
+    if (options?.transport === 'http') {
+      throw new Error(`Gemini provider does not support HTTP MCP servers (${name})`);
+    }
     // Try gemini mcp add first (proper CLI registration)
     try {
       const argsStr = args.map(a => `"${a}"`).join(' ');

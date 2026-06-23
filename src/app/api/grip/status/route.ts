@@ -3,27 +3,23 @@ import { readFile } from 'fs/promises';
 import { homedir } from 'os';
 import { join } from 'path';
 import { readdirSync } from 'fs';
+import { parseGenome, parseLatestInstance } from '@/lib/grip-readers';
 
 export async function GET() {
   const home = homedir();
   const claudeDir = join(home, '.claude');
 
-  // Genome
+  // Genome — genes is a dict (Object.keys), fitness is the last fitness_history
+  // entry. Shared with /api/grip/health via parseGenome so the two never drift.
   let genome = null;
   try {
     const raw = await readFile(join(claudeDir, 'cache', 'genome.json'), 'utf-8');
-    const g = JSON.parse(raw);
-    genome = { generation: g.generation || 0, geneCount: g.genes?.length || 0, fitness: g.fitness || 0 };
+    genome = parseGenome(JSON.parse(raw));
   } catch { /* no genome */ }
 
-  // Active modes
-  let activeModes: string[] = [];
-  try {
-    const raw = await readFile(join(claudeDir, '.active-modes'), 'utf-8');
-    activeModes = raw.trim().split('\n').filter(Boolean);
-  } catch { /* no modes */ }
-
-  // Instance — find first project grip index
+  // Instance — grip/index.json is an INDEX whose `instances` list holds the
+  // per-instance records. Pick the latest by serialized_at; the record itself
+  // carries content_hash / lineage.generation / message_count.
   let instance = null;
   try {
     const projectsDir = join(claudeDir, 'projects');
@@ -32,12 +28,21 @@ export async function GET() {
       try {
         const indexPath = join(projectsDir, dir.name, 'grip', 'index.json');
         const raw = await readFile(indexPath, 'utf-8');
-        const inst = JSON.parse(raw);
-        instance = { sha: (inst.sha || '').slice(0, 8) || '?', gen: inst.generation || 0, messages: inst.messages || 0 };
-        break;
+        const parsed = parseLatestInstance(JSON.parse(raw));
+        if (parsed) {
+          instance = parsed;
+          break;
+        }
       } catch { continue; }
     }
   } catch { /* no projects */ }
+
+  // Active modes
+  let activeModes: string[] = [];
+  try {
+    const raw = await readFile(join(claudeDir, '.active-modes'), 'utf-8');
+    activeModes = raw.trim().split('\n').filter(Boolean);
+  } catch { /* no modes */ }
 
   return NextResponse.json({ genome, activeModes, instance });
 }

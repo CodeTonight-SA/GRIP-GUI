@@ -788,6 +788,8 @@ export function initTelegramBot() {
 
         // Token pricing per million tokens (MTok) - same as frontend
         const MODEL_PRICING: Record<string, { inputPerMTok: number; outputPerMTok: number; cacheHitsPerMTok: number; cache5mWritePerMTok: number }> = {
+          'claude-opus-4-8': { inputPerMTok: 5, outputPerMTok: 25, cacheHitsPerMTok: 0.50, cache5mWritePerMTok: 6.25 },
+          'claude-sonnet-4-6': { inputPerMTok: 3, outputPerMTok: 15, cacheHitsPerMTok: 0.30, cache5mWritePerMTok: 3.75 },
           'claude-opus-4-5-20251101': { inputPerMTok: 5, outputPerMTok: 25, cacheHitsPerMTok: 0.50, cache5mWritePerMTok: 6.25 },
           'claude-opus-4-5': { inputPerMTok: 5, outputPerMTok: 25, cacheHitsPerMTok: 0.50, cache5mWritePerMTok: 6.25 },
           'claude-opus-4-1-20250501': { inputPerMTok: 15, outputPerMTok: 75, cacheHitsPerMTok: 1.50, cache5mWritePerMTok: 18.75 },
@@ -807,9 +809,11 @@ export function initTelegramBot() {
         const getModelPricing = (modelId: string) => {
           if (MODEL_PRICING[modelId]) return MODEL_PRICING[modelId];
           const lower = modelId.toLowerCase();
+          if (lower.includes('opus-4-8') || lower.includes('opus-4.8')) return MODEL_PRICING['claude-opus-4-8'];
           if (lower.includes('opus-4-5') || lower.includes('opus-4.5')) return MODEL_PRICING['claude-opus-4-5'];
           if (lower.includes('opus-4-1') || lower.includes('opus-4.1')) return MODEL_PRICING['claude-opus-4-1'];
           if (lower.includes('opus-4') || lower.includes('opus4')) return MODEL_PRICING['claude-opus-4'];
+          if (lower.includes('sonnet-4-6') || lower.includes('sonnet-4.6')) return MODEL_PRICING['claude-sonnet-4-6'];
           if (lower.includes('sonnet-4-5') || lower.includes('sonnet-4.5')) return MODEL_PRICING['claude-sonnet-4-5'];
           if (lower.includes('sonnet-4') || lower.includes('sonnet4')) return MODEL_PRICING['claude-sonnet-4'];
           if (lower.includes('sonnet-3') || lower.includes('sonnet3')) return MODEL_PRICING['claude-3-7-sonnet-20250219'];
@@ -820,9 +824,11 @@ export function initTelegramBot() {
 
         const getModelDisplayName = (modelId: string): string => {
           const lower = modelId.toLowerCase();
+          if (lower.includes('opus-4-8') || lower.includes('opus-4.8')) return 'Opus 4.8';
           if (lower.includes('opus-4-5') || lower.includes('opus-4.5')) return 'Opus 4.5';
           if (lower.includes('opus-4-1') || lower.includes('opus-4.1')) return 'Opus 4.1';
           if (lower.includes('opus-4') || lower.includes('opus4')) return 'Opus 4';
+          if (lower.includes('sonnet-4-6') || lower.includes('sonnet-4.6')) return 'Sonnet 4.6';
           if (lower.includes('sonnet-4-5') || lower.includes('sonnet-4.5')) return 'Sonnet 4.5';
           if (lower.includes('sonnet-4') || lower.includes('sonnet4')) return 'Sonnet 4';
           if (lower.includes('sonnet-3') || lower.includes('sonnet3')) return 'Sonnet 3.7';

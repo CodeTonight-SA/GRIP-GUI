@@ -244,8 +244,28 @@ GRIP Commander bundles MCP servers for programmatic control:
 ### Prerequisites
 
 - **Node.js** 22 (LTS) — pinned in `.nvmrc`. Newer majors (e.g. 25) are unsupported: the `better-sqlite3` native module has no prebuilt binary and will not compile. `npm install` hard-fails on an unsupported Node by design.
+- **Node.js 22** (`.nvmrc` pins it). The supported range is `engines.node` `>=20 <23` — CI runs on Node 20, local dev uses Node 22. **Node 23, 24 and 25 are not supported**: `better-sqlite3` ^11 has no prebuilt binary for them and `node-gyp` fails compiling against the newer V8 headers. The `preinstall` guard (`scripts/check-node-version.mjs`) hard-fails a wrong Node before anything installs.
 - **Claude Code CLI**: `npm install -g @anthropic-ai/claude-code`
 - **Claude login**: `claude login` (each user authenticates with their own Anthropic account)
+
+> **macOS / no version manager.** If your default `node` is unsupported (23+) —
+> **or cannot start at all** (a `brew upgrade` can leave Homebrew's `node`
+> linked against a removed library, so `node --version` aborts with
+> `dyld: Library not loaded: .../libsimdjson.NN.dylib` and exits 134) — install a
+> supported Node once, then let the bootstrap put it on your PATH for this shell:
+>
+> ```bash
+> brew install node@22                    # one-time, if not already present
+> source scripts/use-supported-node.sh     # selects a working Node 22 for THIS shell
+> node --version                           # must print v22.x before continuing
+> ```
+>
+> `scripts/use-supported-node.sh` is pure POSIX shell, so it works even when the
+> default `node` is dyld-broken (the `preinstall` JS guard cannot run in that
+> case — it needs `node` to start). It is idempotent: if your `node` is already
+> supported it makes no change. It only **selects** an already-installed Node — it
+> never installs or repairs one; if none is found it prints the exact `brew`
+> command. The required major comes from `.nvmrc`.
 
 ### Install (any platform)
 
@@ -255,14 +275,24 @@ GRIP Commander bundles MCP servers for programmatic control:
 
 ### Build from Source
 
+Build on **Node 22** (see Prerequisites). If your default `node` is unsupported
+or broken, run `source scripts/use-supported-node.sh` first, then confirm
+`node --version` prints `v22.x`.
+
 ```bash
 git clone https://github.com/CodeTonight-SA/GRIP-GUI.git
 cd GRIP-GUI
-npm install
-npx @electron/rebuild
+source scripts/use-supported-node.sh   # macOS: select a working Node 22 (no-op if already fine)
+npm install                   # preinstall guard rejects an unsupported Node
+npx @electron/rebuild         # rebuild better-sqlite3 + node-pty against Electron's ABI
 npm run electron:dev          # Development mode
 npm run commander:dmg         # Build unsigned DMG
 ```
+
+`npx @electron/rebuild` compiles the native modules (`better-sqlite3`, `node-pty`)
+against Electron's bundled Node ABI rather than your system Node — skipping it
+causes `ERR_DLOPEN_FAILED` at launch. Re-run it after any `npm install` that
+touches a native dependency or after switching Node versions.
 
 ### Web Only (No Electron)
 

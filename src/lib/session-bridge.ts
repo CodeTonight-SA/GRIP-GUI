@@ -66,9 +66,13 @@ interface ElectronGripAPI {
   getModes: () => Promise<{ modes: string[] }>;
 }
 
-interface WindowWithElectron extends Window {
+// Intersection alias, NOT `interface extends Window`: re-declaring the
+// inherited `electronAPI` (globally `ElectronAPI`, see types/electron.d.ts)
+// with a narrower literal triggers TS2430. An `&` intersection composes the
+// session/grip shape onto Window without overriding the inherited member.
+type WindowWithElectron = Window & {
   electronAPI?: { session?: ElectronSessionAPI; grip?: ElectronGripAPI };
-}
+};
 
 let initialised = false;
 let unsubscribeChanged: (() => void) | null = null;

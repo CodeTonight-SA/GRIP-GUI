@@ -19,7 +19,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "electron:dev": "concurrently \"npm run dev\" \"npm run electron:start\"",
-    "electron:start": "wait-on http://localhost:3000 && tsc -p electron/tsconfig.json && NODE_ENV=development electron .",
+    "electron:start": "npx @electron/rebuild -f --only better-sqlite3,node-pty && wait-on http://localhost:3000 && tsc -p electron/tsconfig.json && NODE_ENV=development electron .",
     "electron:build": "bash scripts/build-electron.sh mac arm64 dmg",
     "electron:pack": "bash scripts/build-electron.sh mac arm64 dir",
     "commander:dev": "concurrently \"npm run dev\" \"npm run electron:start\"",
