@@ -57,6 +57,21 @@ export interface HookConfig {
 }
 
 /**
+ * Options for registering an MCP server.
+ *
+ * Default (omitted) = stdio transport, byte-identical to the legacy
+ * `registerMcpServer(name, command, args)` behaviour. Pass
+ * `{ transport: 'http', url }` to register a remote HTTP server such as the
+ * live grip-channel bridge (https://channel.grip-web.com/mcp).
+ */
+export interface McpRegisterOptions {
+  /** Transport type. Defaults to 'stdio' when omitted. */
+  transport?: 'stdio' | 'http';
+  /** Remote endpoint URL. Required when transport is 'http'. */
+  url?: string;
+}
+
+/**
  * Strategy pattern interface for CLI providers.
  * Each provider (Claude, Codex, Gemini) implements this interface
  * to encapsulate all provider-specific behavior.
@@ -97,13 +112,23 @@ export interface CLIProvider {
   /** MCP configuration strategy: 'flag' = pass via CLI flag, 'config-file' = write to config file */
   getMcpConfigStrategy(): 'flag' | 'config-file';
 
-  /** Register an MCP server with this provider's configuration */
-  registerMcpServer(name: string, command: string, args: string[]): Promise<void>;
+  /**
+   * Register an MCP server with this provider's configuration.
+   *
+   * For stdio servers (the default) pass command + args. For HTTP servers
+   * pass `options.transport='http'` and `options.url`; `command`/`args` are
+   * then ignored. Omitting `options` preserves the legacy stdio behaviour.
+   */
+  registerMcpServer(name: string, command: string, args: string[], options?: McpRegisterOptions): Promise<void>;
 
   /** Remove an MCP server from this provider's configuration */
   removeMcpServer(name: string): Promise<void>;
 
-  /** Check if an MCP server is registered with the expected server path */
+  /**
+   * Check if an MCP server is registered with the expected identity.
+   * For stdio servers `expectedServerPath` is the bundle path (last arg);
+   * for HTTP servers it is the endpoint URL.
+   */
   isMcpServerRegistered(name: string, expectedServerPath: string): boolean;
 
   /** Directories where this provider reads skills from */

@@ -10,6 +10,7 @@ import type {
   OneShotCommandParams,
   ProviderModel,
   HookConfig,
+  McpRegisterOptions,
 } from './cli-provider';
 import { posixQuote } from '../utils/shell';
 
@@ -247,18 +248,25 @@ export class ClaudeProvider implements CLIProvider {
     }
   }
 
-  async registerMcpServer(name: string, command: string, args: string[]): Promise<void> {
-    // Try claude mcp add -s user first
+  async registerMcpServer(name: string, command: string, args: string[], options?: McpRegisterOptions): Promise<void> {
+    const isHttp = options?.transport === 'http';
+    if (isHttp && !options?.url) {
+      throw new Error(`HTTP MCP server ${name} requires a url`);
+    }
+
+    // Try `claude mcp add -s user` first (merges into the user-scope config).
     try {
-      const argsStr = args.map(a => `"${a}"`).join(' ');
-      execSync(`claude mcp add -s user ${name} ${command} ${argsStr}`, {
+      const addArgs = isHttp
+        ? `--transport http ${name} "${options!.url}"`
+        : `${name} ${command} ${args.map(a => `"${a}"`).join(' ')}`;
+      execSync(`claude mcp add -s user ${addArgs}`, {
         encoding: 'utf-8',
         stdio: 'pipe',
       });
       console.log(`[claude] Registered MCP server ${name} via claude mcp add`);
       return;
     } catch {
-      // Fallback: write to mcp.json
+      // Fallback: merge into mcp.json (read-then-write preserves existing entries).
     }
 
     const mcpConfigPath = path.join(this.configDir, 'mcp.json');
@@ -276,7 +284,9 @@ export class ClaudeProvider implements CLIProvider {
       }
     }
 
-    mcpConfig.mcpServers![name] = { command, args };
+    mcpConfig.mcpServers![name] = isHttp
+      ? { type: 'http', url: options!.url }
+      : { command, args };
     fs.writeFileSync(mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
     console.log(`[claude] Registered MCP server ${name} via mcp.json fallback`);
   }
@@ -313,7 +323,13 @@ export class ClaudeProvider implements CLIProvider {
     try {
       const mcpConfig = JSON.parse(fs.readFileSync(mcpConfigPath, 'utf-8'));
       const existing = mcpConfig?.mcpServers?.[name];
-      if (!existing?.args) return false;
+      if (!existing) return false;
+      // HTTP server: match on the endpoint URL.
+      if (existing.type === 'http' || existing.url) {
+        return existing.url === expectedServerPath;
+      }
+      // stdio server: match on the bundle path (last arg).
+      if (!existing.args) return false;
       return existing.args[existing.args.length - 1] === expectedServerPath;
     } catch {
       return false;

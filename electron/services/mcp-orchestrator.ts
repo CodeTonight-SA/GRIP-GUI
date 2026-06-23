@@ -4,7 +4,30 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { execSync } from 'child_process';
 import type { AppSettings } from '../types';
-import { getAllProviders } from '../providers';
+import { getAllProviders, getProvider } from '../providers';
+
+/**
+ * Live universal GRIP servers (the ones in ~/.claude/.mcp.json).
+ *
+ * These are Claude Code servers — they read/run against the live GRIP install
+ * at ~/.claude. Commander surfaces them so a Commander-driven Claude session
+ * sees the current GRIP toolset, not just Commander's own claude-mgr-* product
+ * servers. Registered Claude-only (not across every provider) because they are
+ * specific to the GRIP install Claude Code consumes.
+ *
+ * - grip-channel is HTTP (location-independent) — always safe to register.
+ * - grip-run is stdio; its path is resolved absolutely against ~/.claude and
+ *   only registered when that file actually exists, so machines without GRIP
+ *   never get a broken stdio entry.
+ */
+type GripUniversalServer =
+  | { name: string; transport: 'http'; url: string }
+  | { name: string; transport: 'stdio'; command: string; relPath: string };
+
+const GRIP_UNIVERSAL_SERVERS: GripUniversalServer[] = [
+  { name: 'grip-channel', transport: 'http', url: 'https://channel.grip-web.com/mcp' },
+  { name: 'grip-run', transport: 'stdio', command: 'node', relPath: 'mcp-servers/grip-run/server.js' },
+];
 
 /**
  * MCP Orchestrator Service
@@ -127,10 +150,49 @@ export async function setupMcpOrchestrator(appSettings?: AppSettings): Promise<v
       }
     }
 
+    // Surface the live universal GRIP servers (grip-channel HTTP, grip-run, ...)
+    // into Claude's config so a Commander session sees the current GRIP toolset.
+    await registerGripUniversalServers();
+
     // Install bundled skills to ~/.claude/skills/ (Claude-only)
     await installBundledSkills();
   } catch (err) {
     console.error('Failed to auto-setup MCP servers:', err);
+  }
+}
+
+/**
+ * Register the live universal GRIP servers with the Claude provider.
+ *
+ * Merges into the existing user-scope config (claude mcp add / mcp.json
+ * read-then-write) — it never clobbers the user's other MCP servers. stdio
+ * entries are skipped unless their resolved file exists under ~/.claude, so a
+ * machine without GRIP installed gets only the location-independent HTTP ones.
+ */
+async function registerGripUniversalServers(): Promise<void> {
+  const claude = getProvider('claude');
+  const claudeDir = path.join(os.homedir(), '.claude');
+
+  for (const server of GRIP_UNIVERSAL_SERVERS) {
+    try {
+      if (server.transport === 'http') {
+        if (!claude.isMcpServerRegistered(server.name, server.url)) {
+          await claude.registerMcpServer(server.name, '', [], { transport: 'http', url: server.url });
+        }
+        continue;
+      }
+
+      const absPath = path.join(claudeDir, server.relPath);
+      if (!fs.existsSync(absPath)) {
+        console.log(`GRIP server ${server.name} not found at ${absPath}, skipping`);
+        continue;
+      }
+      if (!claude.isMcpServerRegistered(server.name, absPath)) {
+        await claude.registerMcpServer(server.name, server.command, [absPath]);
+      }
+    } catch (err) {
+      console.error(`Failed to register GRIP server ${server.name}:`, err);
+    }
   }
 }
 
