@@ -136,6 +136,75 @@ describe('ClaudeProvider', () => {
       expect(config.mcpServers.existing).toBeDefined();
       expect(config.mcpServers['new-server']).toBeDefined();
     });
+
+    // ── HTTP transport (grip-channel and similar remote servers) ──────────────
+
+    it('uses claude mcp add --transport http for HTTP servers', async () => {
+      const provider = await getProvider();
+      mockExecSync.mockReturnValue('');
+
+      await provider.registerMcpServer('grip-channel', '', [], {
+        transport: 'http',
+        url: 'https://channel.grip-web.com/mcp',
+      });
+
+      const cmd = mockExecSync.mock.calls[0][0] as string;
+      expect(cmd).toContain('claude mcp add -s user --transport http grip-channel');
+      expect(cmd).toContain('https://channel.grip-web.com/mcp');
+      // Must NOT degrade an HTTP server into a stdio command.
+      expect(cmd).not.toContain(' node ');
+    });
+
+    it('writes {type:http,url} to mcp.json fallback for HTTP servers', async () => {
+      const provider = await getProvider();
+      mockExecSync.mockImplementation(() => { throw new Error('fail'); });
+
+      await provider.registerMcpServer('grip-channel', '', [], {
+        transport: 'http',
+        url: 'https://channel.grip-web.com/mcp',
+      });
+
+      const config = JSON.parse(
+        fs.readFileSync(path.join(tmpDir, '.claude', 'mcp.json'), 'utf-8'),
+      );
+      expect(config.mcpServers['grip-channel']).toEqual({
+        type: 'http',
+        url: 'https://channel.grip-web.com/mcp',
+      });
+      // No stdio keys leaked into an HTTP entry.
+      expect(config.mcpServers['grip-channel'].command).toBeUndefined();
+      expect(config.mcpServers['grip-channel'].args).toBeUndefined();
+    });
+
+    it('preserves existing stdio entries when adding an HTTP server (fallback)', async () => {
+      const provider = await getProvider();
+      mockExecSync.mockImplementation(() => { throw new Error('fail'); });
+
+      const mcpDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(mcpDir, { recursive: true });
+      fs.writeFileSync(path.join(mcpDir, 'mcp.json'), JSON.stringify({
+        mcpServers: { 'claude-mgr-orchestrator': { command: 'node', args: ['/bundle.js'] } },
+      }));
+
+      await provider.registerMcpServer('grip-channel', '', [], {
+        transport: 'http',
+        url: 'https://channel.grip-web.com/mcp',
+      });
+
+      const config = JSON.parse(fs.readFileSync(path.join(mcpDir, 'mcp.json'), 'utf-8'));
+      expect(config.mcpServers['claude-mgr-orchestrator']).toEqual({
+        command: 'node',
+        args: ['/bundle.js'],
+      });
+      expect(config.mcpServers['grip-channel'].type).toBe('http');
+    });
+
+    it('throws when an HTTP server is registered without a url', async () => {
+      const provider = await getProvider();
+      await expect(
+        provider.registerMcpServer('grip-channel', '', [], { transport: 'http' }),
+      ).rejects.toThrow(/url/);
+    });
   });
 
   describe('removeMcpServer', () => {
@@ -363,6 +432,32 @@ describe('ClaudeProvider', () => {
     it('returns false when mcp.json does not exist', async () => {
       const provider = await getProvider();
       expect(provider.isMcpServerRegistered('my-mcp', '/bundle.js')).toBe(false);
+    });
+
+    it('returns true for an HTTP server with matching url', async () => {
+      const provider = await getProvider();
+      const mcpDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(mcpDir, { recursive: true });
+      fs.writeFileSync(path.join(mcpDir, 'mcp.json'), JSON.stringify({
+        mcpServers: { 'grip-channel': { type: 'http', url: 'https://channel.grip-web.com/mcp' } },
+      }));
+
+      expect(
+        provider.isMcpServerRegistered('grip-channel', 'https://channel.grip-web.com/mcp'),
+      ).toBe(true);
+    });
+
+    it('returns false for an HTTP server when the url differs', async () => {
+      const provider = await getProvider();
+      const mcpDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(mcpDir, { recursive: true });
+      fs.writeFileSync(path.join(mcpDir, 'mcp.json'), JSON.stringify({
+        mcpServers: { 'grip-channel': { type: 'http', url: 'https://old.example.com/mcp' } },
+      }));
+
+      expect(
+        provider.isMcpServerRegistered('grip-channel', 'https://channel.grip-web.com/mcp'),
+      ).toBe(false);
     });
   });
 });
