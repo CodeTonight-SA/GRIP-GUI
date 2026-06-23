@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 import { homedir } from 'os';
 import { join } from 'path';
 import { readdirSync, existsSync } from 'fs';
+import { parseGenome } from '@/lib/grip-readers';
 
 const GRIP_DIR = join(homedir(), '.claude');
 
@@ -20,11 +21,12 @@ export async function GET() {
     try {
       const genomePath = join(GRIP_DIR, 'cache', 'genome.json');
       const raw = await readFile(genomePath, 'utf-8');
-      const genome = JSON.parse(raw);
-      generation = genome.generation || 33;
-      geneCount = genome.genes ? Object.keys(genome.genes).length : 212;
-      const history = genome.fitness_history || [];
-      fitness = history.length > 0 ? history[history.length - 1] : 0.467;
+      const view = parseGenome(JSON.parse(raw));
+      if (view) {
+        generation = view.generation || 33;
+        geneCount = view.geneCount || 212;
+        fitness = view.fitness || 0.467;
+      }
     } catch { /* use defaults */ }
 
     // Count skills
