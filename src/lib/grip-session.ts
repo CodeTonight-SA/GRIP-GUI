@@ -15,6 +15,8 @@
  * - Parse stream events to extract text deltas in real-time
  */
 
+import { buildHappiEnvelope, halInferBodyFromEnvelope } from '@/lib/happi-envelope';
+
 export interface ToolUseEvent {
   toolName: string;
   toolId: string;
@@ -624,8 +626,12 @@ export interface HalInferResult {
  * HAL backend path — calls hal-server's canonical AI syscall `/api/infer`
  * (HAL #331), the route `lib/hal_llm_adapter.py` POSTs to in live GRIP.
  *
- * Request (HAPPI-shaped, matches `_grip_infer_call`):
- *   { prompt: string, model: string, audit: boolean }
+ * The request is composed as a HAPPI/1.1 envelope first (prompt → `content`,
+ * session → `ctx`, model → `flags.model`), so GRIP-GUI speaks the same
+ * provider-agnostic contract as the rest of the substrate. `/api/infer` itself
+ * re-wraps the call in a HAPPI envelope server-side and accepts the flat
+ * `{prompt, model, audit}` wire body, which we derive from the envelope via
+ * `halInferBodyFromEnvelope` — single source of truth in `lib/happi-envelope`.
  *
  * Response is a single JSON object (NOT a JSONL/SSE stream):
  *   { ok, text, provider, model, idr_ref, usage: { input_tokens, output_tokens } }
@@ -644,10 +650,16 @@ async function* sendToGripHAL(
 ): AsyncGenerator<GripStreamEvent> {
   if (sessionId) onPromptSessionId?.(sessionId);
   try {
+    const envelope = buildHappiEnvelope({
+      content: prompt,
+      flags: { model },
+      ctx: sessionId ? { session_id: sessionId } : undefined,
+      audit: false,
+    });
     const response = await fetch(`${halUrl}/api/infer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, model, audit: false }),
+      body: JSON.stringify(halInferBodyFromEnvelope(envelope)),
     });
 
     if (!response.ok) {
