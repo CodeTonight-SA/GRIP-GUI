@@ -341,9 +341,26 @@ export type GripStreamEvent = {
 };
 
 /**
- * HAL backend URL. When set, sendToGrip routes to HAL's streaming API
- * instead of spawning claude CLI. Set via NEXT_PUBLIC_HAL_URL env var
- * or localStorage 'grip-hal-url'.
+ * HAL endpoint defaults (single source of truth — port-registry).
+ *
+ * - `inferBase` (hal-server, :3850) serves the canonical AI syscall
+ *   `/api/infer` (+ `/api/infer-with-tools`), wrapping `grip_infer`/RAILLM.
+ *   This is the route sendToGripHAL targets.
+ * - `gateway` (HAL gateway, :4010) serves the OpenAI-compatible `/v1/*`
+ *   proxy. Documented here for callers that need the chat-completions surface.
+ *
+ * There is NO `/api/conversation` route in live HAL — that was endpoint drift.
+ */
+export const HAL_DEFAULTS = {
+  inferBase: 'http://127.0.0.1:3850',
+  gateway: 'http://127.0.0.1:4010',
+} as const;
+
+/**
+ * HAL backend URL. When set, sendToGrip routes to HAL's hal-server `/api/infer`
+ * endpoint instead of spawning claude CLI. Set via NEXT_PUBLIC_HAL_URL env var
+ * or localStorage 'grip-hal-url'. Returns null when unset so the default
+ * Electron/browser CLI path is preserved (HAL routing stays strictly opt-in).
  */
 function getHalUrl(): string | null {
   if (typeof window !== 'undefined') {
@@ -589,14 +606,34 @@ async function* sendToGripElectron(
 }
 
 /**
- * HAL backend path — connects to HAL's /api/conversation streaming endpoint.
- * Consumes JSONL events and translates them to GripStreamEvent format.
+ * Shape of the normalised GripInferResult that hal-server `/api/infer`
+ * returns (HAL #331 — wraps `grip_infer`/RAILLM). This is a SINGLE JSON
+ * object, not a stream of Anthropic content_block_delta events.
+ */
+export interface HalInferResult {
+  ok?: boolean;
+  text?: string;
+  provider?: string;
+  model?: string;
+  idr_ref?: string;
+  error?: string | { message?: string };
+  usage?: { input_tokens?: number; output_tokens?: number };
+}
+
+/**
+ * HAL backend path — calls hal-server's canonical AI syscall `/api/infer`
+ * (HAL #331), the route `lib/hal_llm_adapter.py` POSTs to in live GRIP.
  *
- * HAL emits:
- *   { type: "system", subtype: "init", session_id: "..." }
- *   { type: "content_block_delta", delta: { type: "text_delta", text: "..." } }
- *   { type: "result", cost_usd, num_turns, session_id, model }
- *   { type: "error", error: { message: "..." } }
+ * Request (HAPPI-shaped, matches `_grip_infer_call`):
+ *   { prompt: string, model: string, audit: boolean }
+ *
+ * Response is a single JSON object (NOT a JSONL/SSE stream):
+ *   { ok, text, provider, model, idr_ref, usage: { input_tokens, output_tokens } }
+ *
+ * We translate that one object into the GripStreamEvent sequence
+ * (text → metrics → done) ChatInterface already consumes. hal-server
+ * does not return a session id, so `onPromptSessionId` is only called
+ * when the caller supplied one (resume passthrough).
  */
 async function* sendToGripHAL(
   halUrl: string,
@@ -605,11 +642,12 @@ async function* sendToGripHAL(
   model: string = 'sonnet',
   onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<GripStreamEvent> {
+  if (sessionId) onPromptSessionId?.(sessionId);
   try {
-    const response = await fetch(`${halUrl}/api/conversation`, {
+    const response = await fetch(`${halUrl}/api/infer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: prompt, session_id: sessionId, model }),
+      body: JSON.stringify({ prompt, model, audit: false }),
     });
 
     if (!response.ok) {
@@ -617,39 +655,15 @@ async function* sendToGripHAL(
       return;
     }
 
-    const reader = response.body?.getReader();
-    if (!reader) {
-      yield { type: 'error', data: 'No response body from HAL' };
+    let raw: HalInferResult;
+    try {
+      raw = (await response.json()) as HalInferResult;
+    } catch {
+      yield { type: 'error', data: 'HAL returned an unparseable response' };
       return;
     }
 
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        const event = parseHalEvent(line.trim());
-        if (!event) continue;
-        if (event.type === 'init' && onPromptSessionId) {
-          onPromptSessionId(event.data as string);
-        }
-        if (event.type !== 'init') yield event;
-      }
-    }
-
-    // Process remaining buffer
-    if (buffer.trim()) {
-      const event = parseHalEvent(buffer.trim());
-      if (event && event.type !== 'init') yield event;
-    }
-
+    yield* mapInferResult(raw, model);
     yield { type: 'done', data: '' };
   } catch (err) {
     yield { type: 'error', data: `HAL connection error: ${err instanceof Error ? err.message : String(err)}` };
@@ -657,44 +671,31 @@ async function* sendToGripHAL(
 }
 
 /**
- * Parse a single HAL JSONL event into a GripStreamEvent.
- * Translates HAL's event protocol to the normalised format ChatInterface expects.
+ * Translate a single hal-server `/api/infer` GripInferResult into the
+ * GripStreamEvent sequence ChatInterface expects. A fail-safe result
+ * (`ok === false` or empty text) becomes one error event; a successful
+ * result becomes a text event followed by a metrics event.
  */
-function parseHalEvent(line: string): GripStreamEvent | null {
-  if (!line) return null;
-  try {
-    const raw = JSON.parse(line);
-
-    // Session init — extract session_id for resume support
-    if (raw.type === 'system' && raw.subtype === 'init') {
-      return { type: 'init', data: raw.session_id };
-    }
-
-    // Text delta — the main content stream
-    if (raw.type === 'content_block_delta' && raw.delta?.type === 'text_delta') {
-      return { type: 'text', data: raw.delta.text };
-    }
-
-    // Result event with metrics
-    if (raw.type === 'result') {
-      return {
-        type: 'metrics',
-        data: {
-          costUsd: raw.cost_usd,
-          numTurns: raw.num_turns,
-          sessionId: raw.session_id,
-          model: raw.model,
-        } as GripMetrics,
-      };
-    }
-
-    // Error event
-    if (raw.type === 'error') {
-      return { type: 'error', data: raw.error?.message || 'Unknown HAL error' };
-    }
-
-    return null;
-  } catch {
-    return null;
+function mapInferResult(raw: HalInferResult, requestedModel: string): GripStreamEvent[] {
+  const text = (raw.text || '').trim();
+  if (raw.ok === false || !text) {
+    return [{ type: 'error', data: halErrorMessage(raw) }];
   }
+  const metrics: GripMetrics = {
+    model: raw.model || requestedModel,
+  };
+  return [
+    { type: 'text', data: text },
+    { type: 'metrics', data: metrics },
+  ];
+}
+
+/**
+ * Extract a human-readable error message from a HAL result. `error` may be
+ * a bare string or an object with a `message` field; absent → generic.
+ */
+function halErrorMessage(raw: HalInferResult): string {
+  if (typeof raw.error === 'string') return raw.error;
+  if (raw.error && typeof raw.error === 'object' && raw.error.message) return raw.error.message;
+  return 'HAL inference failed';
 }
