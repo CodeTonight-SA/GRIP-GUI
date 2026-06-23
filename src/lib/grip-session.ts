@@ -15,7 +15,7 @@
  * - Parse stream events to extract text deltas in real-time
  */
 
-import { buildHappiEnvelope, halInferBodyFromEnvelope } from '@/lib/happi-envelope';
+import { buildHappiEnvelope, halInferBodyFromEnvelope, DEFAULT_MODEL } from '@/lib/happi-envelope';
 
 export interface ToolUseEvent {
   toolName: string;
@@ -359,23 +359,49 @@ export const HAL_DEFAULTS = {
 } as const;
 
 /**
- * HAL backend URL. When set, sendToGrip routes to HAL's hal-server `/api/infer`
- * endpoint instead of spawning claude CLI. Set via NEXT_PUBLIC_HAL_URL env var
- * or localStorage 'grip-hal-url'. Returns null when unset so the default
- * Electron/browser CLI path is preserved (HAL routing stays strictly opt-in).
+ * Resolve the HAL backend URL for chat routing.
+ *
+ * Resolution order (first match wins):
+ *  1. localStorage 'grip-hal-url'      — explicit per-machine override
+ *  2. NEXT_PUBLIC_HAL_URL              — explicit build/env override
+ *  3. HAL_DEFAULTS.inferBase           — ONLY when the opt-in default flag
+ *     (NEXT_PUBLIC_HAL_DEFAULT / localStorage 'grip-hal-default') is truthy
+ *
+ * Step 3 is what lets HAL become the default backend when reachable — routing
+ * chat through HAL's multi-provider cascade (CCH → Kimi → cheap → local) for
+ * provider-agnostic cost/limit handling — instead of pinning the GUI to the
+ * Anthropic `claude` CLI and the `sonnet` alias. It is gated behind one
+ * explicit flag so default behaviour stays byte-identical until an operator
+ * opts in: absent the flag (and absent steps 1-2) this returns null and the
+ * CLI path (Electron PTY / `/api/grip/chat`) is preserved unchanged.
+ *
+ * The CLI spawn always remains the fallback: when HAL is unreachable the
+ * `/api/infer` fetch throws and sendToGripHAL surfaces an error, while the
+ * server route (`/api/grip/chat`) falls through to the `claude` spawn.
  */
+function halDefaultEnabled(): boolean {
+  if (typeof window !== 'undefined') {
+    const v = localStorage.getItem('grip-hal-default');
+    if (v && v !== '0' && v !== 'false') return true;
+  }
+  const env = process.env.NEXT_PUBLIC_HAL_DEFAULT;
+  return !!env && env !== '0' && env !== 'false';
+}
+
 function getHalUrl(): string | null {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('grip-hal-url');
     if (stored) return stored;
   }
-  return process.env.NEXT_PUBLIC_HAL_URL || null;
+  if (process.env.NEXT_PUBLIC_HAL_URL) return process.env.NEXT_PUBLIC_HAL_URL;
+  if (halDefaultEnabled()) return HAL_DEFAULTS.inferBase;
+  return null;
 }
 
 export async function* sendToGrip(
   prompt: string,
   sessionId?: string,
-  model: string = 'sonnet',
+  model: string = DEFAULT_MODEL,
   onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<GripStreamEvent> {
   // HAL backend path: call hal-server's /api/infer (single request/response)
@@ -490,7 +516,7 @@ export async function* sendToGrip(
 async function* sendToGripElectron(
   prompt: string,
   sessionId?: string,
-  model: string = 'sonnet',
+  model: string = DEFAULT_MODEL,
   onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<{ type: string; data: string | GripMetrics | ToolUseEvent | ToolResultEvent }> {
   // Wait up to 2s for preload bridge to initialise (app:// protocol timing)
@@ -645,7 +671,7 @@ async function* sendToGripHAL(
   halUrl: string,
   prompt: string,
   sessionId?: string,
-  model: string = 'sonnet',
+  model: string = DEFAULT_MODEL,
   onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<GripStreamEvent> {
   if (sessionId) onPromptSessionId?.(sessionId);
