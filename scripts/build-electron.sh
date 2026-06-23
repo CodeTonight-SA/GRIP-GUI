@@ -22,6 +22,13 @@
 # Environment:
 #   SKIP_NOTARIZE=1   Skip macOS notarisation (default in CI)
 #   SKIP_VERIFY=1     Skip post-build native-arch verifier (not recommended)
+#   BUILD_ONLY=1      Run only the build + type-check stages ([1/5] renderer,
+#                     [2/5] electron main tsc, [3/5] MCP submodules) then exit 0
+#                     before the heavy native-rebuild + electron-builder steps.
+#                     Used by PR CI to catch renderer/main type errors (the
+#                     TS2430-class regression that silently blocks the whole
+#                     pack) on every PR, without needing per-arch native runners.
+#                     The route-stash trap still protects src/app/api.
 #   GRIP_DEBUG=1      Enable set -x
 #
 # Exit codes: 0 success, non-zero = failing step (set -euo pipefail aborts).
@@ -161,6 +168,19 @@ stash_incompatible_routes
 step_next_build
 step_tsc_main
 step_mcp_submodules
+
+# BUILD_ONLY stops here: the build + type-check surface ([1/5]–[3/5]) is
+# proven, which is what PR CI needs. The native rebuild + electron-builder
+# packaging ([4/5]–[5/5]) require platform-native runners and are exercised
+# by build.yml on tag push / dispatch. The EXIT trap restores routes either way.
+if [[ "${BUILD_ONLY:-0}" == "1" ]]; then
+  echo "==================================================================="
+  echo "BUILD_ONLY=1: build + type-check stages passed. Skipping native"
+  echo "rebuild + electron-builder packaging."
+  echo "==================================================================="
+  exit 0
+fi
+
 step_rebuild_natives
 step_electron_builder
 step_verify_arch
