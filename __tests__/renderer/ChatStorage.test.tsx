@@ -13,6 +13,7 @@ import {
   setOpenTabIds,
   updateChatTitle,
   getActiveChatId,
+  pickActiveTabId,
 } from '../../src/lib/chat-storage';
 
 // Provide a fully-functional localStorage stub that works in any Vitest environment.
@@ -28,6 +29,21 @@ vi.stubGlobal('localStorage', {
 
 beforeEach(() => {
   store = {}; // Reset between tests
+});
+
+describe('pickActiveTabId — tab-switch invariant (the "opened a new tab, can not get back" fix)', () => {
+  it('keeps the active tab when it is still open', () => {
+    expect(pickActiveTabId(['a', 'b', 'c'], 'b')).toBe('b');
+  });
+  it('falls back to the first open tab when the active id is no longer open (the bug)', () => {
+    expect(pickActiveTabId(['a', 'b'], 'gone')).toBe('a');
+  });
+  it('falls back to the first open tab when active is null', () => {
+    expect(pickActiveTabId(['a', 'b'], null)).toBe('a');
+  });
+  it('returns null when there are no open tabs', () => {
+    expect(pickActiveTabId([], 'a')).toBe(null);
+  });
 });
 
 describe('generateTitle', () => {

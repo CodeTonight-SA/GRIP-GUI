@@ -18,6 +18,7 @@ import {
   migrateStorageIfNeeded,
   getOpenTabIds,
   setOpenTabIds,
+  pickActiveTabId,
 } from '@/lib/chat-storage';
 
 const MAX_TABS = 8;
@@ -124,14 +125,20 @@ export default function EnginePage() {
   const handleWelcomeComplete = useCallback(() => setShowWelcome(false), []);
   const handleFocusToggle = useCallback((focused: boolean) => setFocusMode(focused), []);
 
+  // Create a new tab. Session creation + active-tab selection happen OUTSIDE
+  // the openTabIds updater on purpose: a state updater MUST be pure (React 19
+  // may invoke it more than once), and calling setActiveTabId from inside it
+  // can leave activeTabId out of sync with openTabIds — which presents as
+  // "opened a new tab but can't switch back to the old one". Creating the
+  // session once and setting both states at top level keeps them consistent.
   const handleNewTab = useCallback(() => {
-    setOpenTabIdsState(prev => {
-      if (prev.length >= MAX_TABS) return prev;
-      const session = createChatSession(model);
-      setActiveTabId(session.id);
-      return [...prev, session.id];
-    });
-  }, [model]);
+    if (openTabIds.length >= MAX_TABS) return;
+    const session = createChatSession(model);
+    setOpenTabIdsState(prev =>
+      prev.includes(session.id) ? prev : [...prev, session.id]
+    );
+    setActiveTabId(session.id);
+  }, [openTabIds, model]);
 
   const handleTabClose = useCallback((id: string) => {
     setOpenTabIdsState(prev => {
@@ -145,6 +152,14 @@ export default function EnginePage() {
   }, [activeTabId]);
 
   const handleTabSelect = useCallback((id: string) => setActiveTabId(id), []);
+
+  // The tab actually shown is DERIVED, never trusted blindly. activeTabId must
+  // reference an open tab, but it can desync (a new-tab race, a closed tab, a
+  // restore mismatch) and strand the user on a tab the renderer won't show —
+  // the "opened a new tab, can't get back to the old one" bug. Deriving it at
+  // render (rather than correcting via setState-in-effect) keeps one source of
+  // truth and avoids an extra render.
+  const effectiveActiveId = pickActiveTabId(openTabIds, activeTabId);
 
   // Keyboard shortcuts: ⌘T = new tab, ⌘W = close tab, ⌘1-9 = switch
   useEffect(() => {
@@ -182,7 +197,7 @@ export default function EnginePage() {
             {openTabIds.length > 1 && !focusMode && (
               <ChatTabBar
                 openTabIds={openTabIds}
-                activeTabId={activeTabId}
+                activeTabId={effectiveActiveId}
                 onTabSelect={handleTabSelect}
                 onTabClose={handleTabClose}
                 onNewTab={handleNewTab}
@@ -197,13 +212,13 @@ export default function EnginePage() {
                   {openTabIds.map(tabId => (
                     <div
                       key={tabId}
-                      className={tabId === activeTabId ? 'block h-full' : 'hidden'}
+                      className={tabId === effectiveActiveId ? 'block h-full' : 'hidden'}
                     >
                       <ChatInterface
                         key={tabId}
                         chatId={tabId}
                         onModelChange={setModel}
-                        isActive={tabId === activeTabId}
+                        isActive={tabId === effectiveActiveId}
                       />
                     </div>
                   ))}

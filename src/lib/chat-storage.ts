@@ -10,7 +10,7 @@
  * - grip-active-chat: Currently active chat ID
  */
 
-import type { GripMessage, GripMetrics } from './grip-session';
+import type { GripMessage } from './grip-session';
 
 export interface ChatSession {
   id: string;
@@ -247,6 +247,23 @@ export function getOpenTabIds(): string[] {
  */
 export function setOpenTabIds(ids: string[]): void {
   localStorage.setItem(TABS_KEY, JSON.stringify(ids));
+}
+
+/**
+ * Resolve the tab that SHOULD be active, given the open tabs and the current
+ * active id. The active tab must always be one of the open tabs; if it isn't
+ * (a new-tab race, a closed tab, a restore mismatch) the user would be
+ * stranded on a tab the renderer won't show — the "opened a new tab, can't get
+ * back to the old one" bug. In that case we fall back to the first open tab.
+ * Pure + deterministic so it can be unit-tested without rendering.
+ */
+export function pickActiveTabId(
+  openTabIds: string[],
+  activeTabId: string | null,
+): string | null {
+  if (openTabIds.length === 0) return null;
+  if (activeTabId && openTabIds.includes(activeTabId)) return activeTabId;
+  return openTabIds[0];
 }
 
 /**
