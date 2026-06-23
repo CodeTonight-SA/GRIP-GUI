@@ -376,7 +376,7 @@ export async function* sendToGrip(
   model: string = 'sonnet',
   onPromptSessionId?: (id: string) => void,
 ): AsyncGenerator<GripStreamEvent> {
-  // HAL backend path: connect to HAL HTTP streaming API
+  // HAL backend path: call hal-server's /api/infer (single request/response)
   const halUrl = getHalUrl();
   if (halUrl) {
     yield* sendToGripHAL(halUrl, prompt, sessionId, model, onPromptSessionId);
