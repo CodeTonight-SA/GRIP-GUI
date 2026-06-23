@@ -247,16 +247,24 @@ GRIP Commander bundles MCP servers for programmatic control:
 - **Claude Code CLI**: `npm install -g @anthropic-ai/claude-code`
 - **Claude login**: `claude login` (each user authenticates with their own Anthropic account)
 
-> **macOS / no version manager.** If `node --version` reports 23+ and you have no
-> `nvm`/`fnm` installed (so `.nvmrc` is not honoured automatically), install and
-> select Node 22 explicitly before building:
+> **macOS / no version manager.** If your default `node` is unsupported (23+) —
+> **or cannot start at all** (a `brew upgrade` can leave Homebrew's `node`
+> linked against a removed library, so `node --version` aborts with
+> `dyld: Library not loaded: .../libsimdjson.NN.dylib` and exits 134) — install a
+> supported Node once, then let the bootstrap put it on your PATH for this shell:
 >
 > ```bash
-> brew install node@22
-> # one-off, per shell — no global switch needed:
-> export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
-> node --version            # must print v22.x before continuing
+> brew install node@22                    # one-time, if not already present
+> source scripts/use-supported-node.sh     # selects a working Node 22 for THIS shell
+> node --version                           # must print v22.x before continuing
 > ```
+>
+> `scripts/use-supported-node.sh` is pure POSIX shell, so it works even when the
+> default `node` is dyld-broken (the `preinstall` JS guard cannot run in that
+> case — it needs `node` to start). It is idempotent: if your `node` is already
+> supported it makes no change. It only **selects** an already-installed Node — it
+> never installs or repairs one; if none is found it prints the exact `brew`
+> command. The required major comes from `.nvmrc`.
 
 ### Install (any platform)
 
@@ -266,11 +274,14 @@ GRIP Commander bundles MCP servers for programmatic control:
 
 ### Build from Source
 
-Build on **Node 22** (see Prerequisites — confirm `node --version` prints `v22.x` first).
+Build on **Node 22** (see Prerequisites). If your default `node` is unsupported
+or broken, run `source scripts/use-supported-node.sh` first, then confirm
+`node --version` prints `v22.x`.
 
 ```bash
 git clone https://github.com/CodeTonight-SA/GRIP-GUI.git
 cd GRIP-GUI
+source scripts/use-supported-node.sh   # macOS: select a working Node 22 (no-op if already fine)
 npm install                   # preinstall guard rejects an unsupported Node
 npx @electron/rebuild         # rebuild better-sqlite3 + node-pty against Electron's ABI
 npm run electron:dev          # Development mode
