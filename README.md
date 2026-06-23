@@ -243,9 +243,20 @@ GRIP Commander bundles MCP servers for programmatic control:
 
 ### Prerequisites
 
-- **Node.js** 18+
+- **Node.js 22** (`.nvmrc` pins it). The supported range is `engines.node` `>=20 <23` — CI runs on Node 20, local dev uses Node 22. **Node 23, 24 and 25 are not supported**: `better-sqlite3` ^11 has no prebuilt binary for them and `node-gyp` fails compiling against the newer V8 headers. The `preinstall` guard (`scripts/check-node-version.mjs`) hard-fails a wrong Node before anything installs.
 - **Claude Code CLI**: `npm install -g @anthropic-ai/claude-code`
 - **Claude login**: `claude login` (each user authenticates with their own Anthropic account)
+
+> **macOS / no version manager.** If `node --version` reports 23+ and you have no
+> `nvm`/`fnm` installed (so `.nvmrc` is not honoured automatically), install and
+> select Node 22 explicitly before building:
+>
+> ```bash
+> brew install node@22
+> # one-off, per shell — no global switch needed:
+> export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
+> node --version            # must print v22.x before continuing
+> ```
 
 ### Install (any platform)
 
@@ -255,14 +266,21 @@ GRIP Commander bundles MCP servers for programmatic control:
 
 ### Build from Source
 
+Build on **Node 22** (see Prerequisites — confirm `node --version` prints `v22.x` first).
+
 ```bash
 git clone https://github.com/CodeTonight-SA/GRIP-GUI.git
 cd GRIP-GUI
-npm install
-npx @electron/rebuild
+npm install                   # preinstall guard rejects an unsupported Node
+npx @electron/rebuild         # rebuild better-sqlite3 + node-pty against Electron's ABI
 npm run electron:dev          # Development mode
 npm run commander:dmg         # Build unsigned DMG
 ```
+
+`npx @electron/rebuild` compiles the native modules (`better-sqlite3`, `node-pty`)
+against Electron's bundled Node ABI rather than your system Node — skipping it
+causes `ERR_DLOPEN_FAILED` at launch. Re-run it after any `npm install` that
+touches a native dependency or after switching Node versions.
 
 ### Web Only (No Electron)
 
