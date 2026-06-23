@@ -243,6 +243,7 @@ GRIP Commander bundles MCP servers for programmatic control:
 
 ### Prerequisites
 
+- **Node.js** 22 (LTS) — pinned in `.nvmrc`. Newer majors (e.g. 25) are unsupported: the `better-sqlite3` native module has no prebuilt binary and will not compile. `npm install` hard-fails on an unsupported Node by design.
 - **Node.js 22** (`.nvmrc` pins it). The supported range is `engines.node` `>=20 <23` — CI runs on Node 20, local dev uses Node 22. **Node 23, 24 and 25 are not supported**: `better-sqlite3` ^11 has no prebuilt binary for them and `node-gyp` fails compiling against the newer V8 headers. The `preinstall` guard (`scripts/check-node-version.mjs`) hard-fails a wrong Node before anything installs.
 - **Claude Code CLI**: `npm install -g @anthropic-ai/claude-code`
 - **Claude login**: `claude login` (each user authenticates with their own Anthropic account)
