@@ -350,6 +350,12 @@ export async function handleSlackCommand(
           cache5mWritePerMTok: number;
         }
       > = {
+        'claude-opus-4-8': {
+          inputPerMTok: 5,
+          outputPerMTok: 25,
+          cacheHitsPerMTok: 0.5,
+          cache5mWritePerMTok: 6.25,
+        },
         'claude-opus-4-5-20251101': {
           inputPerMTok: 5,
           outputPerMTok: 25,
@@ -362,6 +368,12 @@ export async function handleSlackCommand(
           cacheHitsPerMTok: 0.5,
           cache5mWritePerMTok: 6.25,
         },
+        'claude-sonnet-4-6': {
+          inputPerMTok: 3,
+          outputPerMTok: 15,
+          cacheHitsPerMTok: 0.3,
+          cache5mWritePerMTok: 3.75,
+        },
         'claude-sonnet-4': {
           inputPerMTok: 3,
           outputPerMTok: 15,
@@ -373,8 +385,13 @@ export async function handleSlackCommand(
       const getModelPricing = (modelId: string) => {
         if (MODEL_PRICING[modelId]) return MODEL_PRICING[modelId];
         const lower = modelId.toLowerCase();
+        if (lower.includes('opus-4-8') || lower.includes('opus-4.8'))
+          return MODEL_PRICING['claude-opus-4-8'];
         if (lower.includes('opus-4-5') || lower.includes('opus-4.5'))
           return MODEL_PRICING['claude-opus-4-5'];
+        if (lower.includes('opus')) return MODEL_PRICING['claude-opus-4-8'];
+        if (lower.includes('sonnet-4-6') || lower.includes('sonnet-4.6'))
+          return MODEL_PRICING['claude-sonnet-4-6'];
         if (lower.includes('sonnet')) return MODEL_PRICING['claude-sonnet-4'];
         return MODEL_PRICING['claude-sonnet-4'];
       };
