@@ -9,6 +9,7 @@
   },
   "main": "electron/dist/main.js",
   "scripts": {
+    "preinstall": "node scripts/check-node-version.mjs",
     "dev": "next dev",
     "dev:network": "next dev -H 0.0.0.0",
     "build": "next build",
@@ -187,6 +188,9 @@
         }
       ]
     }
+  },
+  "engines": {
+    "node": ">=20 <23"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
