@@ -22,6 +22,23 @@
 
 export const HAPPI_VERSION = 'happi/1.1' as const;
 
+/**
+ * Default model alias for the GUI's chat surfaces.
+ *
+ * Single source of truth: every chat call site (the browser `/api/grip/chat`
+ * route, the Electron PTY path, and the HAL `/api/infer` path) used to inline
+ * the literal `'sonnet'` as its implicit default, so the default model could
+ * not be changed in one place and never reflected the live session-model
+ * choice. Routing this through one constant lets the default move with a single
+ * edit — and, when the HAL backend is reachable, HAL's own cascade
+ * (CCH → Kimi → cheap → local) overrides it server-side via `/api/infer`.
+ *
+ * `'sonnet'` remains the historical default to keep behaviour byte-identical
+ * for existing callers; HAL routing (see `HAL_DEFAULTS` / the opt-in default
+ * flag in `grip-session.ts`) is what introduces the multi-provider substrate.
+ */
+export const DEFAULT_MODEL = 'sonnet' as const;
+
 /** Auth descriptor — mirrors the HAPPI `auth` object HAL adapters consume. */
 export interface HappiAuth {
   /** e.g. 'apikey' | 'subscription' | 'bearer'. */
