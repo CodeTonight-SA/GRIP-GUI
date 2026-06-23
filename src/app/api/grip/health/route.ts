@@ -15,22 +15,22 @@ const GRIP_DIR = join(homedir(), '.claude');
 export async function GET() {
   try {
     // Read genome
-    let generation = 33;
-    let geneCount = 212;
-    let fitness = 0.467;
+    let generation = 91;
+    let geneCount = 378;
+    let fitness = 0.376;
     try {
       const genomePath = join(GRIP_DIR, 'cache', 'genome.json');
       const raw = await readFile(genomePath, 'utf-8');
       const view = parseGenome(JSON.parse(raw));
       if (view) {
-        generation = view.generation || 33;
-        geneCount = view.geneCount || 212;
-        fitness = view.fitness || 0.467;
+        generation = view.generation || generation;
+        geneCount = view.geneCount || geneCount;
+        fitness = view.fitness || fitness;
       }
     } catch { /* use defaults */ }
 
     // Count skills
-    let skillCount = 149;
+    let skillCount = 288;
     try {
       const skillsDir = join(GRIP_DIR, 'skills');
       if (existsSync(skillsDir)) {
@@ -40,7 +40,7 @@ export async function GET() {
     } catch { /* use default */ }
 
     // Count modes
-    let modeCount = 30;
+    let modeCount = 31;
     try {
       const modesDir = join(GRIP_DIR, 'modes', 'definitions');
       if (existsSync(modesDir)) {
@@ -50,7 +50,7 @@ export async function GET() {
     } catch { /* use default */ }
 
     // Count agents
-    let agentCount = 21;
+    let agentCount = 41;
     try {
       const agentsDir = join(GRIP_DIR, 'agents');
       if (existsSync(agentsDir)) {
@@ -75,10 +75,10 @@ export async function GET() {
     return NextResponse.json({
       status: 'error',
       error: err instanceof Error ? err.message : 'Unknown error',
-      generation: 33,
-      skillCount: 149,
-      modeCount: 30,
-      agentCount: 21,
+      generation: 91,
+      skillCount: 288,
+      modeCount: 31,
+      agentCount: 41,
       gateCount: 10,
     });
   }

@@ -26,6 +26,8 @@ const MODEL_PRICING: Record<string, {
   cache5mWritePerMTok: number;
   cache1hWritePerMTok: number;
 }> = {
+  // Opus 4.8 (current)
+  'claude-opus-4-8': { inputPerMTok: 5, outputPerMTok: 25, cacheHitsPerMTok: 0.50, cache5mWritePerMTok: 6.25, cache1hWritePerMTok: 10 },
   // Opus 4.6
   'claude-opus-4-6-20250514': { inputPerMTok: 5, outputPerMTok: 25, cacheHitsPerMTok: 0.50, cache5mWritePerMTok: 6.25, cache1hWritePerMTok: 10 },
   'claude-opus-4-6': { inputPerMTok: 5, outputPerMTok: 25, cacheHitsPerMTok: 0.50, cache5mWritePerMTok: 6.25, cache1hWritePerMTok: 10 },
@@ -71,6 +73,9 @@ function getModelPricing(modelId: string) {
 
   // Try partial match
   const lowerModel = modelId.toLowerCase();
+  if (lowerModel.includes('opus-4-8') || lowerModel.includes('opus-4.8')) {
+    return MODEL_PRICING['claude-opus-4-8'];
+  }
   if (lowerModel.includes('opus-4-6') || lowerModel.includes('opus-4.6')) {
     return MODEL_PRICING['claude-opus-4-6'];
   }
@@ -813,6 +818,7 @@ export default function UsagePage() {
               </thead>
               <tbody>
                 {[
+                  { name: 'Claude Opus 4.8', key: 'claude-opus-4-8' },
                   { name: 'Claude Opus 4.6', key: 'claude-opus-4-6' },
                   { name: 'Claude Opus 4.5', key: 'claude-opus-4-5' },
                   { name: 'Claude Opus 4.1', key: 'claude-opus-4-1' },
