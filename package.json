@@ -5,7 +5,7 @@
   "description": "GRIP Knowledge Work Engine",
   "author": {
     "name": "CodeTonight",
-    "email": "devdev@sudonum.com"
+    "email": "dev@codetonight.co.za"
   },
   "main": "electron/dist/main.js",
   "scripts": {

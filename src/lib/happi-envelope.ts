@@ -4,13 +4,13 @@
  *
  * Why this exists: live GRIP's AI substrate is HAPPI-based. Every LLM call in
  * the harness is wrapped in a HAPPI envelope before it reaches a provider
- * (`lib/hal_llm_adapter.py` → hal-server, `skills/donna/_happi_dispatch.py` →
+ * (`lib/hal_llm_adapter.py` → hal-server, a skill-level HAPPI dispatch module →
  * `bash happi.md run`). The GUI used to construct an ad-hoc request body, so
  * the envelope contract lived nowhere in the TS codebase. Defining it here —
  * in ONE place — keeps GRIP-GUI a first-class HAPPI speaker and lets the shape
  * track HAPPI revisions without touching every call site.
  *
- * Canonical shape (mirrors `skills/donna/_happi_dispatch.py::build_envelope`
+ * Canonical shape (mirrors the skill-level Python builder's `build_envelope`
  * and `lib/hal/happi/envelope.py`, verified against ~/.claude on 2026-06-23):
  *
  *   { v, id, cmd, args, flags, content?, ctx?, auth? }

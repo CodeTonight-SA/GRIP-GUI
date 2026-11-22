@@ -3,7 +3,7 @@
  *
  * Locks the GUI-side half of the HAPPI envelope contract: the shape GRIP-GUI
  * builds must mirror the canonical Python builder
- * (`skills/donna/_happi_dispatch.py::build_envelope` /
+ * (the skill-level HAPPI dispatch module's `build_envelope` /
  * `lib/hal/happi/envelope.py`), and the `/api/infer` wire body must be derived
  * FROM the envelope (prompt from `content`, model from `flags.model`).
  *
